@@ -1,0 +1,409 @@
+/* ══════════════════════════════════════════════════════════════
+   Vocab Runner — สไตล์ทั้งหมด
+   พาเลตจำกัด 5 สี: พื้นเข้ม / ฟ้านีออน / ชมพู / เขียวมะนาว / ขาวนวล
+   ความจำกัดของพาเลตคือสิ่งที่ทำให้กราฟิกเรียบ ๆ ดู "ตั้งใจออกแบบ"
+   ══════════════════════════════════════════════════════════════ */
+
+:root {
+  --bg: #05060f;
+  --panel: rgba(12, 16, 38, 0.92);
+  --ink: #e8f2ff;
+  --dim: #8fa2c7;
+  --cyan: #22d3ee;
+  --pink: #f472b6;
+  --lime: #a3e635;
+  --danger: #fb7185;
+  --font: "Noto Sans Thai", "IBM Plex Sans Thai", -apple-system, BlinkMacSystemFont,
+          "Segoe UI", "Helvetica Neue", sans-serif;
+}
+
+* { box-sizing: border-box; margin: 0; padding: 0; }
+
+html, body {
+  height: 100%;
+  background: var(--bg);
+  color: var(--ink);
+  font-family: var(--font);
+  overflow: hidden;
+  -webkit-font-smoothing: antialiased;
+  /* กันการเลือกข้อความ/ซูมสองนิ้วตอนปัดบนมือถือ */
+  user-select: none;
+  -webkit-user-select: none;
+  touch-action: none;
+}
+
+#app { position: relative; width: 100vw; height: 100vh; }
+#game-canvas { display: block; width: 100%; height: 100%; }
+.hidden { display: none !important; }
+
+/* ── HUD ───────────────────────────────────────────────────── */
+#hud {
+  position: absolute;
+  inset: 0;
+  pointer-events: none;   /* HUD ต้องไม่ขวางการปัดนิ้วบน canvas */
+  padding: 18px 22px;
+}
+
+#hud-top-left  { position: absolute; top: 18px; left: 22px; }
+#hud-top-right { position: absolute; top: 18px; right: 22px; text-align: right; }
+
+.stat { display: flex; flex-direction: column; line-height: 1.15; margin-bottom: 8px; }
+#hud-top-right .stat { align-items: flex-end; }
+.stat-label { font-size: 11px; letter-spacing: .12em; color: var(--dim); text-transform: uppercase; }
+#hud-score, #hud-gates, #hud-best { font-size: 30px; font-weight: 800; font-variant-numeric: tabular-nums; }
+.stat.dim #hud-best { font-size: 18px; color: var(--dim); }
+
+.combo {
+  display: inline-block;
+  margin-top: 2px;
+  padding: 2px 10px;
+  border-radius: 999px;
+  background: rgba(163, 230, 53, .14);
+  border: 1px solid rgba(163, 230, 53, .5);
+  color: var(--lime);
+  font-weight: 800;
+  font-size: 15px;
+}
+
+/* โจทย์ไทย — ต้องเป็นสิ่งที่อ่านง่ายที่สุดในเฟรม */
+#hud-prompt {
+  position: absolute;
+  top: 16px; left: 50%;
+  transform: translateX(-50%);
+  min-width: 260px;
+  max-width: min(72vw, 560px);
+  padding: 12px 26px 14px;
+  text-align: center;
+  background: rgba(5, 8, 22, .72);
+  border: 1px solid rgba(34, 211, 238, .28);
+  border-radius: 16px;
+  backdrop-filter: blur(6px);
+}
+.prompt-label { font-size: 12px; letter-spacing: .1em; color: var(--dim); }
+#hud-prompt-word {
+  font-size: clamp(26px, 4.6vw, 42px);
+  font-weight: 800;
+  line-height: 1.25;
+  margin-top: 2px;
+  text-shadow: 0 0 22px rgba(34, 211, 238, .35);
+}
+
+/* แถบเวลาตอบ — บอก answer window ที่เหลือแบบไม่ต้องอ่านตัวเลข */
+#hud-timer-track {
+  height: 4px; margin-top: 10px; border-radius: 99px;
+  background: rgba(255,255,255,.09); overflow: hidden;
+}
+#hud-timer-bar {
+  height: 100%; width: 100%;
+  background: linear-gradient(90deg, var(--cyan), var(--lime));
+  transform-origin: left center;
+}
+#hud-timer-bar.urgent { background: linear-gradient(90deg, var(--pink), var(--danger)); }
+
+#hud-prompt-emoji {
+  font-size: clamp(48px, 8vw, 88px);
+  line-height: 1.15;
+  filter: drop-shadow(0 0 18px rgba(34, 211, 238, .35));
+}
+
+/* ── ธงคำตอบ 3 ใบ ─────────────────────────────────────────────
+   หัวใจของการอ่านออก: ตัวหนังสืออยู่บน DOM ขนาดคงที่เสมอ
+   ไม่ถูกเปอร์สเปกทีฟบีบเหมือนตอนเป็นป้ายในโลก 3D
+   สีของแถบบนธง = สีพื้นเรืองแสงของเลนนั้นเป๊ะ ๆ (นี่คือตัวเชื่อมเพียงอย่างเดียว
+   ที่บอกผู้เล่นว่าธงใบไหนคือเลนไหน — ห้ามเปลี่ยนให้ไม่ตรงกันเด็ดขาด) */
+#lane-flags {
+  position: absolute;
+  top: 33%;
+  left: 50%;
+  transform: translateX(-50%);
+  width: min(940px, 90vw);
+  display: flex;
+  justify-content: space-between;
+  gap: 10px;
+  pointer-events: none;
+}
+
+.flag {
+  flex: 1 1 0;
+  max-width: 260px;
+  padding: 9px 10px 13px;
+  border-radius: 15px;
+  background: rgba(6, 10, 24, .8);
+  border: 2px solid rgba(255, 255, 255, .12);
+  text-align: center;
+  backdrop-filter: blur(5px);
+  transition: transform .12s ease, border-color .12s ease, background .12s ease, box-shadow .12s ease;
+}
+
+.flag-bar {
+  height: 6px;
+  border-radius: 99px;
+  margin-bottom: 8px;
+  background: var(--lane, #22d3ee);
+  box-shadow: 0 0 12px var(--lane, #22d3ee);
+}
+
+.flag-word {
+  font-size: clamp(18px, 3vw, 33px);
+  font-weight: 800;
+  line-height: 1.15;
+  overflow-wrap: anywhere;
+}
+
+/* เลนที่ตัวละครอยู่ตอนนี้ — ต้องเห็นชัดโดยไม่ต้องละสายตาจากจอกลาง */
+.flag.active {
+  transform: translateY(-9px) scale(1.06);
+  border-color: var(--lane, #22d3ee);
+  box-shadow: 0 0 30px -6px var(--lane, #22d3ee);
+  background: rgba(10, 18, 40, .92);
+}
+
+.flag.correct {
+  background: rgba(163, 230, 53, .2);
+  border-color: var(--lime);
+  box-shadow: 0 0 34px -6px var(--lime);
+}
+
+.flag.wrong {
+  background: rgba(255, 77, 109, .22);
+  border-color: var(--danger);
+  box-shadow: 0 0 34px -6px var(--danger);
+}
+
+/* ── เหรียญ / ไอพ่นสำรอง ─────────────────────────────────── */
+.stat.coins { margin-top: 10px; }
+.stat.coins #hud-coins { font-size: 21px; color: #fbbf24; }
+
+.stat.stars { margin-top: 8px; }
+.stat.stars #hud-stars { font-size: 19px; color: #fff3b0; }
+.stat.stars.ready #hud-stars { color: var(--lime); text-shadow: 0 0 14px rgba(163,230,53,.6); }
+
+/* ── ด่านโบนัสทางช้างเผือก ─────────────────────────────────── */
+#bonus-banner {
+  position: absolute;
+  top: 17%;
+  left: 50%;
+  transform: translateX(-50%);
+  text-align: center;
+  animation: bonus-in .5s cubic-bezier(.2, 1.4, .4, 1);
+}
+.bonus-title {
+  font-size: clamp(30px, 6vw, 58px);
+  font-weight: 900;
+  letter-spacing: .06em;
+  background: linear-gradient(90deg, #a78bfa, #22d3ee, #fbbf24, #f472b6);
+  -webkit-background-clip: text;
+  background-clip: text;
+  color: transparent;
+  filter: drop-shadow(0 0 24px rgba(167, 139, 250, .5));
+}
+.bonus-sub { margin-top: 4px; font-size: 13px; color: #cfe3ff; }
+@keyframes bonus-in {
+  from { opacity: 0; transform: translate(-50%, 26px) scale(.85); }
+  to   { opacity: 1; transform: translate(-50%, 0) scale(1); }
+}
+
+#bonus-timer {
+  position: absolute;
+  bottom: 46px; left: 50%;
+  transform: translateX(-50%);
+  width: min(420px, 62vw);
+  height: 5px;
+  border-radius: 99px;
+  background: rgba(255, 255, 255, .12);
+  overflow: hidden;
+}
+#bonus-timer-bar {
+  height: 100%;
+  background: linear-gradient(90deg, #a78bfa, #22d3ee, #fbbf24);
+  transform-origin: left center;
+}
+
+/* คำถามมุกกวนยาวกว่าคำแปลปกติมาก ต้องลดขนาดลงไม่งั้นล้นกรอบ */
+#hud-prompt-word.joke { font-size: clamp(17px, 2.6vw, 26px); line-height: 1.35; }
+
+.jets { display: flex; gap: 5px; margin-top: 8px; }
+.jet-pip {
+  width: 15px; height: 21px;
+  border-radius: 5px 5px 3px 3px;
+  border: 1px solid var(--cyan);
+  background: linear-gradient(180deg, rgba(34, 211, 238, .85), rgba(34, 211, 238, .18));
+  box-shadow: 0 0 12px -2px var(--cyan);
+}
+
+#hud-toast {
+  position: absolute;
+  top: 23%;
+  left: 50%;
+  transform: translateX(-50%);
+  padding: 9px 20px;
+  border-radius: 13px;
+  background: rgba(34, 211, 238, .16);
+  border: 1px solid rgba(34, 211, 238, .65);
+  font-size: 15px;
+  font-weight: 700;
+  white-space: nowrap;
+  animation: toast-in .18s ease;
+}
+@keyframes toast-in {
+  from { opacity: 0; transform: translate(-50%, -8px); }
+  to   { opacity: 1; transform: translate(-50%, 0); }
+}
+
+#hud-controls-hint {
+  position: absolute; bottom: 16px; left: 50%; transform: translateX(-50%);
+  font-size: 12px; color: var(--dim); opacity: .75;
+  transition: opacity .6s ease;
+}
+#hud-controls-hint.faded { opacity: 0; }
+
+kbd {
+  display: inline-block;
+  padding: 1px 6px; margin: 0 1px;
+  border: 1px solid rgba(255,255,255,.22);
+  border-bottom-width: 2px;
+  border-radius: 5px;
+  font-family: inherit; font-size: .85em;
+  color: var(--ink);
+}
+
+/* ── หน้าจอเต็ม (เมนู / ตาย / สถิติ / พัก) ─────────────────── */
+.screen {
+  position: absolute; inset: 0;
+  display: flex; align-items: center; justify-content: center;
+  background: radial-gradient(ellipse at 50% 40%, rgba(34,211,238,.10), transparent 60%),
+              rgba(3, 5, 14, .88);
+  backdrop-filter: blur(3px);
+  padding: 24px;
+  z-index: 10;
+}
+
+.panel {
+  width: min(440px, 100%);
+  padding: 30px 30px 26px;
+  background: var(--panel);
+  border: 1px solid rgba(255,255,255,.09);
+  border-radius: 22px;
+  box-shadow: 0 26px 70px rgba(0,0,0,.6);
+  text-align: center;
+}
+.panel-wide { width: min(720px, 100%); text-align: left; }
+
+.title { font-size: 42px; font-weight: 900; letter-spacing: .02em; line-height: 1; }
+.title-accent { color: var(--cyan); text-shadow: 0 0 28px rgba(34,211,238,.45); }
+.subtitle { margin: 10px 0 22px; color: var(--dim); font-size: 14px; }
+h2 { font-size: 22px; margin-bottom: 16px; }
+
+.field { display: block; text-align: left; margin-bottom: 8px; }
+.field > span { display: block; font-size: 12px; color: var(--dim); margin-bottom: 6px; letter-spacing: .06em; }
+select {
+  width: 100%; padding: 11px 12px;
+  background: rgba(255,255,255,.05);
+  color: var(--ink);
+  border: 1px solid rgba(255,255,255,.15);
+  border-radius: 11px;
+  font-family: inherit; font-size: 15px;
+}
+.deck-info { font-size: 12px; color: var(--dim); margin-bottom: 16px; text-align: left; min-height: 16px; }
+
+.toggles { display: flex; gap: 18px; justify-content: center; margin-bottom: 20px; }
+.toggle { display: flex; align-items: center; gap: 7px; font-size: 13px; color: var(--dim); cursor: pointer; }
+.toggle input { accent-color: var(--cyan); width: 15px; height: 15px; }
+
+.btn {
+  display: block; width: 100%;
+  padding: 13px 18px; margin-top: 9px;
+  background: rgba(255,255,255,.06);
+  color: var(--ink);
+  border: 1px solid rgba(255,255,255,.15);
+  border-radius: 13px;
+  font-family: inherit; font-size: 15px; font-weight: 600;
+  cursor: pointer;
+  transition: transform .08s ease, background .15s ease, border-color .15s ease;
+}
+.btn:hover { background: rgba(255,255,255,.11); border-color: rgba(255,255,255,.3); }
+.btn:active { transform: translateY(1px); }
+.btn-primary {
+  background: linear-gradient(180deg, rgba(34,211,238,.28), rgba(34,211,238,.14));
+  border-color: rgba(34,211,238,.6);
+  color: #eafdff;
+}
+.btn-danger { border-color: rgba(251,113,133,.45); color: var(--danger); }
+
+.btn-small { padding: 9px 14px; font-size: 13.5px; margin-top: 0; }
+.speech-status {
+  min-height: 17px;
+  margin: 7px 0 12px;
+  font-size: 12px;
+  line-height: 1.5;
+  color: var(--dim);
+}
+.speech-status.ok { color: var(--lime); }
+.speech-status.fail { color: var(--danger); }
+
+.hint { margin-top: 16px; font-size: 11.5px; color: var(--dim); line-height: 1.9; }
+
+/* ── จอตาย ─────────────────────────────────────────────────── */
+.panel-dead { border-color: rgba(244,114,182,.35); }
+.dead-tag {
+  display: inline-block; margin-bottom: 14px;
+  padding: 3px 14px; border-radius: 99px;
+  background: rgba(244,114,182,.14); border: 1px solid rgba(244,114,182,.45);
+  color: var(--pink); font-size: 12px; letter-spacing: .14em;
+}
+.missed-card {
+  padding: 16px; border-radius: 15px;
+  background: rgba(255,255,255,.04);
+  border: 1px solid rgba(255,255,255,.09);
+}
+.missed-label { font-size: 11px; letter-spacing: .14em; color: var(--dim); }
+.missed-word {
+  font-size: 40px; font-weight: 900; color: var(--lime);
+  letter-spacing: .01em; line-height: 1.2; margin-top: 2px;
+  text-shadow: 0 0 26px rgba(163,230,53,.3);
+}
+.missed-meaning { font-size: 18px; color: var(--ink); }
+.missed-chose { margin-top: 8px; font-size: 12.5px; color: var(--pink); min-height: 16px; }
+.requeue-note { margin: 12px 0 16px; font-size: 12px; color: var(--dim); }
+
+.dead-scores { display: flex; justify-content: space-around; margin-bottom: 18px; }
+.dead-scores div { display: flex; flex-direction: column; gap: 2px; }
+.dead-scores strong { font-size: 24px; font-variant-numeric: tabular-nums; }
+
+/* ── สถิติ ─────────────────────────────────────────────────── */
+.stats-summary {
+  display: flex; flex-wrap: wrap; gap: 10px; margin-bottom: 14px;
+  font-size: 12.5px; color: var(--dim);
+}
+.stats-summary b { color: var(--ink); font-size: 15px; }
+.stats-summary .chip {
+  padding: 7px 13px; border-radius: 11px;
+  background: rgba(255,255,255,.05); border: 1px solid rgba(255,255,255,.09);
+}
+.table-wrap { max-height: 46vh; overflow: auto; border-radius: 12px; border: 1px solid rgba(255,255,255,.08); }
+table { width: 100%; border-collapse: collapse; font-size: 13.5px; }
+th, td { padding: 8px 12px; text-align: left; border-bottom: 1px solid rgba(255,255,255,.06); }
+th { position: sticky; top: 0; background: #0b1024; color: var(--dim); font-size: 11px; letter-spacing: .1em; }
+td.en { font-weight: 700; }
+.box-pill {
+  display: inline-block; min-width: 22px; text-align: center;
+  padding: 1px 7px; border-radius: 99px; font-size: 11.5px; font-weight: 700;
+}
+.box-1 { background: rgba(251,113,133,.16); color: var(--danger); }
+.box-2 { background: rgba(250,204,21,.16); color: #facc15; }
+.box-3 { background: rgba(163,230,53,.16); color: var(--lime); }
+.row { display: flex; gap: 9px; margin-top: 14px; }
+.row .btn { margin-top: 0; }
+
+.empty-note { padding: 26px; text-align: center; color: var(--dim); font-size: 13px; }
+
+@media (max-width: 560px) {
+  #hud-prompt { top: 10px; padding: 9px 16px 11px; }
+  #hud-score, #hud-gates { font-size: 22px; }
+  #hud-controls-hint { display: none; }
+  .panel { padding: 24px 20px 20px; }
+  #lane-flags { top: 30%; width: 96vw; gap: 5px; }
+  .flag { padding: 6px 5px 9px; border-radius: 11px; }
+  .flag-word { font-size: 15px; }
+  #hud-prompt-emoji { font-size: 44px; }
+}

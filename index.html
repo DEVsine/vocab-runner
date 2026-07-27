@@ -1,0 +1,162 @@
+<!doctype html>
+<html lang="th">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1, user-scalable=no">
+  <title>Vocab Runner — วิ่งทะลุกำแพงคำศัพท์</title>
+  <link rel="stylesheet" href="./style.css">
+
+  <!--
+    import map: บอกเบราว์เซอร์ตรง ๆ ว่าชื่อ 'three' แปลเป็นไฟล์ไหน
+    งานนี้ปกติเป็นหน้าที่ของ bundler (Vite/webpack) — เราเลยไม่ต้องใช้ Node เลย
+  -->
+  <script type="importmap">
+  {
+    "imports": {
+      "three": "./vendor/three.module.js"
+    }
+  }
+  </script>
+</head>
+<body>
+  <div id="app">
+    <canvas id="game-canvas"></canvas>
+
+    <!-- ══ HUD (DOM overlay — คมกว่าการวาดลง canvas และได้ฟอนต์ไทยของระบบฟรี) ══ -->
+    <div id="hud" class="hidden">
+      <div id="hud-top-left">
+        <div class="stat"><span class="stat-label">คะแนน</span><span id="hud-score">0</span></div>
+        <div id="hud-combo" class="combo hidden">×<span id="hud-combo-value">1</span></div>
+        <div class="stat coins"><span class="stat-label">เหรียญ</span><span id="hud-coins">0</span></div>
+        <div class="stat stars"><span class="stat-label">ดาวสะสม</span><span id="hud-stars">0/5</span></div>
+        <div id="hud-jets" class="jets"></div>
+      </div>
+
+      <div id="hud-prompt">
+        <div class="prompt-label" id="hud-prompt-label">วิ่งเข้าเลนที่แปลว่า</div>
+        <div id="hud-prompt-word">—</div>
+        <div id="hud-prompt-emoji" class="hidden">🚀</div>
+        <div id="hud-timer-track"><div id="hud-timer-bar"></div></div>
+      </div>
+
+      <div id="hud-top-right">
+        <div class="stat"><span class="stat-label">ด่านผ่าน</span><span id="hud-gates">0</span></div>
+        <div class="stat dim"><span class="stat-label">สถิติสูงสุด</span><span id="hud-best">0</span></div>
+      </div>
+
+      <!-- ธงคำตอบ 3 ใบ — แทนป้ายบนกำแพงเดิม สีของแต่ละใบตรงกับสีพื้นของเลนนั้น -->
+      <div id="lane-flags">
+        <div class="flag" data-lane="0"><div class="flag-bar"></div><div class="flag-word">—</div></div>
+        <div class="flag" data-lane="1"><div class="flag-bar"></div><div class="flag-word">—</div></div>
+        <div class="flag" data-lane="2"><div class="flag-bar"></div><div class="flag-word">—</div></div>
+      </div>
+
+      <div id="hud-toast" class="hidden"></div>
+
+      <!-- ป้ายประกาศตอนเข้าด่านโบนัส -->
+      <div id="bonus-banner" class="hidden">
+        <div class="bonus-title">★ ทางช้างเผือก ★</div>
+        <div class="bonus-sub">กวาดเหรียญให้เต็มที่ — ที่นี่ไม่มีอะไรทำอันตรายคุณได้</div>
+      </div>
+      <div id="bonus-timer" class="hidden"><div id="bonus-timer-bar"></div></div>
+
+      <div id="hud-controls-hint">
+        <kbd>←</kbd><kbd>→</kbd> เปลี่ยนเลน · <kbd>↑</kbd> กระโดด · <kbd>↓</kbd> สไลด์ · <kbd>Esc</kbd> พัก
+      </div>
+    </div>
+
+    <!-- ══ เมนูหลัก ══ -->
+    <section id="screen-menu" class="screen">
+      <div class="panel">
+        <h1 class="title">VOCAB<span class="title-accent">RUNNER</span></h1>
+        <p class="subtitle">คุณคือนักบินอวกาศในทางเดินสถานี — อ่านโจทย์ไทย<br>แล้ววิ่งทะลุประตูคำอังกฤษที่ถูกต้อง</p>
+
+        <label class="field">
+          <span>ชุดคำศัพท์</span>
+          <select id="deck-select"></select>
+        </label>
+        <p id="deck-info" class="deck-info">กำลังโหลด…</p>
+
+        <div class="toggles">
+          <label class="toggle"><input type="checkbox" id="toggle-sfx" checked> <span>เสียงประกอบ</span></label>
+          <label class="toggle"><input type="checkbox" id="toggle-speech" checked> <span>อ่านออกเสียงคำ</span></label>
+        </div>
+
+        <!-- ปุ่มตรวจเครื่องอ่านออกเสียงของเบราว์เซอร์ — โหมดฟังพึ่งพาสิ่งนี้ทั้งหมด
+             และมันพังเงียบ ๆ ได้หลายทาง จึงต้องมีวิธีตรวจที่ให้คำตอบชัด ๆ -->
+        <button id="btn-test-speech" class="btn btn-small">🔊 ทดสอบเสียงอ่าน</button>
+        <p id="speech-status" class="speech-status"></p>
+
+        <button id="btn-start" class="btn btn-primary">เริ่มเล่น <kbd>Space</kbd></button>
+        <button id="btn-stats" class="btn">สถิติคำศัพท์</button>
+
+        <p class="hint">
+          <kbd>←</kbd><kbd>→</kbd> หรือ <kbd>A</kbd><kbd>D</kbd> เปลี่ยนเลน ·
+          <kbd>↑</kbd>/<kbd>W</kbd> กระโดด · <kbd>↓</kbd>/<kbd>S</kbd> สไลด์ ·
+          บนมือถือใช้การปัดนิ้ว
+        </p>
+      </div>
+    </section>
+
+    <!-- ══ จอตาย (มินิมอล — ต้องกลับเข้าเกมได้ใน ~0.3 วิ) ══ -->
+    <section id="screen-dead" class="screen hidden">
+      <div class="panel panel-dead">
+        <div class="dead-tag">ชนกำแพง</div>
+
+        <div class="missed-card">
+          <div class="missed-label">คำที่พลาด</div>
+          <div id="dead-word" class="missed-word">—</div>
+          <div id="dead-meaning" class="missed-meaning">—</div>
+          <div id="dead-chose" class="missed-chose"></div>
+        </div>
+
+        <p class="requeue-note">คำนี้จะเป็นกำแพงบานแรกของรอบถัดไป</p>
+
+        <div class="dead-scores">
+          <div><span class="stat-label">คะแนน</span><strong id="dead-score">0</strong></div>
+          <div><span class="stat-label">ด่านผ่าน</span><strong id="dead-gates">0</strong></div>
+          <div><span class="stat-label">เหรียญ</span><strong id="dead-coins">0</strong></div>
+          <div><span class="stat-label">สูงสุด</span><strong id="dead-best">0</strong></div>
+        </div>
+
+        <button id="btn-retry" class="btn btn-primary">เล่นอีกครั้ง <kbd>Space</kbd></button>
+        <button id="btn-to-menu" class="btn">กลับเมนู <kbd>Esc</kbd></button>
+      </div>
+    </section>
+
+    <!-- ══ หน้าสถิติคำศัพท์ ══ -->
+    <section id="screen-stats" class="screen hidden">
+      <div class="panel panel-wide">
+        <h2>สถิติคำศัพท์</h2>
+        <div id="stats-summary" class="stats-summary"></div>
+        <div class="table-wrap">
+          <table id="stats-table">
+            <thead>
+              <tr><th>คำ</th><th>ความหมาย</th><th>กล่อง</th><th>ถูก/เจอ</th></tr>
+            </thead>
+            <tbody></tbody>
+          </table>
+        </div>
+        <div class="row">
+          <button id="btn-export" class="btn">ส่งออก JSON</button>
+          <button id="btn-import" class="btn">นำเข้า JSON</button>
+          <button id="btn-reset" class="btn btn-danger">ล้างสถิติชุดนี้</button>
+          <button id="btn-stats-close" class="btn btn-primary">ปิด</button>
+        </div>
+        <input type="file" id="import-file" accept="application/json" hidden>
+      </div>
+    </section>
+
+    <!-- ══ พัก ══ -->
+    <section id="screen-pause" class="screen hidden">
+      <div class="panel">
+        <h2>พักเกม</h2>
+        <button id="btn-resume" class="btn btn-primary">เล่นต่อ <kbd>Esc</kbd></button>
+        <button id="btn-quit" class="btn">ออกไปเมนู</button>
+      </div>
+    </section>
+  </div>
+
+  <script type="module" src="./src/main.js"></script>
+</body>
+</html>

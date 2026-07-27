@@ -1,0 +1,26 @@
+{
+  "id": "finance-basics",
+  "name": "ตัวอย่าง: ศัพท์การเงินเบื้องต้น",
+  "description": "deck ตัวอย่างขนาดเล็ก ไว้ดูเป็นแบบตอนสร้าง deck ของตัวเอง — คัดลอกไฟล์นี้แล้วแก้ได้เลย",
+  "words": [
+    { "en": "asset",      "th": "สินทรัพย์",          "pos": "noun", "level": 2, "topic": "accounting" },
+    { "en": "liability",  "th": "หนี้สิน",             "pos": "noun", "level": 3, "topic": "accounting" },
+    { "en": "equity",     "th": "ส่วนของเจ้าของ",      "pos": "noun", "level": 3, "topic": "accounting" },
+    { "en": "revenue",    "th": "รายได้จากการขาย",     "pos": "noun", "level": 2, "topic": "accounting" },
+    { "en": "expense",    "th": "ค่าใช้จ่าย",          "pos": "noun", "level": 2, "topic": "accounting" },
+    { "en": "profit",     "th": "กำไร",               "pos": "noun", "level": 1, "topic": "accounting" },
+    { "en": "loss",       "th": "ขาดทุน",             "pos": "noun", "level": 1, "topic": "accounting" },
+    { "en": "interest",   "th": "ดอกเบี้ย",           "pos": "noun", "level": 2, "topic": "banking" },
+    { "en": "inflation",  "th": "เงินเฟ้อ",           "pos": "noun", "level": 3, "topic": "economy" },
+    { "en": "dividend",   "th": "เงินปันผล",          "pos": "noun", "level": 3, "topic": "investing" },
+    { "en": "loan",       "th": "เงินกู้",            "pos": "noun", "level": 2, "topic": "banking" },
+    { "en": "mortgage",   "th": "สินเชื่อบ้าน",        "pos": "noun", "level": 3, "topic": "banking" },
+    { "en": "collateral", "th": "หลักประกันการกู้",    "pos": "noun", "level": 3, "topic": "banking" },
+    { "en": "invest",     "th": "ลงทุน",              "pos": "verb", "level": 2, "topic": "investing" },
+    { "en": "withdraw",   "th": "ถอนเงิน",            "pos": "verb", "level": 2, "topic": "banking" },
+    { "en": "deposit",    "th": "ฝากเงิน",            "pos": "verb", "level": 2, "topic": "banking" },
+    { "en": "audit",      "th": "ตรวจสอบบัญชี",       "pos": "verb", "level": 3, "topic": "accounting" },
+    { "en": "liquid",     "th": "มีสภาพคล่องสูง",      "pos": "adj",  "level": 3, "topic": "investing" },
+    { "en": "volatile",   "th": "ผันผวนรุนแรง",       "pos": "adj",  "level": 3, "topic": "investing" }
+  ]
+}
