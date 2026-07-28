@@ -65,10 +65,13 @@ html, body {
   font-size: 15px;
 }
 
-/* โจทย์ไทย — ต้องเป็นสิ่งที่อ่านง่ายที่สุดในเฟรม */
+/* โจทย์ไทย — ต้องเป็นสิ่งที่อ่านง่ายที่สุดในเฟรม
+   top นี้คือค่าสำหรับ "จอ desktop" (มือถือมี media query กด top ให้ต่ำลงอยู่แล้วด้านล่าง)
+   เลื่อนลงจาก 16px มาที่ 48px ตามที่ขอ — ให้โจทย์ลงมาอยู่ในระยะสายตาที่สบายกว่า
+   ไม่ลอยติดขอบบนจนเกินไป (ยังสูงกว่าแถวธงที่ 33% เยอะ ไม่ชนกัน) */
 #hud-prompt {
   position: absolute;
-  top: 16px; left: 50%;
+  top: 48px; left: 50%;
   transform: translateX(-50%);
   min-width: 260px;
   max-width: min(72vw, 560px);
@@ -104,6 +107,19 @@ html, body {
   font-size: clamp(48px, 8vw, 88px);
   line-height: 1.15;
   filter: drop-shadow(0 0 18px rgba(34, 211, 238, .35));
+}
+
+/* รูปจริงของโจทย์ภาพ (Openverse) — คุมขนาดไม่ให้สูงจนชนแถวธง
+   ความสูงใกล้เคียง emoji เดิม เพื่อไม่ให้กล่องโจทย์ "เด้ง" ตอนสลับ emoji↔รูป */
+#hud-prompt-image {
+  display: block;
+  margin: 4px auto 0;
+  width: clamp(88px, 13vw, 116px);
+  height: clamp(88px, 13vw, 116px);
+  object-fit: cover;
+  border-radius: 14px;
+  border: 1px solid rgba(34, 211, 238, .45);
+  box-shadow: 0 0 22px -4px rgba(34, 211, 238, .4);
 }
 
 /* ── ธงคำตอบ 3 ใบ ─────────────────────────────────────────────
@@ -149,6 +165,27 @@ html, body {
   line-height: 1.15;
   overflow-wrap: anywhere;
 }
+
+/* คำแปลไทย — ซ่อนอยู่ตอนตอบ แล้ว "คลี่" ออกมาตอนเฉลย (max-height + opacity)
+   ใช้ max-height ทรานสิชันเพื่อให้ธงไม่กระโดดสูงตอนคำแปลโผล่ */
+.flag-trans {
+  max-height: 0;
+  margin-top: 0;
+  opacity: 0;
+  overflow: hidden;
+  font-size: clamp(13px, 1.8vw, 18px);
+  font-weight: 600;
+  color: var(--dim);
+  line-height: 1.2;
+  transition: max-height .22s ease, opacity .22s ease, margin-top .22s ease;
+}
+.flag.revealed .flag-trans {
+  max-height: 2.6em;
+  margin-top: 6px;
+  opacity: 1;
+}
+/* ใบที่ตอบถูก — คำแปลเด่นเป็นสีเขียวมะนาว = "จำคู่คำนี้ไว้" */
+.flag.revealed.correct .flag-trans { color: var(--lime); }
 
 /* เลนที่ตัวละครอยู่ตอนนี้ — ต้องเห็นชัดโดยไม่ต้องละสายตาจากจอกลาง */
 .flag.active {
@@ -229,6 +266,17 @@ html, body {
   border: 1px solid var(--cyan);
   background: linear-gradient(180deg, rgba(34, 211, 238, .85), rgba(34, 211, 238, .18));
   box-shadow: 0 0 12px -2px var(--cyan);
+}
+/* ไอพ่นที่ "ใส่อยู่" — สีทองเต้นตุบ ๆ บอกว่าเกราะพร้อมทำงาน */
+.jet-pip.armed {
+  border-color: #fbbf24;
+  background: linear-gradient(180deg, rgba(251, 191, 36, .95), rgba(251, 146, 60, .4));
+  box-shadow: 0 0 16px -1px #fbbf24;
+  animation: jet-armed-pulse 0.9s ease-in-out infinite;
+}
+@keyframes jet-armed-pulse {
+  0%, 100% { transform: scale(1); }
+  50% { transform: scale(1.18); }
 }
 
 #hud-toast {
@@ -397,6 +445,90 @@ td.en { font-weight: 700; }
 
 .empty-note { padding: 26px; text-align: center; color: var(--dim); font-size: 13px; }
 
+/* ── เล่นหลายคน: ล็อบบี้ ────────────────────────────────────── */
+#mp-name, .mp-code-input {
+  width: 100%; padding: 11px 12px;
+  background: rgba(255,255,255,.05); color: var(--ink);
+  border: 1px solid rgba(255,255,255,.15); border-radius: 11px;
+  font-family: inherit; font-size: 15px;
+}
+.mp-code-input { text-transform: uppercase; letter-spacing: .3em; font-weight: 800; text-align: center; }
+.mp-or { margin: 12px 0; font-size: 12px; color: var(--dim); }
+
+.mp-code-box {
+  margin-bottom: 16px; padding: 14px; border-radius: 14px;
+  background: rgba(34,211,238,.08); border: 1px solid rgba(34,211,238,.35);
+}
+.mp-code-label { font-size: 11px; letter-spacing: .1em; color: var(--dim); }
+.mp-code-value { display: flex; align-items: center; justify-content: center; gap: 10px; margin-top: 4px; }
+#mp-room-code {
+  font-size: 40px; font-weight: 900; letter-spacing: .22em;
+  color: var(--cyan); text-shadow: 0 0 24px rgba(34,211,238,.5);
+}
+.mp-copy { margin-top: 0; width: auto; }
+
+.mp-players-label { font-size: 11px; letter-spacing: .12em; color: var(--dim); text-align: left; margin-bottom: 6px; }
+.mp-players { list-style: none; text-align: left; margin-bottom: 14px; max-height: 34vh; overflow: auto; }
+.mp-players li {
+  display: flex; align-items: center; gap: 8px;
+  padding: 9px 12px; margin-bottom: 6px; border-radius: 10px;
+  background: rgba(255,255,255,.05); border: 1px solid rgba(255,255,255,.08);
+  font-size: 15px;
+}
+.mp-players li .mp-host-badge {
+  margin-left: auto; font-size: 10.5px; letter-spacing: .1em; color: var(--lime);
+  border: 1px solid rgba(163,230,53,.4); border-radius: 99px; padding: 1px 8px;
+}
+.mp-players li .mp-you { color: var(--cyan); font-size: 12px; margin-left: 6px; }
+.mp-wait { font-size: 13px; color: var(--dim); margin: 4px 0 8px; }
+.mp-status { min-height: 17px; margin: 8px 0 10px; font-size: 12.5px; color: var(--dim); line-height: 1.5; }
+.mp-status.fail { color: var(--danger); }
+.mp-status.ok { color: var(--lime); }
+
+/* ── ตารางคะแนนสด (ระหว่างแข่ง) ─────────────────────────────── */
+#mp-leaderboard {
+  position: absolute; bottom: 58px; right: 18px; z-index: 6;
+  min-width: 190px; max-width: 250px;
+  padding: 10px 12px; border-radius: 13px;
+  background: rgba(6, 10, 24, .82);
+  border: 1px solid rgba(255,255,255,.12);
+  backdrop-filter: blur(6px);
+  pointer-events: none;
+}
+.mp-lb-title {
+  font-size: 10.5px; letter-spacing: .16em; text-transform: uppercase;
+  color: var(--cyan); margin-bottom: 7px;
+}
+#mp-lb-list { list-style: none; display: flex; flex-direction: column; gap: 4px; }
+#mp-lb-list li {
+  display: flex; align-items: center; gap: 7px;
+  font-size: 13.5px; padding: 3px 4px; border-radius: 7px;
+}
+#mp-lb-list li.me { background: rgba(34,211,238,.16); }
+#mp-lb-list li.dead { opacity: .55; }
+#mp-lb-list .lb-rank { width: 16px; color: var(--dim); font-weight: 700; font-variant-numeric: tabular-nums; }
+#mp-lb-list .lb-name { flex: 1 1 auto; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+#mp-lb-list .lb-score { font-weight: 800; font-variant-numeric: tabular-nums; }
+#mp-lb-list .lb-flag { width: 16px; text-align: center; }
+
+/* ── นับถอยหลังก่อนออกตัว ───────────────────────────────────── */
+#mp-countdown {
+  position: absolute; inset: 0; z-index: 20;
+  display: flex; align-items: center; justify-content: center;
+  background: rgba(3, 5, 14, .55); backdrop-filter: blur(2px);
+  pointer-events: none;
+}
+#mp-countdown-num {
+  font-size: clamp(90px, 20vw, 200px); font-weight: 900;
+  color: var(--cyan); text-shadow: 0 0 50px rgba(34,211,238,.6);
+  animation: mp-count-pop .9s ease;
+}
+@keyframes mp-count-pop {
+  0% { opacity: 0; transform: scale(.4); }
+  30% { opacity: 1; transform: scale(1.1); }
+  100% { opacity: .2; transform: scale(.85); }
+}
+
 @media (max-width: 560px) {
   #hud-prompt { top: 10px; padding: 9px 16px 11px; }
   #hud-score, #hud-gates { font-size: 22px; }
@@ -405,5 +537,7 @@ td.en { font-weight: 700; }
   #lane-flags { top: 30%; width: 96vw; gap: 5px; }
   .flag { padding: 6px 5px 9px; border-radius: 11px; }
   .flag-word { font-size: 15px; }
+  .flag-trans { font-size: 11.5px; }
   #hud-prompt-emoji { font-size: 44px; }
+  #hud-prompt-image { width: 82px; height: 82px; }
 }

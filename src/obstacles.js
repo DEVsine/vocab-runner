@@ -37,19 +37,28 @@ export function pickObstacleType(gatesPassed, rand = Math.random) {
 export function createObstaclePool(scene) {
   const { width, depth, lowHeight, highY, barrierHeight } = CFG.obstacles;
 
-  /* ── วัสดุ/รูปทรงที่แชร์กันทุกชิ้น (สร้างครั้งเดียว) ── */
+  /* ── วัสดุ/รูปทรงที่แชร์กันทุกชิ้น (สร้างครั้งเดียว) ──
+   *
+   * ⭐ ทำไมอุปสรรคเดิม "มืดจนมองไม่เห็น": ฉากพื้นหลังเข้ม (0x05060f) + มีหมอก
+   * ส่วนหินอุกกาบาต/แผงขยะเป็น MeshLambertMaterial ที่ "ต้องรอแสงมาส่องถึงจะเห็นสี"
+   * base color ก็เข้ม + emissive (แสงในตัว) เกือบดำ → เลยจมหายเข้ากับพื้นหลัง
+   *
+   * เทคนิคแก้: ดัน **emissive** ให้สว่างขึ้นเป็นหลัก (ไม่ใช่แค่ base color)
+   * เพราะ emissive เรืองแสงด้วยตัวเองเสมอ ไม่ขึ้นกับแสงในฉากและไม่โดนหมอกกลืน
+   * → วัตถุ "ป็อป" ออกมาจากพื้นหลังมืดได้ทันทีแม้อยู่ไกล
+   */
   const M = {
-    rock: new THREE.MeshLambertMaterial({ color: 0x6b5445, emissive: 0x2a1206 }),
-    magma: new THREE.MeshBasicMaterial({ color: 0xff7a3c }),
-    trail: new THREE.MeshBasicMaterial({ color: 0xff9d5c, transparent: true, opacity: 0.45 }),
-    panel: new THREE.MeshLambertMaterial({ color: 0x33406b, emissive: 0x0a1430 }),
-    metal: new THREE.MeshLambertMaterial({ color: 0x8d97ad }),
-    solar: new THREE.MeshBasicMaterial({ color: 0x1b3f8f }),
-    cable: new THREE.MeshBasicMaterial({ color: 0x4a5570 }),
+    rock: new THREE.MeshLambertMaterial({ color: 0xc09274, emissive: 0x8a4a1e }),
+    magma: new THREE.MeshBasicMaterial({ color: 0xffab4a }),
+    trail: new THREE.MeshBasicMaterial({ color: 0xffb877, transparent: true, opacity: 0.55 }),
+    panel: new THREE.MeshLambertMaterial({ color: 0x5f74b4, emissive: 0x2f57a6 }),
+    metal: new THREE.MeshLambertMaterial({ color: 0xc6d0e6, emissive: 0x2b3350 }),
+    solar: new THREE.MeshBasicMaterial({ color: 0x4a90e2 }),
+    cable: new THREE.MeshBasicMaterial({ color: 0x8996b4 }),
     field: new THREE.MeshBasicMaterial({
-      color: 0xff4d6d, transparent: true, opacity: 0.34, side: THREE.DoubleSide,
+      color: 0xff5d79, transparent: true, opacity: 0.5, side: THREE.DoubleSide,
     }),
-    fieldEdge: new THREE.MeshBasicMaterial({ color: 0xff4d6d }),
+    fieldEdge: new THREE.MeshBasicMaterial({ color: 0xff8aa1 }),
   };
 
   const G = {
@@ -175,7 +184,7 @@ export function createObstaclePool(scene) {
           part.group.rotation.z = Math.sin(clock * 1.8 + o.lane) * 0.14;  // แกว่งเบา ๆ
         }
         if (o.type === OBSTACLE.BARRIER) {
-          part.group.children[0].material.opacity = 0.28 + Math.sin(clock * 7) * 0.09;
+          part.group.children[0].material.opacity = 0.44 + Math.sin(clock * 7) * 0.12;
         }
 
         if (o.holder.position.z > CFG.world.despawnZ) {

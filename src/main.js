@@ -19,11 +19,13 @@ import { createScene } from './scene.js';
 import { createPlayer } from './player.js';
 import { createGatePool } from './gates.js';
 import { createObstaclePool, pickObstacleType } from './obstacles.js';
+import { createTrainPool, TRAIN } from './trains.js';
 import { createPickupPool, PICKUP } from './pickups.js';
 import { planBonus } from './bonus.js';
 import { createHUD } from './hud.js';
 import { createUI } from './ui.js';
 import { createInput, ACTIONS } from './input.js';
+import { createNet } from './net.js';
 import { loadDeckIndex, loadDeck, pickWord, buildQuestion } from './deck.js';
 import * as srs from './srs.js';
 import {
@@ -38,10 +40,11 @@ const world = createScene(canvas);
 const player = createPlayer(world.scene);
 const gates = createGatePool(world.scene);
 const obstacles = createObstaclePool(world.scene);
+const trains = createTrainPool(world.scene);
 const pickups = createPickupPool(world.scene);
 const hud = createHUD();
 
-/** boot | menu | running | dying | dead | paused | stats */
+/** boot | menu | lobby | countdown | running | dying | dead | paused | stats */
 let state = 'boot';
 let deck = null;
 let run = null;
@@ -50,13 +53,26 @@ let dyingTimer = 0;
 let pendingRetryWord = null;   // คำที่ทำให้ตายรอบก่อน → เป็นด่านแรกของรอบถัดไป
 let jokes = [];                // มุกกวนสำหรับด่านโบนัส
 
+/* ── สถานะโหมดแข่งหลายคน ─────────────────────────────────── */
+const net = createNet();
+let mpActive = false;          // อยู่ในรอบแข่งที่มีห้อง (ต้อง broadcast + โชว์ leaderboard)
+let mpRoster = [];             // roster ล่าสุดจาก host
+let mpFinished = false;        // รอบนี้เราจบ (ตาย) แล้วหรือยัง
+let mpBroadcastAt = 0;         // เวลาล่าสุดที่ส่งสถานะ (throttle)
+let countdownTimer = null;
+
 /* ── หน้าจอ/เมนู ─────────────────────────────────────────── */
 
 const ui = createUI({
-  onStart: () => startRun(),
-  onMenu: () => toMenu(),
+  onStart: () => retry(),                 // เมนู=เล่นเดี่ยว, จอตายในโหมดแข่ง=กลับห้อง
+  onMenu: () => leaveToMenu(),
   onResume: () => resumeGame(),
   onDeckChange: (file) => selectDeck(file),
+  onOpenMultiplayer: () => openMultiplayer(),
+  onMPCreate: (name) => mpCreate(name),
+  onMPJoin: (name, code) => mpJoin(name, code),
+  onMPStart: () => mpStart(),
+  onMPLeave: () => leaveToMenu(),
   onOpenStats: () => {
     stopAmbience();
     ui.renderStats(deck);
@@ -142,8 +158,8 @@ createInput(canvas, (action) => {
       if (action === ACTIONS.CONFIRM) startRun();
       break;
     case 'dead':
-      if (action === ACTIONS.CONFIRM) startRun();
-      else if (action === ACTIONS.BACK) toMenu();
+      if (action === ACTIONS.CONFIRM) retry();
+      else if (action === ACTIONS.BACK) leaveToMenu();
       break;
     case 'stats':
       if (action === ACTIONS.BACK || action === ACTIONS.CONFIRM) toMenu();
@@ -153,6 +169,7 @@ createInput(canvas, (action) => {
       break;
     case 'running':
       if (action === ACTIONS.BACK) pauseGame();
+      else if (action === ACTIONS.CONFIRM) equipJet();   // Space/Enter/แตะจอ = ใส่ไอพ่น
       else player.handle(action, sfx);
       break;
     default:
@@ -191,6 +208,7 @@ function startRun() {
   stopSpeaking();
   gates.reset();
   obstacles.reset();
+  trains.reset();
   pickups.reset();
   player.reset();
 
@@ -202,6 +220,7 @@ function startRun() {
     combo: 1,
     coins: 0,
     jets: 0,
+    jetArmed: false,       // ไอพ่นต้อง "กดใส่" เองถึงจะกันตาย (Space/แตะจอ)
     stars: 0,
     bonus: null,
     recent: [],
@@ -224,15 +243,136 @@ function startRun() {
   hud.show();
   hud.setScore(0, 0, 1);
   hud.setCoins(0);
-  hud.setJets(0);
+  hud.setJets(0, false);
   hud.setStars(0, CFG.stars.needed);
   hud.setBonusTimer(null);
   hud.hideBonusBanner();
   hud.setBest(srs.getBest(deck.id).score);
   hud.clearQuestion();
+  hud.setQuestionVisible(true);    // เผื่อรอบก่อนจบตอนอยู่ในโบนัส (ยังซ่อน UI ค้างอยู่)
   hud.setActiveLane(1);
   state = 'running';
   startAmbience();
+}
+
+/* ══ โหมดแข่งหลายคน (P2P) ═══════════════════════════════════
+ * ปรัชญา: "โลกใครโลกมัน" — แต่ละเครื่องรันเกมของตัวเอง เราแค่ส่ง "สถานะสรุป"
+ * (คะแนน/ด่าน/รอด-ตาย) ให้กันสด ๆ ผ่าน net.js แล้วเอามาวาดเป็นตารางคะแนน
+ * ข้อดีคือไม่ต้องรื้อ engine ให้ deterministic — ดูเหตุผลเต็มใน net.js
+ */
+
+function setupNet() {
+  net.on('roster', (players) => {
+    mpRoster = players;
+    if (state === 'lobby') ui.mpRenderPlayers(players, net.selfId());
+    hud.setLeaderboard(players, net.selfId());
+  });
+  net.on('start', (deckFile) => beginRace(deckFile));
+  net.on('status', (msg) => ui.mpSetStatus(msg));
+  net.on('error', (msg) => ui.mpSetStatus(msg, 'fail'));
+  net.on('closed', () => {
+    mpActive = false;
+    mpFinished = false;
+    clearInterval(countdownTimer);
+    hud.countdown(null);
+    hud.showLeaderboard(false);
+    hud.hide();
+    ui.mpResetLobby();
+    ui.show('multiplayer');
+    state = 'lobby';
+    ui.mpSetStatus('หัวห้องปิดห้อง หรือหลุดการเชื่อมต่อ', 'fail');
+  });
+}
+
+function openMultiplayer() {
+  stopSpeaking();
+  stopAmbience();
+  hud.hide();
+  hud.showLeaderboard(false);
+  ui.mpResetLobby();
+  ui.show('multiplayer');
+  state = 'lobby';
+  if (!net.supported()) {
+    ui.mpSetStatus('เบราว์เซอร์นี้ต่อ P2P ไม่ได้ (โหลดไลบรารีเชื่อมต่อไม่สำเร็จ)', 'fail');
+  }
+}
+
+function mpCreate(name) {
+  ui.mpSetStatus('กำลังสร้างห้อง…');
+  net.host(name, (code) => ui.mpEnterRoom(code, true));
+}
+
+function mpJoin(name, code) {
+  ui.mpSetStatus('กำลังเข้าห้อง…');
+  net.join(code, name, (code2) => ui.mpEnterRoom(code2, false));
+}
+
+/** หัวห้องกดเริ่ม → กระจายชื่อ deck ที่เลือกไว้ให้ทุกคนเริ่มพร้อมกัน */
+function mpStart() {
+  net.startRace(ui.selectedDeckFile());
+}
+
+/** เริ่มรอบแข่ง: โหลด deck ของหัวห้อง → นับถอยหลัง → ออกตัวพร้อมกัน */
+async function beginRace(deckFile) {
+  clearInterval(countdownTimer);
+  mpActive = true;
+  mpFinished = false;
+  pendingRetryWord = null;      // เริ่มแข่งใหม่ต้องสะอาด ไม่เอาคำที่พลาดจากรอบเดี่ยวมาปน
+  try {
+    if (deckFile) deck = await loadDeck(deckFile);
+  } catch (err) {
+    console.warn('[mp] โหลด deck ของหัวห้องไม่ได้ — ใช้ deck เดิมแทน', err);
+  }
+  ui.hideAll();
+  hud.showLeaderboard(true);
+  hud.setLeaderboard(mpRoster, net.selfId());
+  state = 'countdown';
+  runCountdown(() => startRun());
+}
+
+function runCountdown(done) {
+  let n = 3;
+  hud.countdown(n);
+  sfx.select();
+  clearInterval(countdownTimer);
+  countdownTimer = setInterval(() => {
+    n -= 1;
+    if (n > 0) { hud.countdown(n); sfx.select(); }
+    else { clearInterval(countdownTimer); hud.countdown(null); done(); }
+  }, 850);
+}
+
+/** กลับเข้าล็อบบี้หลังจบรอบ (ยังอยู่ในห้อง) — หัวห้องกดเริ่มรอบใหม่ได้ */
+function toLobby() {
+  stopSpeaking();
+  stopAmbience();
+  clearInterval(countdownTimer);
+  hud.countdown(null);
+  hud.hide();
+  hud.showLeaderboard(false);
+  mpFinished = false;
+  net.sendState({ score: 0, gates: 0, coins: 0, alive: false, finished: false });  // ล้างคะแนนเก่าใน roster
+  ui.mpEnterRoom(net.code(), net.amHost());
+  ui.mpRenderPlayers(mpRoster, net.selfId());
+  ui.show('multiplayer');
+  state = 'lobby';
+}
+
+/** ปุ่ม "เล่นอีกครั้ง": โหมดแข่ง=กลับห้อง, เล่นเดี่ยว=เริ่มรอบใหม่ทันที */
+function retry() {
+  if (mpActive) toLobby();
+  else startRun();
+}
+
+/** ออกจากทุกอย่างกลับเมนู — ถ้าอยู่ในห้องต้องตัดการเชื่อมต่อก่อน */
+function leaveToMenu() {
+  if (net.isConnected()) net.leave();
+  mpActive = false;
+  mpFinished = false;
+  clearInterval(countdownTimer);
+  hud.countdown(null);
+  hud.showLeaderboard(false);
+  toMenu();
 }
 
 /* ── ผู้กำกับ: คำนวณระยะจากเวลา ──────────────────────────── */
@@ -293,6 +433,17 @@ function scheduleBreather(gateArrival) {
   const end = gateArrival + CFG.pacing.breatherSeconds - CFG.pacing.obstacleEdgeMargin;
   if (end <= start) return;
 
+  // ── ยานลำเลียง (RIDE) ตัดสินใจ "ก่อน" ของทุกอย่าง ──
+  // เพราะยานยาวกินทั้งช่วงพัก เลนของมันต้องสงวนไว้: ห้ามมีสิ่งกีดขวาง/เหรียญพื้น/ดาว
+  // (ของพวกนั้นจะไปอยู่ใต้ท้องยาน มองไม่เห็นและเก็บไม่ได้ = ดูเหมือนเกมพัง)
+  let trainLane = -1;
+  if (run.gates >= CFG.trains.rideAfterGates && Math.random() < CFG.trains.rideChance) {
+    trainLane = Math.floor(Math.random() * CFG.world.laneCount);
+    run.events.push({ kind: 'train', time: gateArrival + 0.55, lane: trainLane, lead: 1.7 });
+  }
+
+  const groundLanes = [0, 1, 2].filter(l => l !== trainLane);
+
   const waves = rule.waves[0] +
     Math.floor(Math.random() * (rule.waves[1] - rule.waves[0] + 1));
 
@@ -300,10 +451,12 @@ function scheduleBreather(gateArrival) {
     const slot = waves === 1 ? 0.5 : (w + 0.5) / waves;
     const time = start + (end - start) * slot;
 
-    // ⚠️ กฎความปลอดภัย: ห้ามบล็อกครบทั้ง 3 เลนในเวลาเดียวกันเด็ดขาด
-    // ไม่งั้นผู้เล่นตายโดยไม่มีทางเลือก ซึ่งไม่ใช่ "ยาก" แต่คือ "ไม่ยุติธรรม"
-    const simultaneous = Math.min(rule.simultaneous, CFG.world.laneCount - 1);
-    const lanes = [0, 1, 2].sort(() => Math.random() - 0.5).slice(0, simultaneous);
+    // ⚠️ กฎความปลอดภัย: ห้ามบล็อกครบทุกเลนพื้นในเวลาเดียวกันเด็ดขาด
+    // และช่วงมียาน (เหลือเลนพื้นแค่ 2) จำกัดสิ่งกีดขวางไว้ 1 ชิ้น
+    // → เส้นทางรอดมีเสมอ: เลนพื้นที่ว่าง หรือกระโดดขึ้นหลังคายาน
+    const cap = trainLane >= 0 ? 1 : CFG.world.laneCount - 1;
+    const simultaneous = Math.min(rule.simultaneous, cap, groundLanes.length - 1 || 1);
+    const lanes = groundLanes.slice().sort(() => Math.random() - 0.5).slice(0, simultaneous);
 
     for (const lane of lanes) {
       run.events.push({
@@ -316,25 +469,51 @@ function scheduleBreather(gateArrival) {
     }
   }
 
-  if (Math.random() > CFG.coins.chancePerBreather) return;
-
   /** เลนนี้ว่างจากอันตรายในช่วงเวลานั้นไหม (เผื่อขอบไว้ ±0.5 วิ) */
   const laneFreeAt = (lane, time) => !run.events.some(
     e => e.kind === 'obstacle' && e.lane === lane && Math.abs(e.time - time) < 0.5
   );
 
-  const lane = Math.floor(Math.random() * CFG.world.laneCount);
+  // ── ยานวิ่งสวน (ONCOMING) — ความตื่นเต้นหลังผู้เล่นเริ่มอยู่ตัว ──
+  if (run.gates >= CFG.trains.oncomingAfterGates
+      && Math.random() < CFG.trains.oncomingChance) {
+    const time = gateArrival + CFG.pacing.breatherSeconds * 0.55;
+    const cand = groundLanes.filter(l => laneFreeAt(l, time));
+    if (cand.length) {
+      run.events.push({
+        kind: 'oncoming',
+        time,
+        lane: cand[Math.floor(Math.random() * cand.length)],
+        lead: CFG.trains.hornLeadSeconds,
+      });
+    }
+  }
+
+  if (Math.random() > CFG.coins.chancePerBreather) return;
+
+  /** วางเหรียญ 1 แถวในเลนที่กำหนด — คืนเวลาของเหรียญเม็ดสุดท้าย */
+  const pushCoinRow = (lane, t0, n) => {
+    let last = t0;
+    for (let i = 0; i < n; i++) {
+      const time = t0 + i * CFG.coins.gapSeconds;
+      // เว้นช่องตรงที่มีอันตราย → แถวเหรียญขาดเป็นช่วงตรงจุดที่ต้องหลบพอดี
+      // กลายเป็นการ "สอนจังหวะ" โดยไม่ต้องมีข้อความบอก
+      if (!laneFreeAt(lane, time)) continue;
+      run.events.push({ kind: 'coin', time, lane, lead: CFG.coins.lead });
+      last = time;
+    }
+    return last;
+  };
+
   const n = CFG.coins.runMin + Math.floor(Math.random() * (CFG.coins.runMax - CFG.coins.runMin + 1));
   const t0 = gateArrival + 0.45;
-  let lastCoinTime = t0;
+  const lane = groundLanes[Math.floor(Math.random() * groundLanes.length)];
+  const lastCoinTime = pushCoinRow(lane, t0, n);
 
-  for (let i = 0; i < n; i++) {
-    const time = t0 + i * CFG.coins.gapSeconds;
-    // เว้นช่องตรงที่มีอันตราย → แถวเหรียญจะขาดเป็นช่วง ๆ ตรงจุดที่ต้องหลบพอดี
-    // กลายเป็นการ "สอนจังหวะ" โดยไม่ต้องมีข้อความบอก
-    if (!laneFreeAt(lane, time)) continue;
-    run.events.push({ kind: 'coin', time, lane, lead: CFG.coins.lead });
-    lastCoinTime = time;
+  // แถวที่สองอีกเลน (เหลื่อมเวลานิดหน่อยให้ตาไล่ทัน) — "เก็บเงินเพลิน" ต้องมีให้เลือกทาง
+  if (Math.random() < CFG.coins.doubleLaneChance && groundLanes.length > 1) {
+    const others = groundLanes.filter(l => l !== lane);
+    pushCoinRow(others[Math.floor(Math.random() * others.length)], t0 + 0.3, Math.max(3, n - 2));
   }
 
   // ไอพ่นสำรองวางไว้ท้ายแถวเหรียญ = รางวัลของคนที่เก็บจนจบแถว
@@ -342,10 +521,10 @@ function scheduleBreather(gateArrival) {
     run.events.push({ kind: 'jet', time: lastCoinTime + 0.3, lane, lead: CFG.powerup.lead });
   }
 
-  // ดาวสะสม — ลอยสูง ต้องกระโดดเก็บ จึงวางในเลนที่ว่างจริง ๆ เท่านั้น
+  // ดาวสะสม — วางเฉพาะเลนพื้นที่ว่างจริง ๆ (ใต้ท้องยานคือจุดบอด)
   if (run.stars < CFG.stars.needed && Math.random() < CFG.stars.chancePerBreather) {
     const starTime = gateArrival + CFG.pacing.breatherSeconds * 0.62;
-    const free = [0, 1, 2].filter(l => laneFreeAt(l, starTime));
+    const free = groundLanes.filter(l => laneFreeAt(l, starTime));
     if (free.length) {
       run.events.push({
         kind: 'star',
@@ -374,10 +553,27 @@ function runDirector() {
     const ev = run.events[i];
     if (run.time < ev.time - ev.lead) continue;
     const z = -distanceOver(ev.lead);
+
     if (ev.kind === 'obstacle') obstacles.spawn(ev.type, ev.lane, z);
     else if (ev.kind === 'coin') pickups.spawnCoin(ev.lane, z);
     else if (ev.kind === 'star') pickups.spawnStar(ev.lane, z);
-    else pickups.spawnJet(ev.lane, z);
+    else if (ev.kind === 'train') {
+      trains.spawn(TRAIN.RIDE, ev.lane, z);
+      // แถวเหรียญบนหลังคา — วาง "เชิงเรขาคณิต" ตามความยาวยาน (ไม่ใช่ตามเวลา)
+      // เพราะเหรียญกับยานเคลื่อนด้วยความเร็วเดียวกัน ระยะบนหลังคาจึงคงที่ตลอด
+      const L = CFG.trains.length;
+      const nCoins = CFG.trains.roofCoins;
+      for (let k = 0; k < nCoins; k++) {
+        const zi = z - 1.6 - k * ((L - 3.2) / (nCoins - 1));
+        pickups.spawnCoin(ev.lane, zi, CFG.trains.roofY + 0.95);
+      }
+    } else if (ev.kind === 'oncoming') {
+      // ยานสวนวิ่งเร็วกว่าโลก: ระยะเกิด = ระยะโลกเลื่อน + ระยะที่ยานวิ่งเอง
+      trains.spawn(TRAIN.ONCOMING, ev.lane,
+        -(distanceOver(ev.lead) + CFG.trains.oncomingExtraSpeed * ev.lead));
+      sfx.horn();              // หวูดเตือนพร้อมไฟหน้า — ผู้เล่นมีเวลาหลบ ~1.5 วิ
+    } else pickups.spawnJet(ev.lane, z);
+
     run.events.splice(i, 1);
   }
 }
@@ -389,6 +585,8 @@ function enterBonus() {
   run.events = [];
   gates.reset();
   obstacles.reset();
+  trains.reset();
+  player.setPlatform(0);   // ถ้ากำลังยืนบนหลังคาอยู่ ให้ฐานกลับพื้นก่อนทะยานขึ้น
   pickups.reset();
 
   run.stars = 0;
@@ -403,8 +601,9 @@ function enterBonus() {
 
   hud.setStars(0, CFG.stars.needed);
   hud.clearQuestion();
+  hud.setQuestionVisible(false);   // โบนัสไม่มีคำถาม → ซ่อนกล่องโจทย์+ธงให้จอโล่ง
   hud.showBonusBanner();
-  hud.toast('↑ ↓ สลับระดับการบินเพื่อกวาดเหรียญคนละแถว', 3200);
+  hud.toast('← → กวาดเก็บเหรียญให้ครบ — ที่นี่ไม่มีอะไรทำอันตรายคุณได้', 3200);
   sfx.bonusStart();
 }
 
@@ -433,9 +632,12 @@ function bonusDirector(dt) {
     if (b.t < ev.time - lead) continue;
 
     if (ev.kind === 'coin') {
-      // วางเหรียญที่ "ระดับกลางลำตัว" ของแต่ละชั้นการบิน
-      // เพื่อให้ชั้นบน/ล่างเก็บข้ามกันไม่ได้ → การกดขึ้น/ลงถึงจะมีความหมาย
-      const y = (ev.high ? CFG.bonus.flyHighY : CFG.bonus.flyLowY) + 0.8;
+      // บินระดับเดียว: เหรียญทุกใบต้องอยู่ที่ระดับกลางลำตัวของชั้นบินล่างเสมอ
+      // (ไม่สนใจ ev.high อีกต่อไป) — เพราะปิดปุ่มขึ้น/ลงแล้ว ถ้าวางเหรียญไว้ชั้นบน
+      // ผู้เล่นจะไม่มีทางขึ้นไปเก็บได้ กลายเป็นเหรียญหลอกที่น่าหงุดหงิด
+      const y = CFG.bonus.singleLevel
+        ? CFG.bonus.flyLowY + 0.8
+        : (ev.high ? CFG.bonus.flyHighY : CFG.bonus.flyLowY) + 0.8;
       pickups.spawnCoin(ev.lane, -distanceOver(lead), y);
     } else {
       spawnJokeGate(lead);
@@ -457,6 +659,7 @@ function exitBonus() {
   hud.setBonusTimer(null);
   hud.hideBonusBanner();
   hud.clearQuestion();
+  hud.setQuestionVisible(true);    // กลับเข้าโหมดปกติ → โชว์กล่องโจทย์+ธงอีกครั้ง
   sfx.bonusEnd();
 
   // เว้นเวลาให้ร่อนลงถึงพื้นก่อน แล้วค่อยเริ่มด่านคำศัพท์ถัดไป
@@ -481,10 +684,41 @@ function passGate(gate) {
   hud.setScore(run.score, run.gates, run.combo);
 }
 
-/** ตอบผิดแต่มีไอพ่นสำรอง → พุ่งข้ามลำแสง แต่ยังนับว่าตอบผิดอยู่ */
+/**
+ * กด "ใส่" ไอพ่นจากคลัง (Space/Enter/แตะจอ ระหว่างวิ่ง)
+ * ใส่แล้วมีเปลวที่หลังตลอด และกันตายได้ 1 ครั้ง — ทุกสาเหตุ (ตอบผิด/ชนของ/ชนยาน)
+ * ⚠️ เก็บมาเฉย ๆ โดยไม่ใส่ = ไม่กันอะไรเลย ชนแล้วตายปกติ (นี่คือการตัดสินใจของผู้เล่น)
+ */
+function equipJet() {
+  if (!run || run.bonus) return;
+  if (run.jetArmed) { hud.toast('ไอพ่นใส่อยู่แล้ว', 900); return; }
+  if (run.jets <= 0) return;
+  run.jets -= 1;
+  run.jetArmed = true;
+  player.setArmed(true);
+  sfx.jetEquip();
+  hud.setJets(run.jets, true);
+  hud.toast('🚀 ใส่ไอพ่นแล้ว — กันตายได้ 1 ครั้ง', 1600);
+}
+
+/** ไอพ่นที่ใส่อยู่ช่วยชีวิตจากการ "ชน" (สิ่งกีดขวาง/ยาน) — พุ่งข้ามแล้วเปลวดับ */
+function rescueWithJet(message) {
+  run.jetArmed = false;
+  player.setArmed(false);
+  run.combo = 1;
+  run.invuln = CFG.powerup.invulnMs / 1000;
+  player.boost();
+  sfx.jetUse();
+  hud.setJets(run.jets, false);
+  hud.setScore(run.score, run.gates, run.combo);
+  hud.toast(message, 2000);
+}
+
+/** ตอบผิดแต่ "ใส่ไอพ่นไว้" → พุ่งข้ามลำแสง แต่ยังนับว่าตอบผิดอยู่ */
 function saveWithJet(gate) {
   const q = gate.question;
-  run.jets -= 1;
+  run.jetArmed = false;
+  player.setArmed(false);
   run.combo = 1;
   run.invuln = CFG.powerup.invulnMs / 1000;
 
@@ -495,9 +729,9 @@ function saveWithJet(gate) {
   sfx.jetUse();
   speak(q.word.en);
 
-  hud.setJets(run.jets);
+  hud.setJets(run.jets, false);
   hud.setScore(run.score, run.gates, run.combo);
-  hud.toast(`รอดด้วยไอพ่น! คำที่ถูกคือ "${q.word.en}" = ${q.word.th}`, 2200);
+  hud.toast(`ไอพ่นช่วยไว้! คำที่ถูกคือ "${q.word.en}" = ${q.word.th}`, 2200);
 }
 
 function die(cause, word, chosen) {
@@ -523,6 +757,12 @@ function die(cause, word, chosen) {
     coins: run.coins,
     best: srs.getBest(deck.id).score,
   };
+
+  // โหมดแข่ง: ส่งคะแนนสุดท้าย + สถานะ "ตายแล้ว" (ล็อกอันดับในตารางคะแนน)
+  if (mpActive && !mpFinished) {
+    mpFinished = true;
+    net.sendState({ score: run.score, gates: run.gates, coins: run.coins, alive: false, finished: true });
+  }
 
   // ให้เสียงระเบิดดังจบก่อน แล้วค่อยอ่านคำที่ถูกต้อง (ไม่งั้นทับกันจนฟังไม่รู้เรื่อง)
   if (word) setTimeout(() => speak(word.en), 430);
@@ -570,13 +810,14 @@ function checkGates() {
     // เลเซอร์ยิงทุกเลนที่เป็นคำตอบผิดเสมอ ไม่ว่าผู้เล่นจะอยู่เลนไหน
     gate.resolve(q.correctIndex);
     hud.markResult(q.correctIndex);
+    hud.revealMeanings(q.options);   // เผยคำแปลไทยใต้ทุกธง — ปิดวงจร "เห็นคำ↔รู้ความหมาย"
     hud.setTimer(0);
     sfx.laser();
 
     if (correct) {
       passGate(gate);
-    } else if (run.jets > 0) {
-      saveWithJet(gate);
+    } else if (run.jetArmed) {
+      saveWithJet(gate);      // ต้อง "ใส่" ไว้ก่อนเท่านั้น — มีในคลังเฉย ๆ ไม่ช่วย
     } else {
       die('lane', q.word, q.options[lane]);
       return;
@@ -589,6 +830,42 @@ function checkHazards() {
   if (run.bonus || run.invuln > 0 || player.isBoosting()) return;
   const hit = obstacles.checkHit(player);
   if (hit) {
+    if (run.jetArmed) { rescueWithJet('🚀 ไอพ่นช่วยไว้! รอดจากการชน'); return; }
+    const pending = gates.pending();
+    die('obstacle', pending?.question.word ?? null, null);
+  }
+}
+
+/**
+ * ยานลำเลียง: ตัดสิน 3 อย่างต่อเฟรม — ขึ้นหลังคา / ชนตัวยาน / โดนยานสวน
+ *
+ * เกณฑ์ขึ้นหลังคา: ตัวอยู่สูงถึง (roofY − 0.55) ตอนที่ช่วงตัวยานคร่อมเรา = เหยียบได้
+ * ต่ำกว่านั้น = พุ่งเข้าข้างตัวยาน — มี grace ช่วงหัวยานเพิ่งถึง (กำลังกระโดดขาขึ้นพอดี)
+ */
+function checkTrains() {
+  if (run.bonus) return;
+  const px = player.x();
+
+  const surf = trains.rideSurface(px);
+  if (surf) {
+    const py = player.group.position.y;
+    if (py >= CFG.trains.roofY - 0.55) {
+      if (!player.onPlatform()) sfx.mount();     // จังหวะเท้าแตะหลังคาครั้งแรก
+      player.setPlatform(surf.roofY);
+    } else if (surf.enteredBy > CFG.trains.mountGrace
+               && run.invuln <= 0 && !player.isBoosting()) {
+      if (run.jetArmed) { rescueWithJet('🚀 ไอพ่นช่วยไว้! พุ่งข้ามยานลำเลียง'); return; }
+      const pending = gates.pending();
+      die('obstacle', pending?.question.word ?? null, null);
+      return;
+    }
+  } else {
+    player.setPlatform(0);
+  }
+
+  if (run.invuln > 0 || player.isBoosting()) return;
+  if (trains.oncomingHit(px)) {
+    if (run.jetArmed) { rescueWithJet('🚀 ไอพ่นช่วยไว้! เฉียดยานสวนนิดเดียว'); return; }
     const pending = gates.pending();
     die('obstacle', pending?.question.word ?? null, null);
   }
@@ -618,12 +895,12 @@ function collectPickups() {
     } else {
       run.jets = Math.min(CFG.powerup.maxCharges, run.jets + 1);
       sfx.jetPickup();
-      hud.toast('ได้ไอพ่นสำรอง — ตอบผิดครั้งหน้าจะไม่ตาย', 1800);
+      hud.toast('ได้ไอพ่น! กด Space หรือแตะจอเพื่อ "ใส่" — ใส่แล้วถึงจะกันตาย', 2400);
     }
   }
 
   hud.setCoins(run.coins);
-  hud.setJets(run.jets);
+  hud.setJets(run.jets, run.jetArmed);
   hud.setScore(run.score, run.gates, run.combo);
 
   // เข้าด่านโบนัสหลังประมวลผลของที่เก็บได้ทั้งหมดในเฟรมนี้เสร็จก่อน
@@ -645,6 +922,7 @@ function update(dt) {
     player.update(dt, sfx);
     gates.update(dt, run.speed);
     obstacles.update(dt, run.speed);
+    trains.update(dt, run.speed);
     pickups.update(dt, run.speed);
     world.update(dt, run.speed, player.x());
     updateAmbience(run.speed);
@@ -652,6 +930,8 @@ function update(dt) {
     collectPickups();
     checkGates();
     if (state !== 'running') return;    // ตายไปแล้วในเฟรมนี้
+    checkTrains();
+    if (state !== 'running') return;
     checkHazards();
 
     hud.setActiveLane(player.nearestLane());
@@ -666,6 +946,15 @@ function update(dt) {
       run.audioReplayed = true;
       speak(pending.question.word.en, { rate: 0.8 });
     }
+
+    // โหมดแข่ง: ส่งสถานะสรุปให้เพื่อน ~6–7 ครั้ง/วินาที (ถี่พอให้ลื่น เบาพอไม่ท่วมเน็ต)
+    if (mpActive && !mpFinished) {
+      const now = performance.now();
+      if (now - mpBroadcastAt > 150) {
+        mpBroadcastAt = now;
+        net.sendState({ score: run.score, gates: run.gates, coins: run.coins, alive: true, finished: false });
+      }
+    }
     return;
   }
 
@@ -675,6 +964,7 @@ function update(dt) {
     player.update(dt, null);
     gates.update(dt, run.speed);
     obstacles.update(dt, run.speed);
+    trains.update(dt, run.speed);
     pickups.update(dt, run.speed);
     world.update(dt, run.speed, player.x());
 
@@ -735,6 +1025,7 @@ async function boot() {
   const prefs = ui.audioPrefs();
   setSfxEnabled(prefs.sfx);
   setSpeechEnabled(prefs.speech);
+  setupNet();
   loadJokes();
 
   try {
@@ -770,8 +1061,17 @@ if (location.hostname === 'localhost' || location.hostname === '127.0.0.1') {
     getRun: () => run,
     getPlayer: () => player,
     getPickups: () => pickups,
+    getTrains: () => trains,
+    equipJet,
+    TRAIN,
+    sfx,
     /** กระโดดเข้าด่านโบนัสทันที (ไม่ต้องไล่เก็บดาว 5 ดวง) */
     forceBonus: () => { if (state === 'running' && !run.bonus) enterBonus(); },
+    // ── โหมดแข่ง (ใช้ทดสอบ 2 แท็บ) ──
+    net,
+    openMultiplayer, mpCreate, mpJoin, mpStart,
+    getMpRoster: () => mpRoster,
+    isMpActive: () => mpActive,
     step(frames = 1, dt = 1 / 60) {
       for (let i = 0; i < frames; i++) update(dt);
       world.render();

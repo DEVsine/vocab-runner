@@ -173,6 +173,15 @@ export function createPlayer(scene) {
     buffer: null,            // { action, at }
     runT: 0,
     lastHalfCycle: 0,        // ใช้จับจังหวะฝีเท้า
+
+    // ── มิติแนวตั้ง: "พื้นใต้เท้า" ไม่ใช่ 0 เสมอไปอีกแล้ว ──
+    // ทุกท่า (กระโดด/สไลด์/วิ่ง) คำนวณเทียบ baseY แทนพื้นโลก
+    // → ขึ้นไปอยู่บนหลังคายานได้โดย "ไม่ต้องแก้สูตรท่าไหนเลย" แค่ยกฐานขึ้น
+    baseY: 0,                // ความสูงพื้นที่ยืนอยู่จริงตอนนี้
+    platformY: 0,            // ความสูงพื้นเป้าหมาย (main บอกมาทุกเฟรมจากตำแหน่งยาน)
+    armed: false,            // ใส่ไอพ่นอยู่ → มีเปลวที่หลังตลอด (กันตาย 1 ครั้ง)
+    wasAirborne: false,      // เฟรมก่อนลอยอยู่ไหม — ใช้จับจังหวะ "เท้าแตะพื้น" เพื่อเสียงตุบ
+    justMounted: false,      // เพิ่งเหยียบหลังคายานเฟรมนี้ (มีเสียง mount แล้ว ไม่ต้องตุบซ้ำ)
   };
 
   const laneX = i => (i - 1) * CFG.world.laneWidth;
@@ -204,13 +213,10 @@ export function createPlayer(scene) {
       return;
     }
 
-    // ตอนบินในด่านโบนัส ปุ่มขึ้น/ลงเปลี่ยนความหมายเป็น "สลับระดับการบิน"
-    // (ไม่ใช่กระโดด/สไลด์ เพราะไม่มีอะไรให้หลบแล้ว มีแต่เหรียญให้กวาด)
-    if (state.flying) {
-      if (action === 'jump' && state.flyLevel !== 1) { state.flyLevel = 1; sfx?.jump(); }
-      if (action === 'slide' && state.flyLevel !== 0) { state.flyLevel = 0; sfx?.slide(); }
-      return;
-    }
+    // ด่านโบนัส "ทางช้างเผือก": บินระดับเดียว เลื่อนซ้าย/ขวาอย่างเดียว
+    // ปุ่มขึ้น/ลงถูกปิดที่นี่ (return ทิ้งไปเฉย ๆ) — ถ้าไม่ดักไว้ มันจะตกไปเข้ากติกา
+    // กระโดด/สไลด์ด้านล่างแล้วตัวละครจะเด้งขึ้น/หมอบระหว่างบิน ซึ่งไม่ใช่สิ่งที่ต้องการ
+    if (state.flying) return;
 
     if (action === 'jump') {
       if (state.jumpT < 1 || state.slideT < 1) {
@@ -294,8 +300,18 @@ export function createPlayer(scene) {
       if (state.flyBlend > 0.15) airborne = true;
     }
 
+    // ── พื้นใต้เท้า (หลังคายานลำเลียง) ──
+    // ขาขึ้น: setPlatform จัดการ snap แล้ว (เหยียบปุ๊บยืนปั๊บ ไม่มีเด้ง)
+    // ขาลง: ร่วงด้วยอัตราคงที่ — พ้นท้ายยาน/เปลี่ยนเลนออก = ตกสู่พื้นแบบมีน้ำหนัก
+    if (state.baseY > state.platformY) {
+      state.baseY = Math.max(state.platformY, state.baseY - dt * 11);
+      if (state.baseY > state.platformY) airborne = true;   // ท่าลอยตัวระหว่างร่วง
+    } else {
+      state.baseY = state.platformY;
+    }
+
     group.position.x = state.x;
-    group.position.y = y;
+    group.position.y = state.baseY + y;
 
     /* ── ท่าทาง ─────────────────────────────────────────── */
     const cadence = state.runT * 12;
@@ -339,13 +355,22 @@ export function createPlayer(scene) {
     a.torso.position.y = 0.96 + (airborne || slideK > 0.05 ? 0 : Math.abs(Math.cos(cadence)) * 0.035);
     a.helmet.rotation.y = Math.sin(state.runT * 2.2) * 0.12;
 
+    // เปลวไอพ่น: ตอนลอย = เปลวเต็ม, ตอน "ใส่ไอพ่น" อยู่ = เปลวเลียเบา ๆ ตลอด (ความเท่!)
     for (const flame of a.thrusters) {
-      flame.visible = airborne;
-      if (airborne) flame.scale.y = 0.7 + Math.random() * 0.6;   // เปลวไฟกระพริบ
+      flame.visible = airborne || state.armed;
+      if (airborne) flame.scale.y = 0.7 + Math.random() * 0.6;        // เปลวไฟกระพริบ
+      else if (state.armed) flame.scale.y = 0.3 + Math.random() * 0.15; // ติดเครื่องรอ
     }
 
     shadowRing.material.opacity = 0.3 * (1 - Math.min(1, y / CFG.player.jumpHeight) * 0.75);
     shadowRing.scale.setScalar(1 - Math.min(1, y / CFG.player.jumpHeight) * 0.3);
+
+    // เสียง "ตุบ" ตอนเท้าแตะพื้น — จับจังหวะเปลี่ยนสถานะ ลอย→ยืน
+    // ครอบคลุมทุกทาง: จบการกระโดด, จบบูสต์ไอพ่น, ร่วงจากหลังคายาน, ร่อนลงจากโบนัส
+    // ยกเว้นตอนเพิ่งเหยียบหลังคายาน (มีเสียง mount ของตัวเองแล้ว ตุบซ้อนจะรก)
+    if (state.wasAirborne && !airborne && !state.justMounted) sfx?.land();
+    state.wasAirborne = airborne;
+    state.justMounted = false;
 
     consumeBuffer(sfx);
   }
@@ -364,6 +389,11 @@ export function createPlayer(scene) {
     state.flyLevel = 0;
     state.flyCurY = CFG.bonus.flyLowY;
     state.buffer = null;
+    state.baseY = 0;
+    state.platformY = 0;
+    state.armed = false;
+    state.wasAirborne = false;
+    state.justMounted = false;
     group.position.set(0, 0, CFG.world.playerZ);
     a.rig.rotation.set(0, 0, 0);
     a.rig.position.y = 0;
@@ -389,6 +419,20 @@ export function createPlayer(scene) {
     }
   }
 
+  /**
+   * บอกความสูง "พื้นใต้เท้า" ของเฟรมนี้ (0 = พื้นสถานี, roofY = บนหลังคายาน)
+   * ตอนยกขึ้น (เหยียบหลังคา) ต้องตัดการกระโดดทิ้งด้วย — ไม่งั้นพาราโบลาที่ค้างอยู่
+   * จะไปบวกทับฐานใหม่ ตัวละครเด้งขึ้นเกินหลังคาไปอีกชั้น
+   */
+  function setPlatform(h) {
+    if (h > state.baseY + 0.05) {
+      state.jumpT = 1;
+      state.baseY = h;       // เหยียบปุ๊บยืนปั๊บ — main ยืนยันแล้วว่าสูงถึงระดับหลังคา
+      state.justMounted = true;   // เฟรมถัดไปไม่ต้องเล่นเสียง land ซ้อนเสียง mount
+    }
+    state.platformY = h;
+  }
+
   return {
     group,
     state,
@@ -397,6 +441,9 @@ export function createPlayer(scene) {
     reset,
     boost,
     setFlying,
+    setPlatform,
+    onPlatform() { return state.baseY > 0.4; },
+    setArmed(on) { state.armed = on; },
     isFlying() { return state.flying || state.flyBlend > 0.02; },
 
     /**

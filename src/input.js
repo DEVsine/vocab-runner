@@ -56,6 +56,11 @@ export function createInput(target, onAction) {
   let touchStart = null;
 
   function handleKey(e) {
+    // ⚠️ ถ้ากำลังพิมพ์ในช่องข้อความ (ชื่อ/รหัสห้อง) ต้องปล่อยผ่าน
+    // ไม่งั้น e.code='KeyA' จะถูกแมปเป็น "เลี้ยวซ้าย" แล้ว preventDefault() บล็อกการพิมพ์
+    const t = e.target;
+    if (t && (t.tagName === 'INPUT' || t.tagName === 'TEXTAREA' || t.isContentEditable)) return;
+
     const action = CODE_MAP[e.code] || KEY_FALLBACK[e.key];
     if (!action) return;
     // กัน ↑↓ Space เลื่อนหน้าจอระหว่างเล่น

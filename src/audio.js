@@ -99,12 +99,18 @@ function noise({ duration, gain = 0.3, filterFrom = 5000, filterTo = 400, delay 
 /* ── เสียงเหตุการณ์ ─────────────────────────────────────────── */
 
 export const sfx = {
-  /** ผ่านด่านถูก — คอร์ดขึ้น ให้ความรู้สึก "ทะลุผ่านไปได้" */
+  /** ผ่านด่านถูก — อาร์เพจจิโอเมเจอร์ไล่ขึ้น + ประกายด้านบน = ความรู้สึก "ตอบถูก!"
+   *  ไล่คีย์สูงขึ้นตาม combo เพื่อให้ยิ่งต่อเนื่องยิ่งฟังฮึกเหิม (เสียงบอกสถานะเกม
+   *  โดยไม่ต้องมองตัวเลข) — จูนให้ gain ไม่ดังเกิน เพราะดังทุกด่านทุกไม่กี่วินาที */
   correct(comboLevel = 1) {
-    const base = 420 + Math.min(comboLevel, CFG.score.comboMax) * 55;
-    tone({ freq: base, duration: 0.16, type: 'triangle', gain: 0.26 });
-    tone({ freq: base * 1.5, duration: 0.22, type: 'sine', gain: 0.18, delay: 0.05 });
-    noise({ duration: 0.3, gain: 0.14, filterFrom: 6000, filterTo: 900 });
+    const c = Math.min(comboLevel, CFG.score.comboMax);
+    const base = 523.25 * Math.pow(2, (c - 1) / 12);   // C5 แล้วไต่ขึ้นทีละครึ่งเสียงตาม combo
+    [0, 4, 7, 12].forEach((semi, i) => {
+      tone({ freq: base * Math.pow(2, semi / 12), duration: 0.2, type: 'triangle', gain: 0.17, delay: i * 0.045 });
+    });
+    // ประกายใสด้านบน — เติมความ "ฉลอง" ให้ต่างจากเสียงเก็บเหรียญธรรมดา
+    tone({ freq: base * 4, duration: 0.16, type: 'sine', gain: 0.09, delay: 0.13 });
+    noise({ duration: 0.28, gain: 0.11, filterFrom: 7500, filterTo: 1600 });
   },
 
   /** โดนเลเซอร์ — เสียงเปรี้ยงกวาดลง */
@@ -167,144 +173,272 @@ export const sfx = {
     tone({ freq: 600, endFreq: 1800, duration: 0.32, type: 'sine', gain: 0.14, delay: 0.05 });
   },
 
+  /** กด "ใส่" ไอพ่น — คลิกกลไก + เสียงระบบติดเครื่อง = รู้สึกว่าเพิ่งติดอาวุธ */
+  jetEquip() {
+    noise({ duration: 0.06, gain: 0.22, filterFrom: 4000, filterTo: 2000 });
+    tone({ freq: 180, endFreq: 420, duration: 0.34, type: 'sawtooth', gain: 0.16, delay: 0.05 });
+    tone({ freq: 740, duration: 0.16, type: 'sine', gain: 0.14, delay: 0.22 });
+  },
+
   jetUse() {
     tone({ freq: 90, endFreq: 260, duration: 0.7, type: 'sawtooth', gain: 0.26 });
     noise({ duration: 0.85, gain: 0.3, filterFrom: 900, filterTo: 4500 });
   },
 
-  jump()  { tone({ freq: 330, endFreq: 620, duration: 0.14, type: 'square', gain: 0.13 }); },
-  slide() { noise({ duration: 0.22, gain: 0.16, filterFrom: 3200, filterTo: 700 }); },
-  lane()  { tone({ freq: 720, duration: 0.05, type: 'sine', gain: 0.07 }); },
+  /** หวูดยานสวน — คลัสเตอร์เสียงต่ำ 2 โน้ตติดกัน (เสียดสีจงใจ = สัญญาณอันตราย) */
+  horn() {
+    tone({ freq: 165, duration: 0.55, type: 'sawtooth', gain: 0.24 });
+    tone({ freq: 185, duration: 0.55, type: 'sawtooth', gain: 0.2 });
+    tone({ freq: 165, duration: 0.4, type: 'sawtooth', gain: 0.18, delay: 0.65 });
+    tone({ freq: 185, duration: 0.4, type: 'sawtooth', gain: 0.15, delay: 0.65 });
+  },
+
+  /** เท้าแตะหลังคายาน — ตุบโลหะ + กังวานสั้น บอกว่า "ขึ้นมาแล้ว" */
+  mount() {
+    tone({ freq: 120, endFreq: 70, duration: 0.18, type: 'sine', gain: 0.3 });
+    tone({ freq: 620, duration: 0.22, type: 'triangle', gain: 0.12, delay: 0.03 });
+    noise({ duration: 0.12, gain: 0.14, filterFrom: 2400, filterTo: 500 });
+  },
+
+  /* ── เสียงท่าทาง: "พึบพับ" แบบ Subway จริง ๆ ──
+   *
+   * บทเรียนจากรอบแรกที่เสียงจมหาย: เสียงชั้นเดียว gain ต่ำ ๆ สู้เพลงที่มี kick
+   * ทุก beat ไม่ได้ วิธีของเกม endless runner คือเสียงแอ็กชันต้อง "หลายชั้น"
+   * โดยแต่ละชั้นอยู่คนละย่านความถี่ (ลมย่านกลาง + สะบัดย่านสูง + กระแทกย่านต่ำ)
+   * → ต่อให้เพลงดัง หูก็ยังแยกเสียงแอ็กชันออกเพราะไม่มีย่านไหนโดนกลบหมด
+   *
+   * ทิศทางการกวาดความถี่ (sweep) เล่าเรื่องได้เอง:
+   *   กระโดด → กวาดขึ้น (ลมวูบขึ้นข้างหู), สไลด์ → กวาดลง (ทิ้งตัวต่ำ + ครูดพื้น),
+   *   เปลี่ยนเลน → "พึบ-พับ" สองจังหวะ (ลมตีเสื้อตอนสะบัดตัว) */
+
+  /** เปลี่ยนเลน — พึบ! (ลมตี) พับ! (ผ้าสะบัดกลับ) ปิดท้ายด้วยตุบเบา ๆ ว่า "ถึงเลนแล้ว" */
+  lane()  {
+    noise({ duration: 0.16, gain: 0.5, filterFrom: 900, filterTo: 4200, type: 'bandpass' });
+    noise({ duration: 0.13, gain: 0.32, filterFrom: 3400, filterTo: 700, type: 'bandpass', delay: 0.055 });
+    tone({ freq: 200, endFreq: 120, duration: 0.09, type: 'sine', gain: 0.13, delay: 0.09 });
+  },
+
+  /** กระโดด — ถีบพื้น (พัฟต่ำ) + ลมหวิวกวาดขึ้นยาว ๆ */
+  jump()  {
+    noise({ duration: 0.1, gain: 0.3, filterFrom: 1200, filterTo: 300 });
+    noise({ duration: 0.42, gain: 0.45, filterFrom: 500, filterTo: 5200, type: 'bandpass' });
+    tone({ freq: 260, endFreq: 540, duration: 0.16, type: 'sine', gain: 0.1 });
+  },
+
+  /** สไลด์ — ตุบทิ้งตัว + ครูดพื้นยาว (สองชั้น: เสียดสีสูง + ลมต่ำ) */
+  slide() {
+    tone({ freq: 170, endFreq: 90, duration: 0.12, type: 'sine', gain: 0.24 });
+    noise({ duration: 0.44, gain: 0.42, filterFrom: 3800, filterTo: 350 });
+    noise({ duration: 0.3, gain: 0.2, filterFrom: 900, filterTo: 480, type: 'bandpass', delay: 0.06 });
+  },
+
+  /** ลงพื้นหลังลอย — ตุบ + ฝุ่นฟุ้ง
+   *  เสียงนี้คือ "ครึ่งหลัง" ของการกระโดดที่เกมส่วนใหญ่ลืม — พอมีครบทั้ง
+   *  ถีบตัว→ลมหวิว→ตุบ สมองถึงจะรู้สึกว่าการกระโดดมีน้ำหนักจริง */
+  land() {
+    tone({ freq: 150, endFreq: 60, duration: 0.13, type: 'sine', gain: 0.3 });
+    noise({ duration: 0.15, gain: 0.24, filterFrom: 1600, filterTo: 250 });
+  },
   select(){ tone({ freq: 560, endFreq: 780, duration: 0.09, type: 'sine', gain: 0.14 }); },
 
   /** ฝีเท้า — เบามาก แต่เป็นสิ่งที่ทำให้ "รู้สึกว่ากำลังวิ่ง" จริง ๆ */
   step() { noise({ duration: 0.07, gain: 0.075, filterFrom: 900, filterTo: 180 }); },
 };
 
-/* ══ เสียงบรรยากาศระหว่างวิ่ง ═══════════════════════════════════
- * ประกอบด้วย 3 ชั้น:
- *   1) เสียงเครื่องยนต์ (drone) — ความถี่ขยับตามความเร็ว = รู้สึกว่าเร่ง
- *   2) เสียงลม (noise ลูปยาว) — ดังขึ้นตามความเร็ว
- *   3) ไลน์เบสเพนทาโทนิก — จังหวะเร็วขึ้นตามความเร็ว = ความตื่นเต้นไต่ขึ้น
+/* ══ เพลงระหว่างวิ่ง — วงเต็ม สไตล์เกม endless runner ═══════════
+ *
+ * ── ทำไมเพลง Subway Surfers ถึง "สนุก" (แล้วเราเลียนแบบยังไง) ──
+ * ความสนุกไม่ได้มาจากโน้ตเยอะ แต่มาจาก 3 อย่าง:
+ *   1) กลองที่ตรง beat ตลอด (kick ทุกจังหวะ = เท้าอยากขยับตาม)
+ *   2) เมโลดี้สั้น ๆ วนซ้ำจนติดหู (hook) — สมองชอบของที่เดาได้แต่ไม่น่าเบื่อ
+ *   3) เพลงเร่งตามเกม — BPM ไต่ 108→160 ตามความเร็ววิ่ง ความตื่นเต้นเลยรู้สึก "มาจากเพลง"
+ *
+ * โครงสร้าง: step sequencer 16 ช่องต่อบาร์ (เขบ็ตสองชั้น) เดินวน 4 บาร์
+ * คอร์ดวน Am → F → C → G (i–VI–III–VII ยอดฮิตของเพลงเกม/ป๊อป — ทั้งฮึกเหิมทั้งติดหู)
+ * เครื่องดนตรีทุกชิ้นสังเคราะห์สด: kick/snare/hihat จาก noise+sine, เบส saw, เมโลดี้ square
  *
  * ⚠️ ตัวโน้ตต้องจองล่วงหน้า (lookahead scheduling) ไม่ใช่เล่นทันทีใน setInterval
  * เพราะ setInterval ของ JS คลาดเคลื่อนได้หลายสิบมิลลิวินาที จังหวะจะเพี้ยนจนฟังออก
- * วิธีที่ถูกคือใช้ setInterval แค่ "ตื่นมาดู" แล้วสั่งเล่นด้วยเวลาของ AudioContext
+ * setInterval ทำหน้าที่แค่ "ตื่นมาดู" แล้วสั่งเล่นด้วยนาฬิกาของ AudioContext
  * ซึ่งแม่นระดับตัวอย่างเสียง (sample-accurate)
  */
 
-const SCALE = [110.00, 130.81, 146.83, 164.81, 196.00, 220.00];  // A minor pentatonic
-const PATTERN = [0, 2, 4, 3, 5, 4, 2, 1];
+// คอร์ด 4 ตัว (root ของเบส + โน้ตประกอบ) — ความถี่ตรง equal temperament
+const CHORDS = [
+  { root: 55.00, name: 'Am' },   // A1
+  { root: 43.65, name: 'F'  },   // F1
+  { root: 65.41, name: 'C'  },   // C2
+  { root: 49.00, name: 'G'  },   // G1
+];
+
+// แพตเทิร์นกลอง 16 ช่อง (1 = ตี) — four-on-the-floor + snare ตกจังหวะ 2,4
+const DRUM = {
+  kick:  [1,0,0,0, 1,0,0,0, 1,0,0,0, 1,0,0,0],
+  snare: [0,0,0,0, 1,0,0,0, 0,0,0,0, 1,0,0,1],   // ตัวท้ายเป็น ghost note เล็ก ๆ ให้มีลูกส่ง
+  hat:   [1,0,1,1, 1,0,1,0, 1,0,1,1, 1,0,1,0],
+};
+
+// เบส: ครึ่งเสียง (semitone) จาก root ของคอร์ดบาร์นั้น (-1 = เงียบ) — วิ่ง octave สนุก ๆ
+const BASS_PAT = [0,-1,0,12, 0,-1,7,-1, 0,-1,0,12, 7,-1,5,-1];
+
+// เมโลดี้ hook 2 บาร์ (32 ช่อง) บน A minor pentatonic — เขียนเป็นครึ่งเสียงจาก A4
+// วนซ้ำทุก 2 บาร์ ให้ติดหูแบบ "เพลงเกม" (null = เงียบ ปล่อยให้กลองหายใจ)
+const HOOK = [
+  0, null, 3, null, 7, null, 5, 3,   null, null, 3, 5, 7, null, 10, null,
+  12, null, 10, 7, null, null, 5, 7, 3, null, 0, null, null, null, null, null,
+];
 
 let ambience = null;
+
+/* ── เครื่องดนตรีแต่ละชิ้น (เล่น ณ เวลา when ของ AudioContext) ── */
+
+/** กระเดื่อง: sine กวาดความถี่ลงเร็ว ๆ 150→48Hz = "ตุบ" ที่รู้สึกได้ที่อก */
+function playKick(when) {
+  const osc = ctx.createOscillator();
+  const g = ctx.createGain();
+  osc.type = 'sine';
+  osc.frequency.setValueAtTime(150, when);
+  osc.frequency.exponentialRampToValueAtTime(48, when + 0.1);
+  g.gain.setValueAtTime(0.5, when);
+  g.gain.exponentialRampToValueAtTime(0.0001, when + 0.16);
+  osc.connect(g).connect(musicBus);
+  osc.start(when);
+  osc.stop(when + 0.18);
+}
+
+/** สแนร์: noise ผ่าน bandpass + โทนสั้น — ghost note เบากว่าตัวจริงครึ่งหนึ่ง */
+function playSnare(when, ghost = false) {
+  const dur = 0.16;
+  const frames = Math.floor(ctx.sampleRate * dur);
+  const buf = ctx.createBuffer(1, frames, ctx.sampleRate);
+  const d = buf.getChannelData(0);
+  for (let i = 0; i < frames; i++) d[i] = Math.random() * 2 - 1;
+  const src = ctx.createBufferSource();
+  src.buffer = buf;
+  const f = ctx.createBiquadFilter();
+  f.type = 'bandpass';
+  f.frequency.value = 1900;
+  f.Q.value = 0.8;
+  const g = ctx.createGain();
+  g.gain.setValueAtTime(ghost ? 0.10 : 0.24, when);
+  g.gain.exponentialRampToValueAtTime(0.0001, when + dur);
+  src.connect(f).connect(g).connect(musicBus);
+  src.start(when);
+}
+
+/** ไฮแฮต: noise สั้นมากผ่าน highpass — accent เปิดยาวขึ้นนิดเดียว */
+function playHat(when, open = false) {
+  const dur = open ? 0.09 : 0.035;
+  const frames = Math.floor(ctx.sampleRate * dur);
+  const buf = ctx.createBuffer(1, frames, ctx.sampleRate);
+  const d = buf.getChannelData(0);
+  for (let i = 0; i < frames; i++) d[i] = Math.random() * 2 - 1;
+  const src = ctx.createBufferSource();
+  src.buffer = buf;
+  const f = ctx.createBiquadFilter();
+  f.type = 'highpass';
+  f.frequency.value = 7500;
+  const g = ctx.createGain();
+  g.gain.setValueAtTime(open ? 0.09 : 0.06, when);
+  g.gain.exponentialRampToValueAtTime(0.0001, when + dur);
+  src.connect(f).connect(g).connect(musicBus);
+  src.start(when);
+}
+
+/** เบส: sawtooth ผ่าน lowpass — ตัวเชื่อมกลองกับเมโลดี้ */
+function playBass(when, freq, dur) {
+  const osc = ctx.createOscillator();
+  const f = ctx.createBiquadFilter();
+  const g = ctx.createGain();
+  osc.type = 'sawtooth';
+  osc.frequency.setValueAtTime(freq, when);
+  f.type = 'lowpass';
+  f.frequency.value = 520;
+  g.gain.setValueAtTime(0.0001, when);
+  g.gain.exponentialRampToValueAtTime(0.2, when + 0.015);
+  g.gain.exponentialRampToValueAtTime(0.0001, when + dur);
+  osc.connect(f).connect(g).connect(musicBus);
+  osc.start(when);
+  osc.stop(when + dur + 0.02);
+}
+
+/** เมโลดี้: square บาง ๆ + echo หลอก ๆ ด้วยโน้ตซ้ำเบา ๆ ตามหลัง */
+function playLead(when, freq, dur) {
+  for (const [delay, vol] of [[0, 0.085], [dur * 0.9, 0.03]]) {
+    const osc = ctx.createOscillator();
+    const g = ctx.createGain();
+    osc.type = 'square';
+    osc.frequency.setValueAtTime(freq, when + delay);
+    g.gain.setValueAtTime(0.0001, when + delay);
+    g.gain.exponentialRampToValueAtTime(vol, when + delay + 0.02);
+    g.gain.exponentialRampToValueAtTime(0.0001, when + delay + dur);
+    osc.connect(g).connect(musicBus);
+    osc.start(when + delay);
+    osc.stop(when + delay + dur + 0.02);
+  }
+}
 
 export function startAmbience() {
   if (!ctx || !sfxEnabled || ambience) return;
 
-  // 1) เครื่องยนต์
-  const drone = ctx.createOscillator();
-  drone.type = 'sawtooth';
-  drone.frequency.value = 52;
-  const droneFilter = ctx.createBiquadFilter();
-  droneFilter.type = 'lowpass';
-  droneFilter.frequency.value = 220;
-  const droneGain = ctx.createGain();
-  droneGain.gain.value = 0.16;
-  drone.connect(droneFilter).connect(droneGain).connect(musicBus);
-  drone.start();
-
-  // 2) ลม — ใช้บัฟเฟอร์ยาว 2 วินาทีวนลูป ประหยัดกว่าสร้าง noise ใหม่ตลอดเวลา
-  const frames = ctx.sampleRate * 2;
-  const buf = ctx.createBuffer(1, frames, ctx.sampleRate);
-  const data = buf.getChannelData(0);
-  for (let i = 0; i < frames; i++) data[i] = Math.random() * 2 - 1;
-  const wind = ctx.createBufferSource();
-  wind.buffer = buf;
-  wind.loop = true;
-  const windFilter = ctx.createBiquadFilter();
-  windFilter.type = 'bandpass';
-  windFilter.frequency.value = 700;
-  windFilter.Q.value = 0.7;
-  const windGain = ctx.createGain();
-  windGain.gain.value = 0.05;
-  wind.connect(windFilter).connect(windGain).connect(musicBus);
-  wind.start();
-
   ambience = {
-    drone, droneFilter, droneGain,
-    wind, windFilter, windGain,
-    step: 0,
-    nextNoteTime: ctx.currentTime + 0.1,
-    interval: 0.28,
+    step: 0,                              // ช่องที่ 0..∞ (mod 16 = ช่องในบาร์, /16 = บาร์)
+    nextNoteTime: ctx.currentTime + 0.08,
+    stepDur: 60 / 118 / 4,                // ความยาว 1 ช่อง (เขบ็ตสองชั้น) — อัปเดตตามความเร็ว
     timer: null,
   };
 
   // เฟดเข้าแทนการเปิดโครม ๆ
   musicBus.gain.cancelScheduledValues(ctx.currentTime);
   musicBus.gain.setValueAtTime(0.0001, ctx.currentTime);
-  musicBus.gain.linearRampToValueAtTime(CFG.audio.musicVolume, ctx.currentTime + 1.2);
+  musicBus.gain.linearRampToValueAtTime(CFG.audio.musicVolume, ctx.currentTime + 1.0);
 
   ambience.timer = setInterval(() => {
     if (!ambience) return;
-    // จองโน้ตล่วงหน้า 0.2 วินาที
-    while (ambience.nextNoteTime < ctx.currentTime + 0.2) {
-      const note = SCALE[PATTERN[ambience.step % PATTERN.length]];
-      const accent = ambience.step % 4 === 0;
-      playNote(note, ambience.nextNoteTime, accent);
+    // จองล่วงหน้า 0.25 วินาที
+    while (ambience.nextNoteTime < ctx.currentTime + 0.25) {
+      scheduleStep(ambience.step, ambience.nextNoteTime, ambience.stepDur);
       ambience.step += 1;
-      ambience.nextNoteTime += ambience.interval;
+      ambience.nextNoteTime += ambience.stepDur;
     }
   }, 40);
 }
 
-function playNote(freq, when, accent) {
-  if (!ctx || !musicBus) return;
-  const osc = ctx.createOscillator();
-  const g = ctx.createGain();
-  osc.type = accent ? 'square' : 'triangle';
-  osc.frequency.setValueAtTime(freq, when);
+/** เล่นทุกเครื่องดนตรีของ "ช่องที่ step" ณ เวลา when */
+function scheduleStep(step, when, stepDur) {
+  const inBar = step % 16;
+  const bar = Math.floor(step / 16) % CHORDS.length;
+  const chord = CHORDS[bar];
 
-  const peak = accent ? 0.12 : 0.075;
-  g.gain.setValueAtTime(0.0001, when);
-  g.gain.exponentialRampToValueAtTime(peak, when + 0.015);
-  g.gain.exponentialRampToValueAtTime(0.0001, when + 0.22);
+  if (DRUM.kick[inBar]) playKick(when);
+  if (DRUM.snare[inBar]) playSnare(when, inBar === 15);
+  if (DRUM.hat[inBar]) playHat(when, inBar % 4 === 2);
 
-  osc.connect(g).connect(musicBus);
-  osc.start(when);
-  osc.stop(when + 0.26);
+  const bassSemi = BASS_PAT[inBar];
+  if (bassSemi >= 0) playBass(when, chord.root * 2 * Math.pow(2, bassSemi / 12), stepDur * 1.8);
+
+  const hookSemi = HOOK[step % HOOK.length];
+  if (hookSemi !== null) playLead(when, 440 * Math.pow(2, hookSemi / 12), stepDur * 2.6);
 }
 
-/** เรียกทุกเฟรม — ผูกเสียงเข้ากับความเร็วปัจจุบัน */
+/** เรียกทุกเฟรม — BPM ไต่ตามความเร็ววิ่ง: 108 (ออกตัว) → 160 (ท็อปสปีด) */
 export function updateAmbience(speed) {
   if (!ambience || !ctx) return;
-  const t = ctx.currentTime;
   const ratio = Math.min(1, (speed - CFG.speed.start) / Math.max(1, CFG.speed.max - CFG.speed.start));
-
-  ambience.drone.frequency.setTargetAtTime(48 + ratio * 26, t, 0.4);
-  ambience.droneFilter.frequency.setTargetAtTime(200 + ratio * 420, t, 0.4);
-  ambience.windGain.gain.setTargetAtTime(0.04 + ratio * 0.09, t, 0.4);
-  ambience.windFilter.frequency.setTargetAtTime(650 + ratio * 900, t, 0.4);
-
-  // จังหวะเร็วขึ้นตามความเร็ว: 96 → 148 BPM (นับเป็นเขบ็ต)
-  const bpm = 96 + ratio * 52;
-  ambience.interval = 60 / bpm / 2;
+  const bpm = 108 + ratio * 52;
+  ambience.stepDur = 60 / bpm / 4;
 }
 
 export function stopAmbience() {
   if (!ambience || !ctx) return;
   clearInterval(ambience.timer);
+  ambience = null;
 
   const t = ctx.currentTime;
   musicBus.gain.cancelScheduledValues(t);
   musicBus.gain.setValueAtTime(musicBus.gain.value, t);
   musicBus.gain.linearRampToValueAtTime(0.0001, t + 0.35);
-
-  const dying = ambience;
-  ambience = null;
-  // ปล่อยให้เฟดจบก่อนค่อยหยุด oscillator ไม่งั้นจะได้ยินเสียง "ป๊อก"
-  setTimeout(() => {
-    try { dying.drone.stop(); dying.wind.stop(); } catch { /* หยุดไปแล้ว */ }
-  }, 500);
+  // โน้ตที่จองไว้แล้วจะดังต่ออีก ≤0.25 วิ แต่ musicBus เฟดปิดทันก่อนเสมอ จึงไม่ได้ยิน
 }
 
 /* ══ ออกเสียงคำอังกฤษ (dual coding: เห็นรูปคำ + ได้ยินเสียง) ═════

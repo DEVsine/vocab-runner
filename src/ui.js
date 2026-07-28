@@ -9,6 +9,12 @@ import * as srs from './srs.js';
 const $ = id => document.getElementById(id);
 const PREFS_KEY = `${CFG.storageKey}:prefs`;
 
+/** กันชื่อผู้เล่น (ข้อมูลจากเครื่องอื่น) ไม่ให้แทรก HTML เข้ามาตอนวาดรายชื่อ */
+function escapeHtml(s) {
+  return String(s ?? '').replace(/[&<>"']/g, c =>
+    ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' }[c]));
+}
+
 function loadPrefs() {
   try {
     return JSON.parse(localStorage.getItem(PREFS_KEY)) || {};
@@ -29,6 +35,7 @@ export function createUI(handlers) {
     dead: $('screen-dead'),
     stats: $('screen-stats'),
     pause: $('screen-pause'),
+    multiplayer: $('screen-mp'),
   };
 
   const prefs = loadPrefs();
@@ -108,6 +115,65 @@ export function createUI(handlers) {
   $('btn-quit').addEventListener('click', () => handlers.onMenu());
   $('btn-stats').addEventListener('click', () => handlers.onOpenStats());
   $('btn-stats-close').addEventListener('click', () => handlers.onMenu());
+
+  /* ── เล่นหลายคน (lobby) ─────────────────────────────────── */
+
+  const mpName = $('mp-name');
+  const mpCode = $('mp-code');
+  const mpSetup = $('mp-setup');
+  const mpRoom = $('mp-room');
+  const mpPlayers = $('mp-players');
+  mpName.value = prefs.mpName || '';
+
+  const rememberName = () => { prefs.mpName = mpName.value.trim(); savePrefs(prefs); };
+
+  $('btn-multiplayer').addEventListener('click', () => handlers.onOpenMultiplayer());
+  $('btn-mp-create').addEventListener('click', () => { rememberName(); handlers.onMPCreate(mpName.value.trim()); });
+  $('btn-mp-join').addEventListener('click', () => { rememberName(); handlers.onMPJoin(mpName.value.trim(), mpCode.value.trim()); });
+  $('btn-mp-start').addEventListener('click', () => handlers.onMPStart());
+  $('btn-mp-back').addEventListener('click', () => handlers.onMPLeave());
+  mpCode.addEventListener('input', () => { mpCode.value = mpCode.value.toUpperCase().replace(/[^A-Z0-9]/g, ''); });
+
+  $('btn-mp-copy').addEventListener('click', async () => {
+    const code = $('mp-room-code').textContent;
+    try { await navigator.clipboard.writeText(code); mpSetStatus('คัดลอกรหัสแล้ว', 'ok'); }
+    catch { mpSetStatus('คัดลอกไม่ได้ — พิมพ์รหัสให้เพื่อนเอง', 'fail'); }
+  });
+
+  function mpSetStatus(message, kind = '') {
+    const node = $('mp-status');
+    node.textContent = message || '';
+    node.className = `mp-status ${kind}`;
+  }
+
+  /** สลับล็อบบี้ไปสถานะ "อยู่ในห้องแล้ว" */
+  function mpEnterRoom(code, amHost) {
+    mpSetup.classList.add('hidden');
+    mpRoom.classList.remove('hidden');
+    $('mp-room-code').textContent = code;
+    $('btn-mp-start').classList.toggle('hidden', !amHost);
+    $('mp-wait').classList.toggle('hidden', amHost);
+  }
+
+  /** กลับไปหน้าตั้งค่าห้อง (ตอนออก/ห้องปิด) */
+  function mpResetLobby() {
+    mpSetup.classList.remove('hidden');
+    mpRoom.classList.add('hidden');
+    mpPlayers.innerHTML = '';
+    mpCode.value = '';
+    mpSetStatus('');
+  }
+
+  /** วาดรายชื่อผู้เล่นในล็อบบี้ */
+  function mpRenderPlayers(players, selfId) {
+    mpPlayers.innerHTML = players.map(p => `
+      <li>
+        <span>${escapeHtml(p.name)}</span>
+        ${p.id === selfId ? '<span class="mp-you">(คุณ)</span>' : ''}
+        ${p.host ? '<span class="mp-host-badge">หัวห้อง</span>' : ''}
+      </li>
+    `).join('');
+  }
 
   /* ── จอตาย ─────────────────────────────────────────────── */
 
@@ -203,5 +269,12 @@ export function createUI(handlers) {
 
     selectedDeckFile: () => deckSelect.value,
     audioPrefs: () => ({ sfx: toggleSfx.checked, speech: toggleSpeech.checked }),
+
+    // ── เล่นหลายคน ──
+    mpEnterRoom,
+    mpResetLobby,
+    mpRenderPlayers,
+    mpSetStatus,
+    mpNameValue: () => mpName.value.trim(),
   };
 }
