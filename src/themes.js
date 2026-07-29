@@ -35,8 +35,10 @@ export const THEMES = {
     id: 'pirate',
     name: '🏴‍☠️ โจรสลัด',
     world: {
-      bg: 0x03151b, floor: 0x14343c, hull: 0x1d4a52, hullDark: 0x0d2b32,
+      // พื้น = ไม้ดาดฟ้าเรือ, ฟ้า = คืนกลางทะเลใต้แสงจันทร์
+      bg: 0x081420, floor: 0x7a4e28, hull: 0x1d4a52, hullDark: 0x0d2b32,
       frame: 0x7fae9e, lamp: 0x9fe8d8, neonA: 0x2dd4bf, neonB: 0x60a5fa, accent: 0xf4b860,
+      laneLine: 0x4a2e16, sky: 0xa8c4e0, ground: 0x1a2430,
     },
     obstacles: {
       lowName: 'หีบสมบัติ', highName: 'สมอเรือ', wallName: 'กำแพงคลื่นยักษ์',
@@ -55,8 +57,10 @@ export const THEMES = {
     id: 'candy',
     name: '🍭 เมืองขนมหวาน',
     world: {
-      bg: 0x1c0a1e, floor: 0x4a2447, hull: 0x5e2d5c, hullDark: 0x38173a,
+      // พื้น = ครีมเค้กชมพูเข้ม, ฟ้า = พลบค่ำสีองุ่น
+      bg: 0x241030, floor: 0xa85f8f, hull: 0x5e2d5c, hullDark: 0x38173a,
       frame: 0xe6a9d8, lamp: 0xffd9f2, neonA: 0xff8fd8, neonB: 0xa78bfa, accent: 0xfff28a,
+      laneLine: 0xffe1f5, sky: 0xffc4e8, ground: 0x4a2447,
     },
     obstacles: {
       lowName: 'ลูกกวาดยักษ์', highName: 'อมยิ้มห้อย', wallName: 'กำแพงเยลลี่',
@@ -75,8 +79,10 @@ export const THEMES = {
     id: 'farm',
     name: '🐴 ฟาร์มสัตว์',
     world: {
-      bg: 0x101c0b, floor: 0x3a4a22, hull: 0x54432a, hullDark: 0x33291a,
+      // พื้น = ทางดินเหยียบแน่น, ฟ้า = เย็นย่ำสีทอง
+      bg: 0x1a2410, floor: 0x6e5230, hull: 0x54432a, hullDark: 0x33291a,
       frame: 0xc9b18a, lamp: 0xffeebb, neonA: 0x86efac, neonB: 0xfbbf24, accent: 0xf87171,
+      laneLine: 0xa8895a, sky: 0xffe8b8, ground: 0x2a3a1a,
     },
     obstacles: {
       lowName: 'กองฟาง', highName: 'ป้ายฟาร์ม', wallName: 'รั้วคอกม้า',
@@ -95,8 +101,10 @@ export const THEMES = {
     id: 'desert',
     name: '🏜️ ทะเลทราย',
     world: {
-      bg: 0x1c1206, floor: 0x5c4322, hull: 0x6e5230, hullDark: 0x42311c,
+      // พื้น = ทรายอัดแน่น, ฟ้า = โพล้เพล้ส้มอิฐ
+      bg: 0x241608, floor: 0xa8834e, hull: 0x6e5230, hullDark: 0x42311c,
       frame: 0xd9b98a, lamp: 0xffdf9e, neonA: 0xfbbf24, neonB: 0xfb7185, accent: 0x38bdf8,
+      laneLine: 0xd9b98a, sky: 0xffd9a0, ground: 0x4a3418,
     },
     obstacles: {
       lowName: 'หินผา', highName: 'กิ่งกระบองเพชร', wallName: 'พายุทราย',

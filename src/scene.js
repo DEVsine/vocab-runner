@@ -49,7 +49,9 @@ export function createScene(canvas) {
   camera.position.copy(camBase);
 
   // แสงในยาน: โทนเย็นจากเพดาน + ไฟส่องจากด้านหน้าให้เห็นรูปทรงชุดอวกาศ
-  scene.add(new THREE.HemisphereLight(0xbfe6ff, 0x0d1424, 1.5));
+  // (ตั้งชื่อไว้เพราะแต่ละธีมย้อมสีแสงต่างกัน — กลางแจ้งอุ่น/ในยานเย็น)
+  const hemi = new THREE.HemisphereLight(0xbfe6ff, 0x0d1424, 1.5);
+  scene.add(hemi);
   const key = new THREE.DirectionalLight(0xffffff, 0.8);
   key.position.set(2.5, 8, 6);
   scene.add(key);
@@ -98,19 +100,80 @@ export function createScene(canvas) {
     ductPipe: new THREE.BoxGeometry(0.22, 0.22, segLen * 0.85),
   };
 
-  const segments = [];
-  for (let i = 0; i < CFG.world.segmentCount; i++) {
-    const g = new THREE.Group();
+  /* ══ ฉากประจำธีม — แต่ละธีมมี "โลก" ของตัวเองจริง ๆ ═══════════
+   * ฐานร่วมทุกธีม = พื้น + เส้นเลน (กติกาเกมอยู่บนนี้) ส่วนของตกแต่ง
+   * สร้างแยกเป็นชุดต่อธีมตั้งแต่บูต แล้วสลับด้วย visibility เท่านั้น
+   * (สร้าง geometry กลางเกม = เฟรมกระตุก, visibility = ฟรี — three.js
+   *  ข้ามการเรนเดอร์กรุ๊ปที่ซ่อนไว้ให้เองทั้งกิ่ง)
+   */
 
-    const floor = new THREE.Mesh(G.floor, M.floor);
-    floor.position.y = -0.2;
-    g.add(floor);
+  // วัสดุ/ทรงของธีมนอกยาน (แชร์กันทุกท่อน สร้างครั้งเดียว)
+  const TA = {
+    pirate: {
+      wood: new THREE.MeshLambertMaterial({ color: 0x8a5a34 }),
+      woodDark: new THREE.MeshLambertMaterial({ color: 0x59371c }),
+      plank: new THREE.MeshBasicMaterial({ color: 0x452a14 }),
+      sail: new THREE.MeshLambertMaterial({ color: 0xe8dcc0, side: THREE.DoubleSide }),
+      flag: new THREE.MeshBasicMaterial({ color: 0x1c1c22, side: THREE.DoubleSide }),
+      sea: new THREE.MeshLambertMaterial({ color: 0x0c2f42, emissive: 0x06202e }),
+      moon: new THREE.MeshBasicMaterial({ color: 0xfff2c8 }),
+      gPost: new THREE.BoxGeometry(0.16, 1.0, 0.16),
+      gRail: new THREE.BoxGeometry(0.09, 0.1, segLen),
+      gMast: new THREE.CylinderGeometry(0.16, 0.22, 7.5, 10),
+      gBoom: new THREE.CylinderGeometry(0.07, 0.07, 3.4, 8),
+      gSail: new THREE.PlaneGeometry(2.9, 3.0),
+      gFlag: new THREE.PlaneGeometry(1.1, 0.55),
+      gPlank: new THREE.BoxGeometry(trackWidth, 0.02, 0.07),
+      gRidge: new THREE.BoxGeometry(trackWidth + 1.4, 0.2, 0.55),
+      gBarrel: new THREE.CylinderGeometry(0.34, 0.3, 0.75, 10),
+    },
+    candy: {
+      caneRed: new THREE.MeshLambertMaterial({ color: 0xd8404a }),
+      caneWhite: new THREE.MeshLambertMaterial({ color: 0xf5ebe6 }),
+      lolli: new THREE.MeshBasicMaterial({ color: 0xff8fd8 }),
+      lolliIn: new THREE.MeshBasicMaterial({ color: 0xffe1f5 }),
+      gumMats: [0xa3e635, 0xfb923c, 0xa78bfa, 0x38bdf8].map(c => new THREE.MeshLambertMaterial({ color: c })),
+      gCane: new THREE.CylinderGeometry(0.14, 0.14, 2.6, 10),
+      gRing: new THREE.TorusGeometry(0.15, 0.05, 8, 14),
+      gStick: new THREE.CylinderGeometry(0.08, 0.08, 2.2, 8),
+      gDisc: new THREE.CylinderGeometry(0.85, 0.85, 0.16, 20),
+      gDiscIn: new THREE.CylinderGeometry(0.5, 0.5, 0.17, 20),
+      gGum: new THREE.SphereGeometry(0.55, 12, 10),
+    },
+    farm: {
+      fence: new THREE.MeshLambertMaterial({ color: 0x9a7448 }),
+      grass: new THREE.MeshLambertMaterial({ color: 0x4a7a2e }),
+      hay: new THREE.MeshLambertMaterial({ color: 0xd9b45c }),
+      barn: new THREE.MeshLambertMaterial({ color: 0xa8402e }),
+      barnRoof: new THREE.MeshLambertMaterial({ color: 0x6b3a28 }),
+      gFPost: new THREE.BoxGeometry(0.14, 0.9, 0.14),
+      gFRail: new THREE.BoxGeometry(0.07, 0.09, segLen),
+      gGrass: new THREE.BoxGeometry(2.4, 0.12, segLen),
+      gHay: new THREE.CylinderGeometry(0.55, 0.55, 0.9, 12),
+      gBarn: new THREE.BoxGeometry(3.2, 2.6, 3.4),
+      gRoof: new THREE.ConeGeometry(2.6, 1.5, 4),
+    },
+    desert: {
+      sand: new THREE.MeshLambertMaterial({ color: 0xc09a5e }),
+      cactus: new THREE.MeshLambertMaterial({ color: 0x3f7a3a }),
+      rock: new THREE.MeshLambertMaterial({ color: 0x8a6a48 }),
+      pyramid: new THREE.MeshLambertMaterial({ color: 0xa8834e, emissive: 0x2a1c08 }),
+      gDune: new THREE.SphereGeometry(2.6, 12, 10),
+      gCactus: new THREE.CylinderGeometry(0.22, 0.26, 1.7, 8),
+      gArm: new THREE.CylinderGeometry(0.13, 0.13, 0.7, 8),
+      gRock: new THREE.DodecahedronGeometry(0.55, 0),
+      gPyr: new THREE.ConeGeometry(15, 11, 4),
+    },
+  };
 
+  /* ── ของตกแต่งต่อท่อน แยกตามธีม ── */
+
+  // 🚀 สถานีอวกาศ — ทางเดินในยานแบบเดิม (ผนัง เพดาน หน้าต่างดาว โครงประตู)
+  function buildSpaceDecor(g, i) {
     const ceiling = new THREE.Mesh(G.ceiling, M.hullDark);
     ceiling.position.y = wallH - 0.2;
     g.add(ceiling);
 
-    // ไฟเส้นบนเพดาน — ตัวบอกความเร็วที่ชัดที่สุด และให้ฟีล "ทางเดินในยาน"
     const lamp = new THREE.Mesh(G.lampStrip, M.lampWhite);
     lamp.position.set(0, wallH - 0.45, 0);
     g.add(lamp);
@@ -120,19 +183,16 @@ export function createScene(canvas) {
       wall.position.set(side * (halfW + 0.25), wallH / 2 - 0.2, 0);
       g.add(wall);
 
-      // ซี่โครงผนัง 2 ซี่ต่อท่อน = ลายที่ทำให้ตาจับความเร็วได้
       for (const zOff of [-segLen * 0.28, segLen * 0.28]) {
         const rib = new THREE.Mesh(G.rib, M.hullDark);
         rib.position.set(side * (halfW - 0.12), wallH / 2 - 0.2, zOff);
         g.add(rib);
       }
 
-      // หน้าต่างมองเห็นห้วงอวกาศ (texture ดาวสร้างด้วยโค้ด)
       const win = new THREE.Mesh(G.window, M.space);
       win.position.set(side * (halfW - 0.02), 2.7, 0);
       g.add(win);
 
-      // ท่อเดินสายบนผนัง + แถบเรืองแสงระดับพื้น
       const pipe = new THREE.Mesh(G.ductPipe, M.hullDark);
       pipe.position.set(side * (halfW - 0.2), 4.6, 0);
       g.add(pipe);
@@ -142,14 +202,6 @@ export function createScene(canvas) {
       g.add(stripe);
     }
 
-    // เส้นแบ่งเลนบนพื้น — ช่วยให้รู้ว่าตัวเองอยู่เลนไหนโดยไม่ต้องคิด
-    for (const x of [-CFG.world.laneWidth / 2, CFG.world.laneWidth / 2]) {
-      const line = new THREE.Mesh(G.laneLine, M.lane);
-      line.position.set(x, 0.03, 0);
-      g.add(line);
-    }
-
-    // โครงประตูกั้นห้อง (bulkhead) ทุกท่อน — ให้ความรู้สึกว่ากำลังผ่านห้องไปเรื่อย ๆ
     const archTop = new THREE.Mesh(G.archTop, M.frame);
     archTop.position.set(0, wallH - 0.55, -segLen / 2);
     g.add(archTop);
@@ -158,17 +210,282 @@ export function createScene(canvas) {
       post.position.set(side * (halfW + 0.05), wallH / 2 - 0.2, -segLen / 2);
       g.add(post);
     }
+  }
+
+  // 🏴‍☠️ โจรสลัด — ดาดฟ้าเรือไม้ "ต่อกันเป็นลำ ๆ" กลางทะเลเปิด ไม่มีผนัง
+  function buildPirateDecor(g, i) {
+    const A = TA.pirate;
+
+    // รอยไม้กระดานพาดขวาง = พื้นกลายเป็นดาดฟ้าเรือทันทีที่ตาเห็นลาย
+    for (let k = 0; k < 6; k++) {
+      const plank = new THREE.Mesh(A.gPlank, A.plank);
+      plank.position.set(0, 0.012, -segLen / 2 + (k + 0.5) * (segLen / 6));
+      g.add(plank);
+    }
+
+    for (const side of [-1, 1]) {
+      // ราวกันตกไม้ (เสาถี่ + ราวบน) แทนกำแพงยาน — เปิดวิวทะเล
+      const rail = new THREE.Mesh(A.gRail, A.wood);
+      rail.position.set(side * (halfW + 0.15), 0.95, 0);
+      g.add(rail);
+      for (let k = 0; k < 7; k++) {
+        const post = new THREE.Mesh(A.gPost, A.woodDark);
+        post.position.set(side * (halfW + 0.15), 0.45, -segLen / 2 + (k + 0.5) * (segLen / 7));
+        g.add(post);
+      }
+    }
+
+    // "รอยต่อเรือ" ทุกท่อน: สันไม้ยกพาดขวาง + เสามุมสูง — วิ่งข้ามคือกระโดดขึ้นเรือลำถัดไป
+    const ridge = new THREE.Mesh(A.gRidge, A.woodDark);
+    ridge.position.set(0, 0.1, -segLen / 2);
+    g.add(ridge);
+    for (const side of [-1, 1]) {
+      const corner = new THREE.Mesh(A.gPost, A.wood);
+      corner.scale.set(1.6, 2.2, 1.6);
+      corner.position.set(side * (halfW + 0.15), 1.05, -segLen / 2);
+      g.add(corner);
+    }
+
+    // เสากระโดง + ใบเรือ + ธงดำ — สลับข้างทีละลำ (อยู่พ้นเลนวิ่งเสมอ)
+    if (i % 2 === 0) {
+      const side = (i % 4 === 0) ? -1 : 1;
+      const mast = new THREE.Mesh(A.gMast, A.woodDark);
+      mast.position.set(side * (halfW + 1.15), 3.75, 0);
+      g.add(mast);
+      const boom = new THREE.Mesh(A.gBoom, A.woodDark);
+      boom.rotation.z = Math.PI / 2;
+      boom.position.set(side * (halfW + 1.15) - side * 1.2, 5.6, 0);
+      g.add(boom);
+      const sail = new THREE.Mesh(A.gSail, A.sail);
+      sail.position.set(side * (halfW + 1.15) - side * 1.3, 4.0, 0.05);
+      sail.rotation.y = side * 0.18;
+      g.add(sail);
+      const flag = new THREE.Mesh(A.gFlag, A.flag);
+      flag.position.set(side * (halfW + 1.15) - side * 0.62, 7.25, 0);
+      g.add(flag);
+    }
+
+    // ถังไม้เก็บเสบียงริมกราบ
+    if (i % 3 !== 1) {
+      const barrel = new THREE.Mesh(A.gBarrel, A.wood);
+      const side = i % 2 ? -1 : 1;
+      barrel.position.set(side * (halfW - 0.55), 0.38, -segLen * 0.22);
+      g.add(barrel);
+    }
+  }
+
+  // 🍭 เมืองขนมหวาน — เสาลูกกวาดลายปล้อง อมยิ้มยักษ์ กัมดรอปเรียงทาง
+  function buildCandyDecor(g, i) {
+    const A = TA.candy;
+    for (const side of [-1, 1]) {
+      // เสาลูกกวาด: แท่งแดง + วงแหวนขาวพันเป็นปล้อง
+      const cane = new THREE.Mesh(A.gCane, A.caneRed);
+      cane.position.set(side * (halfW + 0.35), 1.3, -segLen * 0.3);
+      g.add(cane);
+      for (let k = 0; k < 4; k++) {
+        const ring = new THREE.Mesh(A.gRing, A.caneWhite);
+        ring.position.set(side * (halfW + 0.35), 0.45 + k * 0.62, -segLen * 0.3);
+        ring.rotation.x = Math.PI / 2;
+        g.add(ring);
+      }
+
+      // อมยิ้มยักษ์ (จานกลมสองชั้นบนก้าน) สลับความสูง
+      const stick = new THREE.Mesh(A.gStick, A.caneWhite);
+      stick.position.set(side * (halfW + 0.9), 1.1, segLen * 0.28);
+      g.add(stick);
+      const disc = new THREE.Mesh(A.gDisc, A.lolli);
+      disc.rotation.x = Math.PI / 2;
+      disc.rotation.z = Math.PI / 2;
+      disc.position.set(side * (halfW + 0.9), 2.55 + (i % 2) * 0.4, segLen * 0.28);
+      g.add(disc);
+      const discIn = new THREE.Mesh(A.gDiscIn, A.lolliIn);
+      discIn.rotation.copy(disc.rotation);
+      discIn.position.copy(disc.position);
+      g.add(discIn);
+
+      // กัมดรอปหยอดเรียงริมทาง
+      const gum = new THREE.Mesh(A.gGum, A.gumMats[(i + (side + 1)) % A.gumMats.length]);
+      gum.scale.y = 0.72;
+      gum.position.set(side * (halfW + 0.5), 0.32, 0);
+      g.add(gum);
+    }
+  }
+
+  // 🐴 ฟาร์มสัตว์ — รั้วไม้สองฝั่ง ขอบหญ้า ฟ่อนฟาง ยุ้งฉางหลังคาแหลม
+  function buildFarmDecor(g, i) {
+    const A = TA.farm;
+    for (const side of [-1, 1]) {
+      const grass = new THREE.Mesh(A.gGrass, A.grass);
+      grass.position.set(side * (halfW + 1.15), -0.02, 0);
+      g.add(grass);
+
+      for (const railY of [0.42, 0.78]) {
+        const rail = new THREE.Mesh(A.gFRail, A.fence);
+        rail.position.set(side * (halfW + 0.2), railY, 0);
+        g.add(rail);
+      }
+      for (let k = 0; k < 5; k++) {
+        const post = new THREE.Mesh(A.gFPost, A.fence);
+        post.position.set(side * (halfW + 0.2), 0.42, -segLen / 2 + (k + 0.5) * (segLen / 5));
+        g.add(post);
+      }
+    }
+
+    if (i % 2 === 1) {
+      const hay = new THREE.Mesh(A.gHay, A.hay);
+      hay.rotation.z = Math.PI / 2;
+      const side = i % 4 === 1 ? -1 : 1;
+      hay.position.set(side * (halfW + 1.4), 0.55, -segLen * 0.1);
+      g.add(hay);
+    }
+
+    // ยุ้งฉางแดงหลังคาแหลมไกลออกไปข้างทาง — landmark ที่วิ่งผ่านแล้วรู้ว่าคือฟาร์ม
+    if (i % 3 === 2) {
+      const side = i % 2 ? -1 : 1;
+      const barn = new THREE.Mesh(A.gBarn, A.barn);
+      barn.position.set(side * (halfW + 4.6), 1.3, 0);
+      g.add(barn);
+      const roof = new THREE.Mesh(A.gRoof, A.barnRoof);
+      roof.rotation.y = Math.PI / 4;
+      roof.position.set(side * (halfW + 4.6), 3.35, 0);
+      g.add(roof);
+    }
+  }
+
+  // 🏜️ ทะเลทราย — เนินทราย กระบองเพชร โขดหิน
+  function buildDesertDecor(g, i) {
+    const A = TA.desert;
+    for (const side of [-1, 1]) {
+      const dune = new THREE.Mesh(A.gDune, A.sand);
+      dune.scale.set(1.6, 0.5, 1.9);
+      dune.position.set(side * (halfW + 2.6), -0.5, -segLen * 0.15 * side);
+      g.add(dune);
+    }
+
+    const side = i % 2 ? -1 : 1;
+    if (i % 3 !== 0) {
+      const cactus = new THREE.Mesh(A.gCactus, A.cactus);
+      cactus.position.set(side * (halfW + 0.8), 0.85, segLen * 0.2);
+      g.add(cactus);
+      for (const armSide of [-1, 1]) {
+        const arm = new THREE.Mesh(A.gArm, A.cactus);
+        arm.rotation.z = armSide * 0.9;
+        arm.position.set(side * (halfW + 0.8) + armSide * 0.33, 1.05, segLen * 0.2);
+        g.add(arm);
+      }
+    } else {
+      const rock = new THREE.Mesh(A.gRock, A.rock);
+      rock.scale.setScalar(1 + (i % 2) * 0.5);
+      rock.position.set(side * (halfW + 0.7), 0.3, -segLen * 0.3);
+      g.add(rock);
+    }
+  }
+
+  const DECOR_BUILDERS = {
+    space: buildSpaceDecor,
+    pirate: buildPirateDecor,
+    candy: buildCandyDecor,
+    farm: buildFarmDecor,
+    desert: buildDesertDecor,
+  };
+
+  const corridor = new THREE.Group();
+  scene.add(corridor);
+
+  const segments = [];
+  const decoByTheme = { space: [], pirate: [], candy: [], farm: [], desert: [] };
+
+  for (let i = 0; i < CFG.world.segmentCount; i++) {
+    const g = new THREE.Group();
+
+    // ── ฐานร่วมทุกธีม: พื้น + เส้นแบ่งเลน (กติกาเกมอยู่บนนี้ ห้ามธีมไหนแตะ) ──
+    const floor = new THREE.Mesh(G.floor, M.floor);
+    floor.position.y = -0.2;
+    g.add(floor);
+
+    for (const x of [-CFG.world.laneWidth / 2, CFG.world.laneWidth / 2]) {
+      const line = new THREE.Mesh(G.laneLine, M.lane);
+      line.position.set(x, 0.03, 0);
+      g.add(line);
+    }
+
+    // ── ของตกแต่งทั้ง 5 ธีม (สร้างครบ ซ่อนไว้ก่อน — applyTheme เป็นคนเปิด) ──
+    for (const [id, build] of Object.entries(DECOR_BUILDERS)) {
+      const deco = new THREE.Group();
+      build(deco, i);
+      deco.visible = id === 'space';
+      g.add(deco);
+      decoByTheme[id].push(deco);
+    }
 
     g.position.z = -i * segLen;
-    scene.add(g);
+    corridor.add(g);
     segments.push(g);
   }
 
   const totalLength = segLen * CFG.world.segmentCount;
 
-  const corridor = new THREE.Group();
-  for (const seg of segments) corridor.add(seg);
-  scene.add(corridor);
+  /* ── ฉากหลังประจำธีม (ไม่เลื่อนตามทางเดิน แต่ซ่อน/โชว์พร้อมธีม) ──
+   * อยู่ใน corridor group ด้วยเหตุผลเดียว: ตอนเข้าด่านโบนัส corridor ถูกซ่อน
+   * ทั้งกิ่ง ฉากหลังพวกนี้ต้องหายไปพร้อมกันโดยไม่ต้องจัดการแยก */
+  const backdrops = {};
+  {
+    // ทะเลยามค่ำ + ดวงจันทร์ (โจรสลัด)
+    const sea = new THREE.Group();
+    const water = new THREE.Mesh(new THREE.PlaneGeometry(600, 520), TA.pirate.sea);
+    water.rotation.x = -Math.PI / 2;
+    water.position.set(0, -0.55, -160);
+    sea.add(water);
+    const moon = new THREE.Mesh(new THREE.CircleGeometry(7, 24), TA.pirate.moon);
+    moon.position.set(22, 30, -170);
+    sea.add(moon);
+    backdrops.pirate = sea;
+
+    // พื้นครีมกว้าง (ขนมหวาน)
+    const icing = new THREE.Group();
+    const icingPlane = new THREE.Mesh(
+      new THREE.PlaneGeometry(600, 520),
+      new THREE.MeshLambertMaterial({ color: 0x8a4f78 })
+    );
+    icingPlane.rotation.x = -Math.PI / 2;
+    icingPlane.position.set(0, -0.55, -160);
+    icing.add(icingPlane);
+    backdrops.candy = icing;
+
+    // ทุ่งหญ้า (ฟาร์ม)
+    const field = new THREE.Group();
+    const fieldPlane = new THREE.Mesh(
+      new THREE.PlaneGeometry(600, 520),
+      new THREE.MeshLambertMaterial({ color: 0x35551f })
+    );
+    fieldPlane.rotation.x = -Math.PI / 2;
+    fieldPlane.position.set(0, -0.55, -160);
+    field.add(fieldPlane);
+    backdrops.farm = field;
+
+    // ทะเลทราย + พีระมิดคู่ที่ขอบฟ้า
+    const dunesFar = new THREE.Group();
+    const sandPlane = new THREE.Mesh(
+      new THREE.PlaneGeometry(600, 520),
+      new THREE.MeshLambertMaterial({ color: 0x8a6a3e })
+    );
+    sandPlane.rotation.x = -Math.PI / 2;
+    sandPlane.position.set(0, -0.55, -160);
+    dunesFar.add(sandPlane);
+    for (const [px, pz, s] of [[-34, -150, 1], [30, -175, 1.4]]) {
+      const pyr = new THREE.Mesh(TA.desert.gPyr, TA.desert.pyramid);
+      pyr.rotation.y = Math.PI / 4;
+      pyr.scale.setScalar(s);
+      pyr.position.set(px, 4.5, pz);
+      dunesFar.add(pyr);
+    }
+    backdrops.desert = dunesFar;
+
+    for (const bd of Object.values(backdrops)) {
+      bd.visible = false;
+      corridor.add(bd);
+    }
+  }
 
   /* ══ ห้วงอวกาศสำหรับด่านโบนัส "ทางช้างเผือก" ═══════════════
    * สร้างทิ้งไว้ตั้งแต่ต้นเกมแล้วซ่อนไว้ ไม่ได้สร้างตอนเข้าด่านโบนัส
@@ -273,6 +590,18 @@ export function createScene(canvas) {
     M.neonCyan.color.setHex(w.neonA);
     M.neonPink.color.setHex(w.neonB);
     M.amber.color.setHex(w.accent);
+    M.lane.color.setHex(w.laneLine ?? 0x3d4a78);
+
+    // สลับ "โลก" จริง ๆ: ของตกแต่งประจำธีมทุกท่อน + ฉากหลัง (ทะเล/ทุ่ง/พีระมิด)
+    for (const [id, list] of Object.entries(decoByTheme)) {
+      const on = id === t.id;
+      for (const d of list) d.visible = on;
+    }
+    for (const [id, bd] of Object.entries(backdrops)) bd.visible = id === t.id;
+
+    // แสงบรรยากาศ: ในยานโทนเย็น / กลางแจ้งอุ่นตามท้องฟ้าของธีม
+    hemi.color.setHex(w.sky ?? 0xbfe6ff);
+    hemi.groundColor.setHex(w.ground ?? 0x0d1424);
 
     // ด่านโบนัสประจำธีม — ย้อมท้องฟ้า/เนบิวลา/ฝุ่น/ก้อนหินให้เข้าเรื่องราว
     const b = t.bonus;
