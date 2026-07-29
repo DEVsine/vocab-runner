@@ -27,6 +27,10 @@ import { createUI } from './ui.js';
 import { createInput, ACTIONS } from './input.js';
 import { createNet } from './net.js';
 import { createGhosts } from './ghosts.js';
+import { themeById } from './themes.js';
+import { wallet } from './wallet.js';
+import { characterById } from './characters.js';
+import { pickPracticeWords, buildPracticeQueue } from './practice.js';
 import { loadDeckIndex, loadDeck, pickWord, buildQuestion } from './deck.js';
 import * as srs from './srs.js';
 import {
@@ -72,6 +76,11 @@ const ui = createUI({
   onMenu: () => leaveToMenu(),
   onResume: () => resumeGame(),
   onDeckChange: (file) => selectDeck(file),
+  onThemeChange: (id) => applyTheme(id),
+  onCharacterChange: (id) => player.applySkin(id),
+  onSpeakWord: (w) => { unlockAudio(); if (w) speak(w.en, { rate: 0.9 }); },
+  onPracticeRun: (words) => startPracticeRun(words),
+  onPracticeAgain: () => openPracticeTeach(),
   onOpenMultiplayer: () => openMultiplayer(),
   onMPCreate: (name) => mpCreate(name),
   onMPJoin: (name, code) => mpJoin(name, code),
@@ -168,6 +177,13 @@ createInput(canvas, (action) => {
     case 'stats':
       if (action === ACTIONS.BACK || action === ACTIONS.CONFIRM) toMenu();
       break;
+    case 'teach':
+    case 'practiceDone':
+      if (action === ACTIONS.BACK) toMenu();
+      break;
+    case 'spectate':
+      if (action === ACTIONS.BACK) toLobby();
+      break;
     case 'paused':
       if (action === ACTIONS.BACK || action === ACTIONS.CONFIRM) resumeGame();
       break;
@@ -183,11 +199,28 @@ createInput(canvas, (action) => {
 
 /* ── การเปลี่ยนสถานะ ─────────────────────────────────────── */
 
+/** ทาธีมทั้งโลก: ฉาก + สิ่งกีดขวาง + ป้ายด่านโบนัสประจำธีม */
+function applyTheme(id) {
+  const t = themeById(id);
+  world.applyTheme(id);
+  obstacles.applyTheme(t);
+  hud.setBonusFlavor(t.bonus.title, t.bonus.sub);
+}
+
 function toMenu() {
   stopSpeaking();
   stopAmbience();
   state = 'menu';
   hud.hide();
+  hud.showSpectate(false);
+  // ล็อบบี้โชว์ตัวละคร (สไตล์ Fortnite): กล้องหันเข้าหน้าตัวละครบนแท่นเรืองแสง
+  player.reset();
+  player.applySkin(wallet.selected());
+  player.setShowcase(true);
+  player.group.visible = true;
+  world.setLobbyView(true);
+  world.setEnvironment('corridor');
+  ui.refreshIdentity();
   ui.setDeckInfo(deck);
   ui.show('menu');
 }
@@ -216,8 +249,14 @@ function startRun() {
   pickups.reset();
   if (!mpActive) ghosts.reset();   // เล่นเดี่ยวต้องไม่มีโกสต์ค้างจากรอบแข่ง
   player.reset();
+  player.applySkin(wallet.selected());
+  player.group.visible = true;
+  player.setSelfMarker(mpActive);  // โหมดแข่ง: ลูกศร "คุณ" เหนือหัว แยกตัวเองจากโกสต์
+  world.setLobbyView(false);
+  hud.showSpectate(false);
 
   run = {
+    practice: null,                // โหมดฝึก: { queue, words } — ตั้งค่าโดย startPracticeRun
     time: 0,
     speed: CFG.speed.start,
     score: 0,
@@ -260,6 +299,37 @@ function startRun() {
   startAmbience();
 }
 
+/* ══ โหมดฝึก: สอน 10 คำ → วิ่งกับคำชุดนั้น → สอนชุดถัดไป ═══════ */
+
+function openPracticeTeach() {
+  if (!deck) return;
+  stopSpeaking();
+  stopAmbience();
+  hud.hide();
+  state = 'teach';
+  ui.showPracticeTeach(pickPracticeWords(deck));
+}
+
+function startPracticeRun(words) {
+  startRun();
+  const queue = buildPracticeQueue(words, { speechOk: isSpeechUsable() });
+  run.practice = { words, queue, remaining: queue.length };
+  hud.toast('โหมดฝึก — ตอบผิดไม่ตาย คำจะวนกลับมาให้ลองใหม่', 2600);
+}
+
+function practiceDone() {
+  const words = run.practice.words;
+  const coins = run.coins;
+  wallet.deposit(coins);
+  pendingRetryWord = null;
+  stopSpeaking();
+  stopAmbience();
+  hud.hide();
+  state = 'practiceDone';
+  sfx.bonusStart();
+  ui.showPracticeDone(words, coins);
+}
+
 /* ══ โหมดแข่งหลายคน (P2P) ═══════════════════════════════════
  * ปรัชญา: "โลกใครโลกมัน" — แต่ละเครื่องรันเกมของตัวเอง เราแค่ส่ง "สถานะสรุป"
  * (คะแนน/ด่าน/รอด-ตาย) ให้กันสด ๆ ผ่าน net.js แล้วเอามาวาดเป็นตารางคะแนน
@@ -271,13 +341,14 @@ function setupNet() {
     mpRoster = players;
     if (state === 'lobby') ui.mpRenderPlayers(players, net.selfId());
     hud.setLeaderboard(players, net.selfId());
-    // อัปเดตโกสต์ของเพื่อนทันทีที่ได้ตำแหน่งใหม่ (เฉพาะตอนอยู่ในรอบแข่ง)
-    if (mpActive && (state === 'running' || state === 'dying' || state === 'dead')) {
+    // อัปเดตโกสต์ของเพื่อนทันทีที่ได้ตำแหน่งใหม่ (รวมตอนเป็นผู้ชมหลังตกรอบด้วย)
+    if (mpActive && (state === 'running' || state === 'dying' || state === 'dead' || state === 'spectate')) {
       ghosts.sync(players, net.selfId());
     }
   });
-  net.on('start', (deckFile) => beginRace(deckFile));
+  net.on('start', (startMsg) => beginRace(startMsg));
   net.on('winner', (w) => onRoundWinner(w));
+  net.on('attack', (from) => onAttacked(from));
   net.on('status', (msg) => ui.mpSetStatus(msg));
   net.on('error', (msg) => ui.mpSetStatus(msg, 'fail'));
   net.on('closed', () => {
@@ -299,6 +370,28 @@ function setupNet() {
 }
 
 /**
+ * โดนอาวุธ "ปลดเกราะ" จากคู่แข่ง (host เป็นคนเล็งเป้าให้ — เราแค่รับผล)
+ * มีเกราะใส่อยู่ → เกราะหลุด | ไม่มีเกราะ → ม่านพลังงานโผล่ขวางเลนปัจจุบัน
+ */
+function onAttacked(from) {
+  if (state !== 'running' || !run || run.bonus || mpFinished) return;
+  if (run.jetArmed) {
+    run.jetArmed = false;
+    player.setArmed(false);
+    hud.setJets(run.jets, false);
+    sfx.laser();
+    hud.toast(`⚔️ โดน ${from} ปลดเกราะ!`, 2000);
+  } else {
+    run.events.push({
+      kind: 'obstacle', time: run.time + 1.6, type: 'barrier',
+      lane: player.nearestLane(), lead: 1.3,
+    });
+    sfx.horn();
+    hud.toast(`⚠️ ${from} ส่งม่านพลังงานมาขวางทาง!`, 2000);
+  }
+}
+
+/**
  * Battle Royale จบรอบ: host ประกาศผู้รอดคนสุดท้าย → ทุกเครื่องโชว์ป้ายผู้ชนะ
  * ค้างไว้ 3.2 วิ แล้วพากลับห้องอัตโนมัติ (host กดเริ่มรอบใหม่ได้เลย)
  */
@@ -306,16 +399,29 @@ function onRoundWinner(w) {
   if (!mpActive || mpRoundOver) return;
   mpRoundOver = true;
 
-  const isMe = w.id && w.id === net.selfId();
   stopSpeaking();
-  if (state === 'running') {
-    // ผู้ชนะยังวิ่งอยู่ตอนรอบจบ — พักโลกไว้เฉย ๆ (สถานะ countdown ไม่มีการชน/ตัดสินใด ๆ)
+  if (state === 'running' || state === 'spectate') {
+    // รอบจบขณะยังวิ่ง/ดูอยู่ — พักโลกไว้เฉย ๆ (สถานะ countdown ไม่มีการชน/ตัดสินใด ๆ)
     stopAmbience();
+    hud.showSpectate(false);
     state = 'countdown';
   }
-  hud.showWinner(isMe
-    ? '🏆 คุณคือผู้รอดคนสุดท้าย!'
-    : (w.id ? `🏆 ${w.name} คือผู้รอดคนสุดท้าย!` : 'รอบนี้ไม่มีผู้รอด — เสมอกัน!'));
+
+  let text;
+  if (w.team != null || Array.isArray(w.winnerIds)) {
+    // โหมดทีม: ชนะทั้งทีม (สมาชิกที่ตายก่อนก็ร่วมฉลองด้วย)
+    const mine = w.winnerIds?.includes(net.selfId());
+    const names = (w.names || []).join(' + ');
+    text = w.winnerIds?.length
+      ? (mine ? `🏆 ทีมคุณชนะ! (${names})` : `🏆 ทีม ${(w.team ?? 0) + 1} ชนะ! (${names})`)
+      : 'รอบนี้ไม่มีทีมรอด — เสมอกัน!';
+  } else {
+    const isMe = w.id && w.id === net.selfId();
+    text = isMe
+      ? '🏆 คุณคือผู้รอดคนสุดท้าย!'
+      : (w.id ? `🏆 ${w.name} คือผู้รอดคนสุดท้าย!` : 'รอบนี้ไม่มีผู้รอด — เสมอกัน!');
+  }
+  hud.showWinner(text);
   sfx.bonusStart();   // แตรฉลองที่มีอยู่แล้ว ใช้ซ้ำได้พอดี
 
   clearTimeout(winnerTimer);
@@ -348,13 +454,15 @@ function mpJoin(name, code) {
   net.join(code, name, (code2) => ui.mpEnterRoom(code2, false));
 }
 
-/** หัวห้องกดเริ่ม → กระจายชื่อ deck ที่เลือกไว้ให้ทุกคนเริ่มพร้อมกัน */
+/** หัวห้องกดเริ่ม → กระจาย deck + โหมด (เดี่ยว/ดูโอ้/สควอด) ให้ทุกคนเริ่มพร้อมกัน */
 function mpStart() {
-  net.startRace(ui.selectedDeckFile());
+  net.startRace(ui.selectedDeckFile(), ui.mpMode());
 }
 
+const MODE_LABEL = { solo: '👤 เดี่ยว — ตัวใครตัวมัน', duo: '👥 ดูโอ้ — ทีมละ 2', squad: '👨‍👩‍👧‍👦 สควอด — ทีมละ 4' };
+
 /** เริ่มรอบแข่ง: โหลด deck ของหัวห้อง → นับถอยหลัง → ออกตัวพร้อมกัน */
-async function beginRace(deckFile) {
+async function beginRace(startMsg) {
   clearInterval(countdownTimer);
   clearTimeout(winnerTimer);
   hud.showWinner(null);
@@ -363,7 +471,7 @@ async function beginRace(deckFile) {
   mpRoundOver = false;
   pendingRetryWord = null;      // เริ่มแข่งใหม่ต้องสะอาด ไม่เอาคำที่พลาดจากรอบเดี่ยวมาปน
   try {
-    if (deckFile) deck = await loadDeck(deckFile);
+    if (startMsg?.deck) deck = await loadDeck(startMsg.deck);
   } catch (err) {
     console.warn('[mp] โหลด deck ของหัวห้องไม่ได้ — ใช้ deck เดิมแทน', err);
   }
@@ -371,7 +479,11 @@ async function beginRace(deckFile) {
   hud.showLeaderboard(true);
   hud.setLeaderboard(mpRoster, net.selfId());
   state = 'countdown';
-  runCountdown(() => startRun());
+  runCountdown(() => {
+    startRun();
+    const label = MODE_LABEL[startMsg?.mode] || MODE_LABEL.solo;
+    hud.toast(`${label} — ผู้รอด(ทีม)สุดท้ายชนะ!`, 2400);
+  });
 }
 
 function runCountdown(done) {
@@ -395,6 +507,7 @@ function toLobby() {
   hud.countdown(null);
   hud.showWinner(null);
   hud.hide();
+  hud.showSpectate(false);
   hud.showLeaderboard(false);
   ghosts.reset();
   mpFinished = false;
@@ -445,10 +558,21 @@ function distanceOver(seconds) {
 }
 
 function spawnGate(windowSeconds) {
-  const word = run.forcedWord || pickWord(deck, run.recent);
-  run.forcedWord = null;
-
-  const question = buildQuestion(deck, word, { speechEnabled: isSpeechUsable() });
+  let question;
+  if (run.practice) {
+    // โหมดฝึก: หยิบข้อจากคิว "ตอน spawn" แล้วผูกไว้กับโจทย์เลย
+    // (ห้ามอ่าน queue[0] เฉย ๆ — director อาจ spawn ด่านถัดไปก่อนด่านแรกถูกตัดสิน
+    //  ถ้าสองด่านชี้ entry เดียวกัน การนับจบชุดจะเพี้ยนทันที)
+    const entry = run.practice.queue.shift();
+    question = buildQuestion(deck, entry.word, { speechEnabled: isSpeechUsable() });
+    question.mode = entry.mode;
+    question.practiceEntry = entry;
+  } else {
+    const word = run.forcedWord || pickWord(deck, run.recent);
+    run.forcedWord = null;
+    question = buildQuestion(deck, word, { speechEnabled: isSpeechUsable() });
+  }
+  const word = question.word;
   gates.spawn(question, -distanceOver(windowSeconds));
 
   run.recent.push(word.en);
@@ -480,7 +604,8 @@ function spawnGate(windowSeconds) {
  * → แถวเหรียญกลายเป็นตัวชี้ทางปลอดภัยโดยไม่ต้องมี UI บอก
  */
 function scheduleBreather(gateArrival) {
-  const rule = obstacleRuleFor(run.gates);
+  const practice = !!run.practice;
+  const rule = obstacleRuleFor(practice ? 0 : run.gates);
   const start = gateArrival + CFG.pacing.obstacleEdgeMargin;
   const end = gateArrival + CFG.pacing.breatherSeconds - CFG.pacing.obstacleEdgeMargin;
   if (end <= start) return;
@@ -489,7 +614,7 @@ function scheduleBreather(gateArrival) {
   // เพราะยานยาวกินทั้งช่วงพัก เลนของมันต้องสงวนไว้: ห้ามมีสิ่งกีดขวาง/เหรียญพื้น/ดาว
   // (ของพวกนั้นจะไปอยู่ใต้ท้องยาน มองไม่เห็นและเก็บไม่ได้ = ดูเหมือนเกมพัง)
   let trainLane = -1;
-  if (run.gates >= CFG.trains.rideAfterGates && Math.random() < CFG.trains.rideChance) {
+  if (!practice && run.gates >= CFG.trains.rideAfterGates && Math.random() < CFG.trains.rideChance) {
     trainLane = Math.floor(Math.random() * CFG.world.laneCount);
     run.events.push({ kind: 'train', time: gateArrival + 0.55, lane: trainLane, lead: 1.7 });
   }
@@ -527,7 +652,7 @@ function scheduleBreather(gateArrival) {
   );
 
   // ── ยานวิ่งสวน (ONCOMING) — ความตื่นเต้นหลังผู้เล่นเริ่มอยู่ตัว ──
-  if (run.gates >= CFG.trains.oncomingAfterGates
+  if (!practice && run.gates >= CFG.trains.oncomingAfterGates
       && Math.random() < CFG.trains.oncomingChance) {
     const time = gateArrival + CFG.pacing.breatherSeconds * 0.55;
     const cand = groundLanes.filter(l => laneFreeAt(l, time));
@@ -569,12 +694,13 @@ function scheduleBreather(gateArrival) {
   }
 
   // ไอพ่นสำรองวางไว้ท้ายแถวเหรียญ = รางวัลของคนที่เก็บจนจบแถว
-  if (Math.random() < CFG.powerup.chancePerBreather && laneFreeAt(lane, lastCoinTime + 0.3)) {
+  // (โหมดฝึกไม่มีของตาย จึงไม่ต้องมีเกราะ/ดาวสะสมมากวนสมาธิ)
+  if (!practice && Math.random() < CFG.powerup.chancePerBreather && laneFreeAt(lane, lastCoinTime + 0.3)) {
     run.events.push({ kind: 'jet', time: lastCoinTime + 0.3, lane, lead: CFG.powerup.lead });
   }
 
   // ดาวสะสม — วางเฉพาะเลนพื้นที่ว่างจริง ๆ (ใต้ท้องยานคือจุดบอด)
-  if (run.stars < CFG.stars.needed && Math.random() < CFG.stars.chancePerBreather) {
+  if (!practice && run.stars < CFG.stars.needed && Math.random() < CFG.stars.chancePerBreather) {
     const starTime = gateArrival + CFG.pacing.breatherSeconds * 0.62;
     const free = groundLanes.filter(l => laneFreeAt(l, starTime));
     if (free.length) {
@@ -589,9 +715,14 @@ function scheduleBreather(gateArrival) {
 }
 
 function runDirector() {
-  const windowSeconds = answerWindowFor(run.gates);
+  // โหมดฝึก: เวลาคิดกว้างสุดตลอด (ระดับความยากของเกมจริงไม่เกี่ยวกับการสอนคำใหม่)
+  const windowSeconds = answerWindowFor(run.practice ? 0 : run.gates);
 
-  if (!run.gateSpawned && run.time >= run.nextGateArrival - windowSeconds) {
+  // โหมดฝึก: คิวหมดชั่วคราว (ทุกข้อกำลังรอตัดสิน/รอวนกลับ) → เว้นการ spawn ด่านไว้ก่อน
+  const gateReady = !run.gateSpawned && run.time >= run.nextGateArrival - windowSeconds
+    && !(run.practice && !run.practice.queue.length);
+
+  if (gateReady) {
     const arrival = run.nextGateArrival;
     spawnGate(windowSeconds);
     scheduleBreather(arrival);
@@ -750,7 +881,7 @@ function equipJet() {
   player.setArmed(true);
   sfx.jetEquip();
   hud.setJets(run.jets, true);
-  hud.toast('🚀 ใส่ไอพ่นแล้ว — กันตายได้ 1 ครั้ง', 1600);
+  hud.toast(`${armorEmoji()} ใส่${armorName()}แล้ว — กันตายได้ 1 ครั้ง`, 1600);
 }
 
 /** ไอพ่นที่ใส่อยู่ช่วยชีวิตจากการ "ชน" (สิ่งกีดขวาง/ยาน) — พุ่งข้ามแล้วเปลวดับ */
@@ -783,7 +914,7 @@ function saveWithJet(gate) {
 
   hud.setJets(run.jets, false);
   hud.setScore(run.score, run.gates, run.combo);
-  hud.toast(`ไอพ่นช่วยไว้! คำที่ถูกคือ "${q.word.en}" = ${q.word.th}`, 2200);
+  hud.toast(`${armorEmoji()} ${armorName()}ช่วยไว้! คำที่ถูกคือ "${q.word.en}" = ${q.word.th}`, 2200);
 }
 
 function die(cause, word, chosen) {
@@ -799,6 +930,7 @@ function die(cause, word, chosen) {
 
   pendingRetryWord = word || null;
   srs.submitScore(deck.id, run.score, run.gates);
+  wallet.deposit(run.coins);        // เหรียญที่เก็บได้เข้ากระเป๋าถาวรเสมอ — ตายก็ไม่สูญเปล่า
 
   deathInfo = {
     cause,
@@ -866,8 +998,33 @@ function checkGates() {
     hud.setTimer(0);
     sfx.laser();
 
+    // ── โหมดฝึก: ไม่มีการตาย — ผิดแล้วคำวนกลับมาให้ลองใหม่จนกว่าจะได้ ──
+    if (run.practice) {
+      if (correct) {
+        passGate(gate);
+        run.practice.remaining -= 1;
+        if (run.practice.remaining <= 0) { practiceDone(); return; }
+      } else {
+        srs.record(deck.id, q.word.en, false);
+        run.combo = 1;
+        run.invuln = 1.2;
+        run.practice.queue.push(q.practiceEntry);   // วนกลับไปท้ายคิว (remaining คงเดิม)
+        speak(q.word.en);
+        hud.toast(`ยังไม่ใช่ — "${q.word.en}" = ${q.word.th} (เดี๋ยวเจอกันอีกรอบ)`, 2400);
+        hud.setScore(run.score, run.gates, run.combo);
+      }
+      continue;
+    }
+
     if (correct) {
       passGate(gate);
+      // ⚔️ อาวุธปลดเกราะ (โหมดแข่ง): คอมโบ ≥3 ยิงใส่ "ผู้นำคะแนน" ฝั่งตรงข้าม
+      if (mpActive && !mpFinished && run.combo >= 3
+          && performance.now() - (run.lastAttackAt || 0) > 7000) {
+        run.lastAttackAt = performance.now();
+        net.sendAttack();
+        hud.toast('⚔️ คอมโบแรง! ส่งโจมตีปลดเกราะไปหาผู้นำ', 1500);
+      }
     } else if (run.jetArmed) {
       saveWithJet(gate);      // ต้อง "ใส่" ไว้ก่อนเท่านั้น — มีในคลังเฉย ๆ ไม่ช่วย
     } else {
@@ -882,11 +1039,24 @@ function checkHazards() {
   if (run.bonus || run.invuln > 0 || player.isBoosting()) return;
   const hit = obstacles.checkHit(player);
   if (hit) {
-    if (run.jetArmed) { rescueWithJet('🚀 ไอพ่นช่วยไว้! รอดจากการชน'); return; }
+    // โหมดฝึก: ชนแล้วสะดุ้งแต่ไม่ตาย — ที่นี่มีไว้เรียนคำ ไม่ใช่วัดฝีมือหลบ
+    if (run.practice) {
+      world.shake(0.7);
+      sfx.crash();
+      run.invuln = 1.4;
+      run.combo = 1;
+      hud.toast('ชน! ไม่เป็นไร ฝึกต่อ', 1200);
+      return;
+    }
+    if (run.jetArmed) { rescueWithJet(`${armorEmoji()} ${armorName()}ช่วยไว้! รอดจากการชน`); return; }
     const pending = gates.pending();
     die('obstacle', pending?.question.word ?? null, null);
   }
 }
+
+/** ชื่อ/อีโมจิของ "เกราะกันตาย" ตามตัวละครที่ใส่ (astro=ไอพ่น, ตัวอื่น=อาวุธประจำตัว) */
+function armorName() { return characterById(wallet.selected()).weapon; }
+function armorEmoji() { return characterById(wallet.selected()).weaponEmoji; }
 
 /**
  * ยานลำเลียง: ตัดสิน 3 อย่างต่อเฟรม — ขึ้นหลังคา / ชนตัวยาน / โดนยานสวน
@@ -906,7 +1076,8 @@ function checkTrains() {
       player.setPlatform(surf.roofY);
     } else if (surf.enteredBy > CFG.trains.mountGrace
                && run.invuln <= 0 && !player.isBoosting()) {
-      if (run.jetArmed) { rescueWithJet('🚀 ไอพ่นช่วยไว้! พุ่งข้ามยานลำเลียง'); return; }
+      if (run.practice) { world.shake(0.7); run.invuln = 1.4; return; }
+      if (run.jetArmed) { rescueWithJet(`${armorEmoji()} ${armorName()}ช่วยไว้! พุ่งข้ามยานลำเลียง`); return; }
       const pending = gates.pending();
       die('obstacle', pending?.question.word ?? null, null);
       return;
@@ -917,7 +1088,7 @@ function checkTrains() {
 
   if (run.invuln > 0 || player.isBoosting()) return;
   if (trains.oncomingHit(px)) {
-    if (run.jetArmed) { rescueWithJet('🚀 ไอพ่นช่วยไว้! เฉียดยานสวนนิดเดียว'); return; }
+    if (run.jetArmed) { rescueWithJet(`${armorEmoji()} ${armorName()}ช่วยไว้! เฉียดยานสวนนิดเดียว`); return; }
     const pending = gates.pending();
     die('obstacle', pending?.question.word ?? null, null);
   }
@@ -947,7 +1118,7 @@ function collectPickups() {
     } else {
       run.jets = Math.min(CFG.powerup.maxCharges, run.jets + 1);
       sfx.jetPickup();
-      hud.toast('ได้ไอพ่น! กด Space หรือแตะจอเพื่อ "ใส่" — ใส่แล้วถึงจะกันตาย', 2400);
+      hud.toast(`ได้${armorName()}! กด Space หรือแตะจอเพื่อ "ใส่" — ใส่แล้วถึงจะกันตาย`, 2400);
     }
   }
 
@@ -968,6 +1139,7 @@ function update(dt) {
   if (state === 'running') {
     run.time += dt;
     run.speed = Math.min(CFG.speed.max, CFG.speed.start + CFG.speed.accel * run.time);
+    if (run.practice) run.speed = Math.min(run.speed, 16);   // โหมดฝึกไม่เร่งจนอ่านไม่ทัน
     run.invuln = Math.max(0, run.invuln - dt);
 
     if (run.bonus) bonusDirector(dt);
@@ -1028,10 +1200,33 @@ function update(dt) {
     world.update(dt, run.speed, player.x());
 
     if (dyingTimer > 0.6) {
-      state = 'dead';
-      hud.hide();
-      ui.showDeath(deathInfo);
+      // โหมดแข่งที่รอบยังไม่จบ: ไม่ขึ้นจอตายบังวิว แต่เข้า "โหมดผู้ชม" —
+      // ตกรอบแล้วยังนั่งดูโกสต์เพื่อนที่เหลือ + ตารางคะแนนสด จนกว่าจะมีผู้ชนะ
+      if (mpActive && !mpRoundOver) {
+        state = 'spectate';
+        player.group.visible = false;    // ร่างเราออกจากสนามไปแล้ว
+        hud.clearQuestion();
+        hud.setQuestionVisible(false);
+        hud.showSpectate(true);
+        startAmbience();
+      } else {
+        state = 'dead';
+        hud.hide();
+        ui.showDeath(deathInfo);
+      }
     }
+    return;
+  }
+
+  if (state === 'spectate') {
+    // โลกไหลต่อเบา ๆ ให้ของที่ค้างอยู่วิ่งพ้นจอไป (ไม่มีการชน/ไม่มีของเกิดใหม่)
+    run.speed += (11 - run.speed) * Math.min(1, dt * 2);
+    gates.update(dt, run.speed);
+    obstacles.update(dt, run.speed);
+    trains.update(dt, run.speed);
+    pickups.update(dt, run.speed);
+    world.update(dt, run.speed, 0);
+    updateAmbience(run.speed);
     return;
   }
 
@@ -1088,13 +1283,13 @@ async function boot() {
   loadJokes();
 
   window.__bootOk?.();   // บูตถึงจุดนี้ = โมดูลครบทุกไฟล์ → ล้างธง auto-reload ของตาข่ายกันแคชปน
+  applyTheme(ui.selectedTheme());
 
   try {
     const index = await loadDeckIndex();
     const file = ui.fillDeckList(index);
     await selectDeck(file);
-    state = 'menu';
-    ui.show('menu');
+    toMenu();            // เข้าเมนูพร้อมฉากโชว์ตัวละคร
   } catch (err) {
     console.error(err);
     // สาเหตุที่พบบ่อยที่สุดคือเปิดไฟล์ด้วยการดับเบิลคลิก (protocol file://)
@@ -1126,6 +1321,11 @@ if (location.hostname === 'localhost' || location.hostname === '127.0.0.1') {
     equipJet,
     TRAIN,
     sfx,
+    wallet,
+    applyTheme,
+    openPracticeTeach,
+    startPracticeRun,
+    pickPracticeWords: () => pickPracticeWords(deck),
     /** กระโดดเข้าด่านโบนัสทันที (ไม่ต้องไล่เก็บดาว 5 ดวง) */
     forceBonus: () => { if (state === 'running' && !run.bonus) enterBonus(); },
     // ── โหมดแข่ง (ใช้ทดสอบ 2 แท็บ) ──

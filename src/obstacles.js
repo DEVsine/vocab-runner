@@ -155,6 +155,21 @@ export function createObstaclePool(scene) {
   return {
     items,
 
+    /** ทาสีสิ่งกีดขวางตามธีม — geometry เดิม กติกาเดิม เปลี่ยนแค่เปลือก */
+    applyTheme(t) {
+      const o = t.obstacles;
+      M.rock.color.setHex(o.rock);
+      M.rock.emissive.setHex(o.rockGlow);
+      M.magma.color.setHex(o.core);
+      M.trail.color.setHex(o.trail);
+      M.panel.color.setHex(o.panel);
+      M.panel.emissive.setHex(o.panelGlow);
+      M.metal.color.setHex(o.metal);
+      M.solar.color.setHex(o.wing);
+      M.field.color.setHex(o.field);
+      M.fieldEdge.color.setHex(o.fieldEdge);
+    },
+
     spawn(type, lane, z) {
       const item = items.find(o => !o.active);
       if (!item) return null;

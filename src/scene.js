@@ -15,6 +15,7 @@
 
 import * as THREE from 'three';
 import { CFG } from './config.js';
+import { themeById } from './themes.js';
 import { createStarTexture, createNebulaTexture, createDotTexture } from './textures.js';
 
 export const PALETTE = {
@@ -254,6 +255,72 @@ export function createScene(canvas) {
     scene.fog.far = inSpace ? 320 : CFG.world.fogFar;
   }
 
+  /* ══ ระบบธีม ═══════════════════════════════════════════════
+   * เปลี่ยนธีม = "ทาสีใหม่" บน material ชุดเดิม ไม่สร้าง geometry ใหม่เลย
+   * (material ถูกแชร์ทุกท่อนทางเดินอยู่แล้ว แก้ที่เดียวเปลี่ยนทั้งโลกทันที
+   *  และไม่มีเฟรมกระตุกเพราะไม่มีการ allocate อะไรใหม่)
+   */
+  function applyTheme(themeId) {
+    const t = themeById(themeId);
+    const w = t.world;
+    scene.background.setHex(w.bg);
+    scene.fog.color.setHex(w.bg);
+    M.floor.color.setHex(w.floor);
+    M.hull.color.setHex(w.hull);
+    M.hullDark.color.setHex(w.hullDark);
+    M.frame.color.setHex(w.frame);
+    M.lampWhite.color.setHex(w.lamp);
+    M.neonCyan.color.setHex(w.neonA);
+    M.neonPink.color.setHex(w.neonB);
+    M.amber.color.setHex(w.accent);
+
+    // ด่านโบนัสประจำธีม — ย้อมท้องฟ้า/เนบิวลา/ฝุ่น/ก้อนหินให้เข้าเรื่องราว
+    const b = t.bonus;
+    backdrop.material.color.setHex(b.sky);
+    band.material.color.setHex(b.nebula);
+    dust.material.color.setHex(b.dust);
+    rockMat.color.setHex(b.rock);
+  }
+
+  /* ══ มุมกล้องล็อบบี้ (โชว์ตัวละครแบบ Fortnite) ══════════════
+   * ไม่ตัดฉากทันที แต่ "เกลี่ย" ตำแหน่งกล้องระหว่างมุมวิ่งกับมุมโชว์ด้วย blend 0..1
+   * → ตอนกดเริ่มเกม กล้องจะไหลจากหน้าตัวละครกลับไปมุมวิ่งอย่างนุ่มนวล ฟรี ๆ
+   */
+  // กล้องเยื้องซ้ายเล็กน้อย → ตัวละครไปโผล่กลาง-ขวาของจอ เปิดที่ว่างให้แผงเมนูฝั่งซ้าย
+  const LOBBY_CAM = new THREE.Vector3(-1.5, 1.85, 4.6);
+  const LOBBY_LOOK = new THREE.Vector3(0, 1.1, 0);
+  let lobbyView = false;
+  let lobbyBlend = 0;
+
+  // แท่นโชว์ตัวละคร — วงแหวนเรืองแสง + ลำแสงจาง ๆ พุ่งขึ้น (เห็นเฉพาะตอนอยู่เมนู)
+  const podium = new THREE.Group();
+  const podiumDisc = new THREE.Mesh(
+    new THREE.CylinderGeometry(1.05, 1.2, 0.16, 36),
+    new THREE.MeshLambertMaterial({ color: 0x2c3654, emissive: 0x141b30 })
+  );
+  podiumDisc.position.y = 0.02;
+  podium.add(podiumDisc);
+  const podiumRing = new THREE.Mesh(
+    new THREE.TorusGeometry(1.08, 0.045, 10, 40),
+    new THREE.MeshBasicMaterial({ color: PALETTE.cyan })
+  );
+  podiumRing.rotation.x = Math.PI / 2;
+  podiumRing.position.y = 0.12;
+  podium.add(podiumRing);
+  const podiumBeam = new THREE.Mesh(
+    new THREE.CylinderGeometry(1.0, 1.15, 4.2, 28, 1, true),
+    new THREE.MeshBasicMaterial({
+      color: PALETTE.cyan, transparent: true, opacity: 0.07,
+      side: THREE.DoubleSide, depthWrite: false,
+    })
+  );
+  podiumBeam.position.y = 2.2;
+  podium.add(podiumBeam);
+  podium.visible = false;
+  scene.add(podium);
+
+  function setLobbyView(on) { lobbyView = on; }
+
   /* ── กล้อง: สั่นตอนชน + ไถลตามผู้เล่น ────────────────────── */
   let shakeAmount = 0;
   let focusX = 0;
@@ -311,11 +378,27 @@ export function createScene(canvas) {
     } else {
       camera.position.copy(camBase);
     }
-    camera.lookAt(
-      focusX * CFG.camera.lookFollowX,
-      CFG.camera.lookAtY + camLift * 1.1,
-      CFG.camera.lookAtZ
-    );
+
+    // เกลี่ยเข้ามุมล็อบบี้ (โชว์ตัวละคร) — blend 0 = มุมวิ่งปกติเป๊ะ ไม่มีผลอะไรเลย
+    lobbyBlend += ((lobbyView ? 1 : 0) - lobbyBlend) * Math.min(1, dt * 3);
+    podium.visible = lobbyBlend > 0.03;
+    if (podium.visible) podiumRing.rotation.z += dt * 0.7;
+
+    if (lobbyBlend > 0.001) {
+      camera.position.lerp(LOBBY_CAM, lobbyBlend);
+      const look = new THREE.Vector3(
+        focusX * CFG.camera.lookFollowX,
+        CFG.camera.lookAtY + camLift * 1.1,
+        CFG.camera.lookAtZ
+      ).lerp(LOBBY_LOOK, lobbyBlend);
+      camera.lookAt(look);
+    } else {
+      camera.lookAt(
+        focusX * CFG.camera.lookFollowX,
+        CFG.camera.lookAtY + camLift * 1.1,
+        CFG.camera.lookAtZ
+      );
+    }
   }
 
   function resize() {
@@ -331,6 +414,7 @@ export function createScene(canvas) {
 
   return {
     scene, camera, renderer, update, shake, resize, setEnvironment,
+    applyTheme, setLobbyView,
     render: () => renderer.render(scene, camera),
   };
 }

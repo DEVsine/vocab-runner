@@ -56,7 +56,7 @@ export function createNet() {
 
   const cb = {
     roster: () => {}, start: () => {}, status: () => {},
-    error: () => {}, closed: () => {}, winner: () => {},
+    error: () => {}, closed: () => {}, winner: () => {}, attack: () => {},
   };
 
   /* ── ตัวช่วยฝั่ง host ─────────────────────────────────────── */
@@ -77,6 +77,8 @@ export function createNet() {
    * (ต้องมีผู้เล่น ≥2 ตอนเริ่ม ไม่งั้นเล่นคนเดียวจะ "ชนะ" ทันทีที่ตาย ซึ่งประหลาด) */
   let roundActive = false;
   let participants = new Set();
+  let raceMode = 'solo';       // solo | duo | squad
+  let teams = {};              // id -> เลขทีม (เฉพาะโหมดทีม)
 
   function checkWinner() {
     if (!isHost || !roundActive) return;
@@ -84,14 +86,58 @@ export function createNet() {
       const p = roster.get(id);
       return p && !p.finished;
     });
-    if (alive.length > 1) return;
+
+    let msg;
+    if (raceMode === 'solo') {
+      if (alive.length > 1) return;
+      const winId = alive[0] ?? null;
+      const p = winId ? roster.get(winId) : null;
+      msg = { t: 'winner', id: winId, name: p?.name ?? '—', score: p?.score ?? 0 };
+    } else {
+      // โหมดทีม: นับ "ทีมที่ยังมีคนรอด" — สมาชิกที่ตายไปก่อนก็ชนะด้วยในฐานะทีม
+      const aliveTeams = new Set(alive.map(id => teams[id] ?? 0));
+      if (aliveTeams.size > 1) return;
+      const teamIdx = [...aliveTeams][0] ?? null;
+      const winnerIds = teamIdx === null
+        ? []
+        : [...participants].filter(id => teams[id] === teamIdx);
+      msg = {
+        t: 'winner', team: teamIdx, winnerIds,
+        names: winnerIds.map(id => roster.get(id)?.name || 'ผู้เล่น'),
+      };
+    }
 
     roundActive = false;
-    const winId = alive[0] ?? null;
-    const p = winId ? roster.get(winId) : null;
-    const msg = { t: 'winner', id: winId, name: p?.name ?? '—', score: p?.score ?? 0 };
     for (const c of conns.values()) { try { c.send(msg); } catch { /* กำลังปิด */ } }
     cb.winner(msg);
+  }
+
+  /* ── อาวุธ "ปลดเกราะ": host เป็นคนเลือกเป้าเสมอ ──────────────
+   * ผู้ยิงไม่ได้เลือกเป้าเอง — host เล็งให้ที่ "คู่แข่งคะแนนนำสุดที่ยังรอด"
+   * (คนละทีมกับผู้ยิง) เพื่อให้อาวุธทำหน้าที่เชิงดีไซน์: ถ่วงคนนำ ไม่ใช่รุมคนท้าย */
+  function routeAttack(fromId, fromName) {
+    if (!roundActive) return;
+    const candidates = [...participants].filter(id => {
+      if (id === fromId) return false;
+      const p = roster.get(id);
+      if (!p || p.finished) return false;
+      if (raceMode !== 'solo' && teams[id] === teams[fromId]) return false;
+      return true;
+    });
+    if (!candidates.length) return;
+    candidates.sort((a, b) => (roster.get(b)?.score ?? 0) - (roster.get(a)?.score ?? 0));
+    const target = candidates[0];
+    const msg = { t: 'atkTo', from: fromName };
+    if (target === selfId) cb.attack(fromName);
+    else { try { conns.get(target)?.send(msg); } catch { /* ปิดอยู่ */ } }
+  }
+
+  /** ยิงอาวุธปลดเกราะ (เกมเรียกตอนทำคอมโบสำเร็จ) */
+  function sendAttack() {
+    if (isHost) routeAttack(selfId, selfName);
+    else if (hostConn && hostConn.open) {
+      try { hostConn.send({ t: 'atk', name: selfName }); } catch { /* ปิดอยู่ */ }
+    }
   }
 
   let trailingTimer = null;
@@ -120,7 +166,8 @@ export function createNet() {
       return;
     }
     lastBroadcast = now;
-    const players = [...roster.values()].map(({ lastSeen, ...p }) => p);
+    // แนบเลขทีมไปกับ roster — ล็อบบี้/ตารางคะแนนใช้แสดงป้ายทีมโดยไม่ต้องมีข้อความแยก
+    const players = [...roster.values()].map(({ lastSeen, ...p }) => ({ ...p, team: teams[p.id] }));
     const msg = { t: 'roster', players };
     for (const c of conns.values()) { try { c.send(msg); } catch { /* คอนเนกชันกำลังปิด */ } }
     cb.roster(players);          // host ก็ต้องเห็น roster ของตัวเองด้วย
@@ -149,6 +196,8 @@ export function createNet() {
       });
       broadcastRoster();
       checkWinner();     // สถานะใหม่อาจเป็น "ผมตายแล้ว" → เช็กว่าเหลือคนสุดท้ายหรือยัง
+    } else if (data.t === 'atk') {
+      routeAttack(conn.peer, data.name || 'คู่แข่ง');
     }
   }
 
@@ -177,8 +226,9 @@ export function createNet() {
   function onClientData(data) {
     if (!data || typeof data !== 'object') return;
     if (data.t === 'roster') cb.roster(data.players || []);
-    else if (data.t === 'start') cb.start(data.deck);
+    else if (data.t === 'start') cb.start(data);
     else if (data.t === 'winner') cb.winner(data);
+    else if (data.t === 'atkTo') cb.attack(data.from || 'คู่แข่ง');
     else if (data.t === 'closed') { cb.closed(); teardown(); }
   }
 
@@ -250,17 +300,33 @@ export function createNet() {
     peer.on('error', (err) => cb.error(peerErrorText(err)));
   }
 
-  /** host เริ่มแข่ง: กระจายสัญญาณเริ่ม + ชื่อ deck ให้ทุกคน แล้วเริ่มของตัวเองด้วย
+  /** host เริ่มแข่ง: กระจายสัญญาณเริ่ม + deck + โหมด + ทีม ให้ทุกคนพร้อมกัน
    *  พร้อมล็อกรายชื่อผู้เข้ารอบ Battle Royale ณ วินาทีนี้ */
-  function startRace(deckFile) {
+  function startRace(deckFile, mode = 'solo') {
     if (!isHost) return;
-    participants = new Set(roster.keys());
+    raceMode = mode;
+    teams = {};
+    const ids = [...roster.keys()];   // Map รักษาลำดับการเข้าห้อง → จับทีมตามลำดับเข้า
+    if (mode !== 'solo') {
+      const size = mode === 'duo' ? 2 : 4;
+      const teamCount = Math.max(1, Math.ceil(ids.length / size));
+      // ⚠️ จับทีมแล้วได้ "ทีมเดียว" (เช่น ดูโอ้แต่มีกัน 2 คน) = ไม่มีคู่แข่งข้ามทีม
+      // ระบบจะประกาศทีมนั้นชนะทันทีตอนออกตัว! → ถอยกลับเป็นโหมดเดี่ยวแทน
+      if (teamCount < 2) {
+        raceMode = 'solo';
+      } else {
+        // แจกแบบวนรอบ (round-robin) — ขนาดทีมต่างกันไม่เกิน 1 คนเสมอ ยุติธรรมสุดที่ทำได้
+        ids.forEach((id, i) => { teams[id] = i % teamCount; });
+      }
+    }
+    participants = new Set(ids);
     roundActive = participants.size >= 2;
     // ล้างธง "ตกรอบ" ของรอบก่อน — ไม่งั้นเปิดรอบใหม่ปุ๊บระบบจะเห็นทุกคนตายแล้ว
     for (const p of roster.values()) { p.finished = false; p.alive = false; }
-    const msg = { t: 'start', deck: deckFile };
+    const msg = { t: 'start', deck: deckFile, mode: raceMode, teams };
     for (const c of conns.values()) { try { c.send(msg); } catch { /* noop */ } }
-    cb.start(deckFile);
+    broadcastRoster(true);            // ให้ทุกคนเห็นป้ายทีมทันทีตอนออกตัว
+    cb.start(msg);
   }
 
   /**
@@ -286,6 +352,8 @@ export function createNet() {
     trailingTimer = null;
     roundActive = false;
     participants.clear();
+    raceMode = 'solo';
+    teams = {};
     conns.clear();
     roster.clear();
     hostConn = null;
@@ -303,7 +371,7 @@ export function createNet() {
   }
 
   return {
-    on, host, join, startRace, sendState, leave,
+    on, host, join, startRace, sendState, sendAttack, leave,
     amHost: () => isHost,
     isConnected: () => !!peer,
     selfId: () => selfId,

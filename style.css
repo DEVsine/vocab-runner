@@ -584,6 +584,94 @@ td.en { font-weight: 700; }
   background: currentColor;
 }
 
+/* ── ตัวเลือกโหมดทีม (เดี่ยว/ดูโอ้/สควอด) ──────────────────── */
+.mp-modes { display: flex; gap: 7px; margin-bottom: 14px; }
+.mp-mode {
+  flex: 1; padding: 9px 6px; font-size: 13.5px; font-weight: 700;
+  background: rgba(255,255,255,.05); color: var(--dim);
+  border: 1px solid rgba(255,255,255,.14); border-radius: 11px;
+  font-family: inherit; cursor: pointer;
+}
+.mp-mode.active {
+  color: #eafdff; border-color: rgba(34,211,238,.65);
+  background: rgba(34,211,238,.16); box-shadow: 0 0 14px -4px var(--cyan);
+}
+.mp-team-badge {
+  margin-left: 6px; font-size: 10.5px; letter-spacing: .06em;
+  border: 1px solid rgba(255,255,255,.3); border-radius: 99px; padding: 1px 7px;
+  color: var(--ink);
+}
+
+/* ── แถบโหมดผู้ชม (spectate) ────────────────────────────────── */
+#spectate-banner {
+  position: absolute; top: 14px; left: 50%; transform: translateX(-50%);
+  z-index: 7; padding: 9px 20px; border-radius: 99px;
+  background: rgba(6,10,24,.85); border: 1px solid rgba(251,113,133,.5);
+  font-size: 14px; font-weight: 700; color: var(--ink);
+  backdrop-filter: blur(5px); pointer-events: none;
+}
+
+/* ── เมนู: แถวตัวละคร + กระเป๋าเหรียญ ───────────────────────── */
+#menu-char-row {
+  display: flex; justify-content: space-between; align-items: center;
+  margin-bottom: 14px; padding: 9px 13px; border-radius: 12px;
+  background: rgba(255,255,255,.04); border: 1px solid rgba(255,255,255,.09);
+  font-size: 14px;
+}
+#menu-char-emoji { font-size: 19px; }
+#menu-wallet { font-weight: 800; color: #fbbf24; }
+
+/* ── ร้านค้า ────────────────────────────────────────────────── */
+.shop-wallet { margin-bottom: 14px; font-size: 15px; color: var(--ink); }
+.shop-wallet b { color: #fbbf24; font-size: 19px; }
+#shop-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 10px; margin-bottom: 14px; }
+.shop-card {
+  padding: 13px 10px; border-radius: 14px; text-align: center;
+  background: rgba(255,255,255,.04); border: 1px solid rgba(255,255,255,.1);
+}
+.shop-card.selected { border-color: var(--cyan); box-shadow: 0 0 18px -6px var(--cyan); }
+.shop-emoji { font-size: 34px; line-height: 1.2; }
+.shop-name { font-weight: 800; font-size: 15px; margin-top: 3px; }
+.shop-weapon { font-size: 11.5px; color: var(--dim); margin: 2px 0 8px; }
+.shop-card .btn { margin-top: 0; padding: 8px 10px; font-size: 13px; }
+.shop-price { color: #fbbf24; font-weight: 700; }
+.shop-owned-tag { font-size: 11px; color: var(--lime); letter-spacing: .08em; }
+
+/* ── โหมดฝึก ────────────────────────────────────────────────── */
+.pr-count { font-size: 12px; letter-spacing: .14em; color: var(--dim); margin-bottom: 10px; }
+.pr-card {
+  padding: 22px 16px; border-radius: 16px; margin-bottom: 14px;
+  background: rgba(255,255,255,.04); border: 1px solid rgba(34,211,238,.25);
+}
+#pr-emoji { font-size: 58px; line-height: 1.15; min-height: 66px; }
+#pr-en {
+  font-size: 38px; font-weight: 900; color: var(--cyan);
+  text-shadow: 0 0 24px rgba(34,211,238,.4); line-height: 1.2;
+}
+#pr-th { font-size: 21px; margin: 4px 0 12px; }
+.pr-done-words {
+  display: flex; flex-wrap: wrap; gap: 7px; justify-content: center; margin-bottom: 14px;
+}
+.pr-done-words .chip {
+  padding: 5px 12px; border-radius: 99px; font-size: 13px;
+  background: rgba(163,230,53,.12); border: 1px solid rgba(163,230,53,.4);
+}
+.pr-done-coins { margin-bottom: 16px; color: var(--dim); }
+.pr-done-coins b { color: #fbbf24; }
+
+/* ── จอกว้าง: เมนูสไตล์ Fortnite — แผงเลื่อนไปซ้าย ตัวละครโชว์ฝั่งขวา ── */
+@media (min-width: 920px) {
+  #screen-menu { justify-content: flex-start; }
+  #screen-menu .panel { margin: auto 0 auto 5vw; width: 400px; }
+  /* ไล่เฉดให้ฝั่งขวาโปร่ง — เปิดเวทีให้ตัวละครบนแท่นเรืองแสง */
+  #screen-menu {
+    background: linear-gradient(90deg,
+      rgba(3, 5, 14, .93) 0%, rgba(3, 5, 14, .82) 40%,
+      rgba(3, 5, 14, .28) 62%, rgba(3, 5, 14, .05) 100%);
+    backdrop-filter: none;
+  }
+}
+
 @media (max-width: 560px) {
   #hud-prompt { top: 10px; padding: 9px 16px 11px; }
   #hud-score, #hud-gates { font-size: 22px; }

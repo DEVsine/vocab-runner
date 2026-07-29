@@ -83,6 +83,17 @@
         </label>
         <p id="deck-info" class="deck-info">กำลังโหลด…</p>
 
+        <label class="field">
+          <span>ธีมของโลก</span>
+          <select id="theme-select"></select>
+        </label>
+
+        <!-- ตัวละครที่ใส่อยู่ + กระเป๋าเหรียญ (แตะเพื่อเข้าร้านค้า) -->
+        <div id="menu-char-row">
+          <div id="menu-char"><span id="menu-char-emoji">🧑‍🚀</span> <span id="menu-char-name">นักบินอวกาศ</span></div>
+          <div id="menu-wallet">🪙 <span id="menu-wallet-coins">0</span></div>
+        </div>
+
         <div class="toggles">
           <label class="toggle"><input type="checkbox" id="toggle-sfx" checked> <span>เสียงประกอบ</span></label>
           <label class="toggle"><input type="checkbox" id="toggle-speech" checked> <span>อ่านออกเสียงคำ</span></label>
@@ -94,8 +105,12 @@
         <p id="speech-status" class="speech-status"></p>
 
         <button id="btn-start" class="btn btn-primary">เริ่มเล่น <kbd>Space</kbd></button>
-        <button id="btn-multiplayer" class="btn">🎮 เล่นหลายคน (แข่งสด)</button>
-        <button id="btn-stats" class="btn">สถิติคำศัพท์</button>
+        <button id="btn-practice" class="btn">📖 โหมดฝึก — สอนคำใหม่ทีละ 10 คำ</button>
+        <button id="btn-multiplayer" class="btn">🎮 เล่นหลายคน (Battle Royale)</button>
+        <div class="row">
+          <button id="btn-shop" class="btn">🛒 ร้านค้า</button>
+          <button id="btn-stats" class="btn">สถิติคำศัพท์</button>
+        </div>
 
         <p class="hint">
           <kbd>←</kbd><kbd>→</kbd> หรือ <kbd>A</kbd><kbd>D</kbd> เปลี่ยนเลน ·
@@ -154,6 +169,48 @@
       </div>
     </section>
 
+    <!-- ══ ร้านค้า ══ -->
+    <section id="screen-shop" class="screen hidden">
+      <div class="panel">
+        <h2>🛒 ร้านค้า</h2>
+        <p class="shop-wallet">เหรียญในกระเป๋า: 🪙 <b id="shop-coins">0</b></p>
+        <div id="shop-grid"></div>
+        <p class="hint">เก็บเหรียญจากการวิ่งทุกโหมด — จบรอบแล้วเหรียญเข้ากระเป๋าอัตโนมัติ<br>
+        ตัวละครทุกตัวเก่งเท่ากัน ต่างแค่ความเท่และอาวุธประจำตัว</p>
+        <button id="btn-shop-close" class="btn btn-primary">กลับเมนู</button>
+      </div>
+    </section>
+
+    <!-- ══ โหมดฝึก: การ์ดสอนคำ ══ -->
+    <section id="screen-practice" class="screen hidden">
+      <div class="panel">
+        <div class="pr-count"><span id="pr-index">1</span> / <span id="pr-total">10</span> คำ</div>
+        <div class="pr-card">
+          <div id="pr-emoji">🐘</div>
+          <div id="pr-en">elephant</div>
+          <div id="pr-th">ช้าง</div>
+          <button id="btn-pr-speak" class="btn btn-small">🔊 ฟังเสียงอ่าน</button>
+        </div>
+        <div class="row">
+          <button id="btn-pr-prev" class="btn">← ก่อนหน้า</button>
+          <button id="btn-pr-next" class="btn btn-primary">ถัดไป →</button>
+        </div>
+        <button id="btn-pr-run" class="btn btn-primary hidden">🏃 จำได้แล้ว — เริ่มวิ่งฝึก!</button>
+        <button id="btn-pr-back" class="btn">กลับเมนู</button>
+      </div>
+    </section>
+
+    <!-- ══ โหมดฝึก: สรุปผลจบชุด ══ -->
+    <section id="screen-practice-done" class="screen hidden">
+      <div class="panel">
+        <h2>🎉 ฝึกครบชุดแล้ว!</h2>
+        <div id="pr-done-words" class="pr-done-words"></div>
+        <p class="pr-done-coins">ได้เหรียญเข้ากระเป๋า 🪙 <b id="pr-done-coin-count">0</b></p>
+        <button id="btn-pr-again" class="btn btn-primary">📖 สอนชุดต่อไป (คำใหม่)</button>
+        <button id="btn-pr-done-menu" class="btn">กลับเมนู</button>
+      </div>
+    </section>
+
     <!-- ══ พัก ══ -->
     <section id="screen-pause" class="screen hidden">
       <div class="panel">
@@ -192,6 +249,14 @@
               <button id="btn-mp-copy" class="btn btn-small mp-copy">คัดลอก</button>
             </div>
           </div>
+
+          <!-- โหมดแข่ง (หัวห้องเลือก): เดี่ยว = ตัวใครตัวมัน, ดูโอ้/สควอด = จับทีมอัตโนมัติ -->
+          <div id="mp-modes" class="mp-modes hidden">
+            <button class="mp-mode active" data-mode="solo">👤 เดี่ยว</button>
+            <button class="mp-mode" data-mode="duo">👥 ดูโอ้</button>
+            <button class="mp-mode" data-mode="squad">👨‍👩‍👧‍👦 สควอด</button>
+          </div>
+
           <div class="mp-players-label">ผู้เล่นในห้อง</div>
           <ul id="mp-players" class="mp-players"></ul>
           <button id="btn-mp-start" class="btn btn-primary hidden">เริ่มแข่ง!</button>
@@ -215,6 +280,11 @@
 
   <!-- ป้ายผู้ชนะ Battle Royale (ผู้รอดคนสุดท้าย) -->
   <div id="mp-winner" class="hidden"><div id="mp-winner-text">🏆</div></div>
+
+  <!-- แถบโหมดผู้ชม (ตกรอบแล้ว ดูเพื่อนที่เหลือแข่งต่อ) -->
+  <div id="spectate-banner" class="hidden">
+    💀 ตกรอบแล้ว — กำลังชมผู้เล่นที่เหลือ · <kbd>Esc</kbd> กลับห้อง
+  </div>
 
   <!-- ══ ตาข่ายกันพังตอนบูต ══
        ปัญหาจริงที่เจอบนมือถือ: หลังอัปเดตเวอร์ชัน เบราว์เซอร์อาจได้ "HTML ใหม่ + JS เก่าจากแคช"

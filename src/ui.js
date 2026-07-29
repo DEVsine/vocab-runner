@@ -5,6 +5,9 @@
 
 import { CFG } from './config.js';
 import { playerHue } from './net.js';
+import { THEMES, THEME_ORDER } from './themes.js';
+import { CHARACTERS, CHARACTER_ORDER, characterById } from './characters.js';
+import { wallet } from './wallet.js';
 import * as srs from './srs.js';
 
 const $ = id => document.getElementById(id);
@@ -37,6 +40,9 @@ export function createUI(handlers) {
     stats: $('screen-stats'),
     pause: $('screen-pause'),
     multiplayer: $('screen-mp'),
+    shop: $('screen-shop'),
+    practice: $('screen-practice'),
+    practiceDone: $('screen-practice-done'),
   };
 
   const prefs = loadPrefs();
@@ -87,6 +93,119 @@ export function createUI(handlers) {
     savePrefs(prefs);
     handlers.onDeckChange(deckSelect.value);
   });
+
+  /* ── ธีมของโลก ─────────────────────────────────────────── */
+
+  const themeSelect = $('theme-select');
+  for (const id of THEME_ORDER) {
+    const opt = document.createElement('option');
+    opt.value = id;
+    opt.textContent = THEMES[id].name;
+    themeSelect.appendChild(opt);
+  }
+  themeSelect.value = THEMES[prefs.theme] ? prefs.theme : 'space';
+
+  themeSelect.addEventListener('change', () => {
+    prefs.theme = themeSelect.value;
+    savePrefs(prefs);
+    handlers.onThemeChange(themeSelect.value);
+  });
+
+  /* ── ตัวละคร + กระเป๋าเหรียญ + ร้านค้า ──────────────────── */
+
+  function refreshIdentity() {
+    const c = characterById(wallet.selected());
+    $('menu-char-emoji').textContent = c.emoji;
+    $('menu-char-name').textContent = c.name;
+    $('menu-wallet-coins').textContent = wallet.coins();
+  }
+
+  function renderShop() {
+    $('shop-coins').textContent = wallet.coins();
+    $('shop-grid').innerHTML = CHARACTER_ORDER.map(id => {
+      const c = CHARACTERS[id];
+      const owned = wallet.owned(id);
+      const selected = wallet.selected() === id;
+      const action = selected
+        ? '<span class="shop-owned-tag">✓ ใส่อยู่</span>'
+        : owned
+          ? `<button class="btn" data-select="${id}">ใส่ตัวนี้</button>`
+          : `<button class="btn" data-buy="${id}">ซื้อ <span class="shop-price">🪙 ${c.price}</span></button>`;
+      return `
+        <div class="shop-card ${selected ? 'selected' : ''}">
+          <div class="shop-emoji">${c.emoji}</div>
+          <div class="shop-name">${c.name}</div>
+          <div class="shop-weapon">${c.weaponEmoji} ${c.weapon}<br>${c.desc}</div>
+          ${action}
+        </div>`;
+    }).join('');
+  }
+
+  $('shop-grid').addEventListener('click', (e) => {
+    const buyId = e.target.closest('[data-buy]')?.dataset.buy;
+    const selectId = e.target.closest('[data-select]')?.dataset.select;
+    if (buyId) {
+      const c = CHARACTERS[buyId];
+      if (wallet.buy(buyId, c.price)) {
+        wallet.select(buyId);
+        handlers.onCharacterChange(buyId);
+      } else {
+        alert(`เหรียญไม่พอ — ${c.name} ราคา ${c.price} เหรียญ (มี ${wallet.coins()})`);
+      }
+    } else if (selectId) {
+      wallet.select(selectId);
+      handlers.onCharacterChange(selectId);
+    } else return;
+    renderShop();
+    refreshIdentity();
+  });
+
+  $('btn-shop').addEventListener('click', () => { renderShop(); show('shop'); });
+  $('btn-shop-close').addEventListener('click', () => handlers.onMenu());
+
+  /* ── โหมดฝึก: การ์ดสอนคำทีละใบ ──────────────────────────── */
+
+  let prWords = [];
+  let prIdx = 0;
+
+  function prRender() {
+    const w = prWords[prIdx];
+    if (!w) return;
+    $('pr-index').textContent = prIdx + 1;
+    $('pr-total').textContent = prWords.length;
+    $('pr-emoji').textContent = w.emoji || '📝';
+    $('pr-en').textContent = w.en;
+    $('pr-th').textContent = w.th;
+    $('btn-pr-prev').disabled = prIdx === 0;
+    const last = prIdx === prWords.length - 1;
+    $('btn-pr-next').classList.toggle('hidden', last);
+    $('btn-pr-run').classList.toggle('hidden', !last);
+    handlers.onSpeakWord(w);      // อ่านออกเสียงอัตโนมัติทุกครั้งที่เปิดการ์ด (dual coding)
+  }
+
+  function showPracticeTeach(words) {
+    prWords = words;
+    prIdx = 0;
+    show('practice');
+    prRender();
+  }
+
+  $('btn-pr-prev').addEventListener('click', () => { if (prIdx > 0) { prIdx--; prRender(); } });
+  $('btn-pr-next').addEventListener('click', () => { if (prIdx < prWords.length - 1) { prIdx++; prRender(); } });
+  $('btn-pr-speak').addEventListener('click', () => handlers.onSpeakWord(prWords[prIdx]));
+  $('btn-pr-run').addEventListener('click', () => handlers.onPracticeRun(prWords));
+  $('btn-pr-back').addEventListener('click', () => handlers.onMenu());
+  $('btn-pr-again').addEventListener('click', () => handlers.onPracticeAgain());
+  $('btn-pr-done-menu').addEventListener('click', () => handlers.onMenu());
+  $('btn-practice').addEventListener('click', () => handlers.onPracticeAgain());
+
+  function showPracticeDone(words, coins) {
+    $('pr-done-words').innerHTML = words.map(w =>
+      `<span class="chip">${w.en} = ${w.th}</span>`).join('');
+    $('pr-done-coin-count').textContent = coins;
+    refreshIdentity();
+    show('practiceDone');
+  }
 
   /* ── สวิตช์เสียง ───────────────────────────────────────── */
 
@@ -147,12 +266,23 @@ export function createUI(handlers) {
     node.className = `mp-status ${kind}`;
   }
 
+  /* ── โหมดแข่ง (เดี่ยว/ดูโอ้/สควอด) — หัวห้องเท่านั้นที่เลือกได้ ── */
+  let mpModeValue = 'solo';
+  document.querySelectorAll('#mp-modes .mp-mode').forEach(btn => {
+    btn.addEventListener('click', () => {
+      mpModeValue = btn.dataset.mode;
+      document.querySelectorAll('#mp-modes .mp-mode').forEach(b =>
+        b.classList.toggle('active', b === btn));
+    });
+  });
+
   /** สลับล็อบบี้ไปสถานะ "อยู่ในห้องแล้ว" */
   function mpEnterRoom(code, amHost) {
     mpSetup.classList.add('hidden');
     mpRoom.classList.remove('hidden');
     $('mp-room-code').textContent = code;
     $('btn-mp-start').classList.toggle('hidden', !amHost);
+    $('mp-modes').classList.toggle('hidden', !amHost);
     $('mp-wait').classList.toggle('hidden', amHost);
   }
 
@@ -172,6 +302,7 @@ export function createUI(handlers) {
         <span class="mp-dot" style="color:hsl(${playerHue(p.id)},85%,62%)"></span>
         <span>${escapeHtml(p.name)}</span>
         ${p.id === selfId ? '<span class="mp-you">(คุณ)</span>' : ''}
+        ${p.team != null ? `<span class="mp-team-badge">ทีม ${p.team + 1}</span>` : ''}
         ${p.host ? '<span class="mp-host-badge">หัวห้อง</span>' : ''}
       </li>
     `).join('');
@@ -278,5 +409,12 @@ export function createUI(handlers) {
     mpRenderPlayers,
     mpSetStatus,
     mpNameValue: () => mpName.value.trim(),
+    mpMode: () => mpModeValue,
+
+    // ── ธีม / ร้านค้า / โหมดฝึก ──
+    selectedTheme: () => themeSelect.value,
+    refreshIdentity,
+    showPracticeTeach,
+    showPracticeDone,
   };
 }

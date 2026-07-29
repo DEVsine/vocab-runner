@@ -18,6 +18,7 @@
 import * as THREE from 'three';
 import { CFG } from './config.js';
 import { PALETTE } from './scene.js';
+import { characterById } from './characters.js';
 
 /** easeOutQuad — ออกตัวเร็วแล้วผ่อนเข้าที่ ให้ความรู้สึก "กระฉับกระเฉง" */
 const easeOutQuad = t => 1 - (1 - t) * (1 - t);
@@ -137,13 +138,137 @@ function buildAstronaut() {
     thrusters.push(flame);
   }
 
-  return { rig, armL, armR, legL, legR, torso, helmet, thrusters };
+  /* ── อาวุธประจำตัวละคร (สร้างครบทุกชิ้นตั้งแต่ต้น แล้วสลับ visible ตามสกิน) ──
+   * แต่ละชิ้นมี glow = ส่วนที่ "เรืองแสงตอนใส่เกราะ" แทนความหมายเดิมของเปลวไอพ่น */
+  const weaponMat = new THREE.MeshLambertMaterial({ color: 0xd9b45c });
+  const darkMetal = new THREE.MeshLambertMaterial({ color: 0x4a5060 });
+  const weapons = {};
+
+  {
+    // สปาตัน: โล่กลมที่แขนซ้าย + หอกพาดหลัง
+    const g = new THREE.Group();
+    const shield = new THREE.Mesh(new THREE.CylinderGeometry(0.26, 0.26, 0.05, 20), weaponMat);
+    shield.rotation.z = Math.PI / 2;
+    shield.position.set(-0.42, 1.0, -0.02);
+    g.add(shield);
+    const shieldGlow = new THREE.Mesh(
+      new THREE.TorusGeometry(0.27, 0.025, 8, 24),
+      new THREE.MeshBasicMaterial({ color: 0xffd166 })
+    );
+    shieldGlow.rotation.y = Math.PI / 2;
+    shieldGlow.position.copy(shield.position);
+    g.add(shieldGlow);
+    const spear = new THREE.Mesh(new THREE.CylinderGeometry(0.03, 0.03, 1.7, 8), darkMetal);
+    spear.position.set(0.18, 1.05, 0.34);
+    spear.rotation.z = 0.3;
+    g.add(spear);
+    const tip = new THREE.Mesh(new THREE.ConeGeometry(0.07, 0.24, 8), weaponMat);
+    tip.position.set(0.44, 1.9, 0.34);
+    tip.rotation.z = 0.3;
+    g.add(tip);
+    weapons.spartan = { group: g, glow: shieldGlow };
+  }
+  {
+    // ซามูไร: คาตานะพาดหลัง (ใบดาบเรืองแดงตอนใส่เกราะ)
+    const g = new THREE.Group();
+    const sheath = new THREE.Mesh(new THREE.BoxGeometry(0.07, 1.05, 0.1), darkMetal);
+    sheath.position.set(-0.2, 1.05, 0.36);
+    sheath.rotation.z = -0.5;
+    g.add(sheath);
+    const blade = new THREE.Mesh(
+      new THREE.BoxGeometry(0.045, 0.98, 0.06),
+      new THREE.MeshBasicMaterial({ color: 0xf87171 })
+    );
+    blade.position.copy(sheath.position);
+    blade.rotation.copy(sheath.rotation);
+    blade.position.z += 0.001;
+    g.add(blade);
+    const hilt = new THREE.Mesh(new THREE.CylinderGeometry(0.035, 0.035, 0.3, 8), weaponMat);
+    hilt.position.set(-0.51, 1.62, 0.36);
+    hilt.rotation.z = -0.5;
+    g.add(hilt);
+    weapons.samurai = { group: g, glow: blade };
+  }
+  {
+    // นินจา: ดาวกระจายยักษ์บนหลัง (กากบาท 2 แผ่น)
+    const g = new THREE.Group();
+    const starMat = new THREE.MeshLambertMaterial({ color: 0x8b94a8 });
+    for (const rot of [0, Math.PI / 4]) {
+      const arm = new THREE.Mesh(new THREE.BoxGeometry(0.62, 0.09, 0.05), starMat);
+      arm.position.set(0, 1.05, 0.4);
+      arm.rotation.z = rot;
+      g.add(arm);
+    }
+    const core = new THREE.Mesh(
+      new THREE.CylinderGeometry(0.09, 0.09, 0.07, 12),
+      new THREE.MeshBasicMaterial({ color: 0xa3e635 })
+    );
+    core.rotation.x = Math.PI / 2;
+    core.position.set(0, 1.05, 0.4);
+    g.add(core);
+    weapons.ninja = { group: g, glow: core };
+  }
+  {
+    // ลอร์ดมืด: ด้ามดาบที่เอว + "ใบดาบแสงแดง" โผล่เฉพาะตอนใส่เกราะ
+    const g = new THREE.Group();
+    const hilt = new THREE.Mesh(new THREE.CylinderGeometry(0.04, 0.045, 0.26, 10), darkMetal);
+    hilt.position.set(0.3, 0.78, 0.12);
+    hilt.rotation.z = 0.4;
+    g.add(hilt);
+    const blade = new THREE.Mesh(
+      new THREE.CylinderGeometry(0.028, 0.028, 1.15, 8),
+      new THREE.MeshBasicMaterial({ color: 0xff2d4d, transparent: true, opacity: 0.95 })
+    );
+    blade.position.set(0.58, 1.4, 0.12);
+    blade.rotation.z = 0.4;
+    g.add(blade);
+    weapons.darklord = { group: g, glow: blade, glowOnly: true };  // ใบดาบซ่อนจนกว่าจะใส่เกราะ
+  }
+
+  for (const w of Object.values(weapons)) {
+    w.group.visible = false;
+    rig.add(w.group);
+  }
+
+  return { rig, armL, armR, legL, legR, torso, helmet, thrusters, mat, weapons };
 }
 
 export function createPlayer(scene) {
   const group = new THREE.Group();
   const a = buildAstronaut();
   group.add(a.rig);
+
+  /* ── ลูกศรชี้ตัวเอง (โหมดแข่ง) ──
+   * พอมีโกสต์เพื่อนวิ่งรอบตัวหลายร่าง ผู้เล่นจะเสียตัวเองจากสายตาช่วงชุลมุน
+   * ลูกศร + ป้าย "คุณ" เหนือหัวคือคำตอบเดียวกับที่เกม MOBA/BR ทุกเกมใช้ */
+  const marker = new THREE.Group();
+  const markerCone = new THREE.Mesh(
+    new THREE.ConeGeometry(0.17, 0.3, 4),
+    new THREE.MeshBasicMaterial({ color: PALETTE.cyan })
+  );
+  markerCone.rotation.x = Math.PI;      // ชี้ลงหาหัวตัวละคร
+  markerCone.position.y = 2.18;
+  marker.add(markerCone);
+
+  const mkCanvas = document.createElement('canvas');
+  mkCanvas.width = 128;
+  mkCanvas.height = 52;
+  const mkCtx = mkCanvas.getContext('2d');
+  mkCtx.font = '700 30px "Noto Sans Thai", sans-serif';
+  mkCtx.textAlign = 'center';
+  mkCtx.textBaseline = 'middle';
+  mkCtx.fillStyle = 'rgba(3,6,17,0.75)';
+  mkCtx.fillRect(14, 4, 100, 44);
+  mkCtx.fillStyle = '#7ee7f7';
+  mkCtx.fillText('คุณ', 64, 27);
+  const markerSprite = new THREE.Sprite(new THREE.SpriteMaterial({
+    map: new THREE.CanvasTexture(mkCanvas), transparent: true, depthTest: false,
+  }));
+  markerSprite.scale.set(1.0, 0.42, 1);
+  markerSprite.position.y = 2.62;
+  marker.add(markerSprite);
+  marker.visible = false;
+  group.add(marker);
 
   // วงแหวนใต้เท้า ช่วยให้เห็นว่าตัวเองอยู่เลนไหนตอนลอยอยู่กลางอากาศ
   const shadowRing = new THREE.Mesh(
@@ -182,6 +307,8 @@ export function createPlayer(scene) {
     armed: false,            // ใส่ไอพ่นอยู่ → มีเปลวที่หลังตลอด (กันตาย 1 ครั้ง)
     wasAirborne: false,      // เฟรมก่อนลอยอยู่ไหม — ใช้จับจังหวะ "เท้าแตะพื้น" เพื่อเสียงตุบ
     justMounted: false,      // เพิ่งเหยียบหลังคายานเฟรมนี้ (มีเสียง mount แล้ว ไม่ต้องตุบซ้ำ)
+    skin: 'astro',           // ตัวละครที่ใส่อยู่ (จากร้านค้า)
+    showcase: false,         // ท่าโชว์ตัวในล็อบบี้ — หันหน้าเข้ากล้อง ยืนนิ่ง ๆ
   };
 
   const laneX = i => (i - 1) * CFG.world.laneWidth;
@@ -254,6 +381,26 @@ export function createPlayer(scene) {
 
   function update(dt, sfx) {
     state.runT += dt;
+
+    // ── ท่าโชว์ในล็อบบี้: หันหน้าเข้ากล้อง ยืนสง่า ๆ ส่ายตัวช้า ๆ ──
+    if (state.showcase) {
+      group.position.set(0, 0, CFG.world.playerZ);
+      a.rig.rotation.y = THREE.MathUtils.lerp(a.rig.rotation.y, Math.PI, dt * 4)
+        + Math.sin(state.runT * 0.7) * 0.003;
+      a.rig.rotation.x = 0;
+      a.rig.rotation.z = 0;
+      for (const part of [a.legL, a.legR]) part.rotation.x = THREE.MathUtils.lerp(part.rotation.x, 0, dt * 8);
+      a.armL.rotation.x = THREE.MathUtils.lerp(a.armL.rotation.x, -0.12, dt * 8);
+      a.armR.rotation.x = THREE.MathUtils.lerp(a.armR.rotation.x, -0.12, dt * 8);
+      a.torso.position.y = 0.96 + Math.sin(state.runT * 1.6) * 0.015;   // หายใจเบา ๆ
+      a.helmet.rotation.y = Math.sin(state.runT * 0.9) * 0.16;
+      for (const flame of a.thrusters) flame.visible = false;
+      return;
+    }
+    // ออกจากท่าโชว์แล้ว หมุนกลับมาหันหน้าเข้าทางวิ่ง
+    if (Math.abs(a.rig.rotation.y) > 0.01) {
+      a.rig.rotation.y = THREE.MathUtils.lerp(a.rig.rotation.y, 0, dt * 6);
+    }
 
     // เลื่อนเลน
     if (state.laneT < 1) {
@@ -355,12 +502,23 @@ export function createPlayer(scene) {
     a.torso.position.y = 0.96 + (airborne || slideK > 0.05 ? 0 : Math.abs(Math.cos(cadence)) * 0.035);
     a.helmet.rotation.y = Math.sin(state.runT * 2.2) * 0.12;
 
-    // เปลวไอพ่น: ตอนลอย = เปลวเต็ม, ตอน "ใส่ไอพ่น" อยู่ = เปลวเลียเบา ๆ ตลอด (ความเท่!)
+    // เปลวไอพ่น: ตอนลอย = เปลวเต็ม (ทุกตัวละครใช้ไอพ่นบิน)
+    // ส่วนสถานะ "ใส่เกราะ" ตอนวิ่ง: astro โชว์เปลวเลีย ๆ, ตัวอื่นโชว์อาวุธเรืองแสงแทน
     for (const flame of a.thrusters) {
-      flame.visible = airborne || state.armed;
+      flame.visible = airborne || (state.armed && state.skin === 'astro');
       if (airborne) flame.scale.y = 0.7 + Math.random() * 0.6;        // เปลวไฟกระพริบ
-      else if (state.armed) flame.scale.y = 0.3 + Math.random() * 0.15; // ติดเครื่องรอ
+      else if (flame.visible) flame.scale.y = 0.3 + Math.random() * 0.15;
     }
+
+    // อาวุธประจำตัวละคร: เรืองแสงเต้นตุบ ๆ ตอนใส่เกราะ (ลอร์ดมืด = ใบดาบโผล่เฉพาะตอนใส่)
+    const weapon = a.weapons[state.skin];
+    if (weapon) {
+      if (weapon.glowOnly) weapon.glow.visible = state.armed;
+      weapon.glow.scale.setScalar(state.armed ? 1 + Math.sin(state.runT * 10) * 0.14 : 1);
+    }
+
+    // ลูกศร "คุณ" เด้งเบา ๆ ให้ตาจับได้ (เฉพาะโหมดแข่งที่มาร์กเกอร์ถูกเปิด)
+    if (marker.visible) marker.position.y = Math.sin(state.runT * 4) * 0.09;
 
     shadowRing.material.opacity = 0.3 * (1 - Math.min(1, y / CFG.player.jumpHeight) * 0.75);
     shadowRing.scale.setScalar(1 - Math.min(1, y / CFG.player.jumpHeight) * 0.3);
@@ -394,6 +552,8 @@ export function createPlayer(scene) {
     state.armed = false;
     state.wasAirborne = false;
     state.justMounted = false;
+    state.showcase = false;
+    marker.visible = false;
     group.position.set(0, 0, CFG.world.playerZ);
     a.rig.rotation.set(0, 0, 0);
     a.rig.position.y = 0;
@@ -433,6 +593,20 @@ export function createPlayer(scene) {
     state.platformY = h;
   }
 
+  /** สวมสกินตัวละครจากร้านค้า — เปลี่ยนสีชุด + สลับอาวุธที่ติดตัว */
+  function applySkin(id) {
+    const c = characterById(id);
+    state.skin = c.id;
+    a.mat.suit.color.setHex(c.suit);
+    a.mat.suitDim.color.setHex(c.suitDim);
+    a.mat.joint.color.setHex(c.joint);
+    a.mat.amber.color.setHex(c.accent);   // เข็มขัด/แถบถัง = สี accent ประจำตัว
+    for (const [key, w] of Object.entries(a.weapons)) {
+      w.group.visible = key === c.id;
+      if (w.glowOnly) w.glow.visible = false;
+    }
+  }
+
   return {
     group,
     state,
@@ -442,6 +616,9 @@ export function createPlayer(scene) {
     boost,
     setFlying,
     setPlatform,
+    applySkin,
+    setShowcase(on) { state.showcase = on; },
+    setSelfMarker(on) { marker.visible = on; },
     onPlatform() { return state.baseY > 0.4; },
     setArmed(on) { state.armed = on; },
     isFlying() { return state.flying || state.flyBlend > 0.02; },

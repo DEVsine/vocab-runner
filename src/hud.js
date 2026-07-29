@@ -46,6 +46,9 @@ export function createHUD() {
     mpCountdownNum: $('mp-countdown-num'),
     mpWinner: $('mp-winner'),
     mpWinnerText: $('mp-winner-text'),
+    spectate: $('spectate-banner'),
+    bonusTitle: document.querySelector('#bonus-banner .bonus-title'),
+    bonusSub: document.querySelector('#bonus-banner .bonus-sub'),
   };
 
   const escapeHtml = s => String(s ?? '').replace(/[&<>"']/g, c =>
@@ -285,10 +288,21 @@ export function createHUD() {
         <li class="${p.id === selfId ? 'me' : ''} ${p.finished ? 'dead' : ''}">
           <span class="lb-rank">${i + 1}</span>
           <span class="mp-dot" style="color:hsl(${playerHue(p.id)},85%,62%)"></span>
-          <span class="lb-name">${escapeHtml(p.name)}</span>
+          <span class="lb-name">${escapeHtml(p.name)}${p.team != null ? ` <small>T${p.team + 1}</small>` : ''}</span>
           <span class="lb-score">${p.score}</span>
           <span class="lb-flag">${p.finished ? '💀' : '🏃'}</span>
         </li>`).join('');
+    },
+
+    /** เปลี่ยนข้อความป้ายด่านโบนัสตามธีม (ทางช้างเผือก/เมืองใต้ทะเล/ฯลฯ) */
+    setBonusFlavor(title, sub) {
+      el.bonusTitle.textContent = title;
+      el.bonusSub.textContent = sub;
+    },
+
+    /** แถบโหมดผู้ชม — ตกรอบแล้วนั่งดูเพื่อนที่เหลือ */
+    showSpectate(on) {
+      el.spectate.classList.toggle('hidden', !on);
     },
 
     /** ป้ายผู้ชนะ Battle Royale — ส่งข้อความเพื่อโชว์, ส่ง null เพื่อซ่อน */
