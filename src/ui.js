@@ -4,6 +4,7 @@
  */
 
 import { CFG } from './config.js';
+import { playerHue } from './net.js';
 import * as srs from './srs.js';
 
 const $ = id => document.getElementById(id);
@@ -164,10 +165,11 @@ export function createUI(handlers) {
     mpSetStatus('');
   }
 
-  /** วาดรายชื่อผู้เล่นในล็อบบี้ */
+  /** วาดรายชื่อผู้เล่นในล็อบบี้ — จุดสี = สีโกสต์ของคนนั้นในฉากตอนแข่ง */
   function mpRenderPlayers(players, selfId) {
     mpPlayers.innerHTML = players.map(p => `
       <li>
+        <span class="mp-dot" style="color:hsl(${playerHue(p.id)},85%,62%)"></span>
         <span>${escapeHtml(p.name)}</span>
         ${p.id === selfId ? '<span class="mp-you">(คุณ)</span>' : ''}
         ${p.host ? '<span class="mp-host-badge">หัวห้อง</span>' : ''}

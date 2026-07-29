@@ -32,7 +32,19 @@ html, body {
   touch-action: none;
 }
 
-#app { position: relative; width: 100vw; height: 100vh; }
+/* ⚠️ กับดัก iOS Safari: ถ้า ancestor มี -webkit-user-select:none
+   ช่องพิมพ์จะ "โฟกัสไม่ได้เลย" (แตะแล้วคีย์บอร์ดไม่เด้ง) — ต้องเปิดคืนที่ตัว input เอง
+   ส่วน touch-action:manipulation = แตะแล้วตอบสนองทันที ไม่รอเช็ก double-tap zoom */
+input, textarea, select {
+  user-select: text;
+  -webkit-user-select: text;
+  touch-action: manipulation;
+}
+button { touch-action: manipulation; }
+
+/* 100vh บน iOS สูงกว่าจอจริงเพราะนับพื้นที่ใต้แถบเครื่องมือ Safari ด้วย
+   → ใช้ 100dvh (ความสูงที่มองเห็นจริง) เมื่อเบราว์เซอร์รองรับ */
+#app { position: relative; width: 100vw; height: 100vh; height: 100dvh; }
 #game-canvas { display: block; width: 100%; height: 100%; }
 .hidden { display: none !important; }
 
@@ -318,12 +330,18 @@ kbd {
 /* ── หน้าจอเต็ม (เมนู / ตาย / สถิติ / พัก) ─────────────────── */
 .screen {
   position: absolute; inset: 0;
-  display: flex; align-items: center; justify-content: center;
+  display: flex;
   background: radial-gradient(ellipse at 50% 40%, rgba(34,211,238,.10), transparent 60%),
               rgba(3, 5, 14, .88);
   backdrop-filter: blur(3px);
   padding: 24px;
   z-index: 10;
+  /* จอเตี้ย (มือถือแนวนอน/Safari ที่แถบเครื่องมือกินที่) แผงอาจสูงกว่าจอ
+     → ต้องเลื่อนได้ ไม่งั้นปุ่มล่างสุดจะถูกตัดทิ้งแบบเอื้อมไม่ถึงเลย
+     (touch-action ต้องเปิด pan-y ที่นี่ เพราะ body ปิด gesture ไว้หมด) */
+  overflow-y: auto;
+  -webkit-overflow-scrolling: touch;
+  touch-action: pan-y;
 }
 
 .panel {
@@ -334,6 +352,11 @@ kbd {
   border-radius: 22px;
   box-shadow: 0 26px 70px rgba(0,0,0,.6);
   text-align: center;
+  /* จัดกลางด้วย margin:auto แทน align-items:center ของ flex —
+     ผลเหมือนกันตอนแผงเล็กกว่าจอ แต่ตอนแผง "สูงกว่าจอ" ต่างกันมาก:
+     align-items:center จะดันหัวแผงหลุดขอบบนแบบ scroll กลับไปไม่ถึง (บั๊ก flex คลาสสิก)
+     ส่วน margin:auto ยังเลื่อนดูได้ครบทั้งแผง */
+  margin: auto;
 }
 .panel-wide { width: min(720px, 100%); text-align: left; }
 
@@ -527,6 +550,38 @@ td.en { font-weight: 700; }
   0% { opacity: 0; transform: scale(.4); }
   30% { opacity: 1; transform: scale(1.1); }
   100% { opacity: .2; transform: scale(.85); }
+}
+
+/* ── ป้ายผู้ชนะ Battle Royale ───────────────────────────────── */
+#mp-winner {
+  position: absolute; inset: 0; z-index: 21;
+  display: flex; align-items: center; justify-content: center;
+  background: rgba(3, 5, 14, .62); backdrop-filter: blur(3px);
+  pointer-events: none;
+  padding: 24px;
+}
+#mp-winner-text {
+  font-size: clamp(26px, 6vw, 54px);
+  font-weight: 900;
+  text-align: center;
+  line-height: 1.35;
+  background: linear-gradient(90deg, #fbbf24, #f472b6, #22d3ee);
+  -webkit-background-clip: text;
+  background-clip: text;
+  color: transparent;
+  filter: drop-shadow(0 0 30px rgba(251, 191, 36, .55));
+  animation: mp-winner-in .6s cubic-bezier(.2, 1.5, .4, 1);
+}
+@keyframes mp-winner-in {
+  from { opacity: 0; transform: scale(.5) translateY(30px); }
+  to   { opacity: 1; transform: scale(1) translateY(0); }
+}
+
+/* จุดสีประจำผู้เล่น — ใช้ทั้งในล็อบบี้และตารางคะแนน ให้จับคู่กับสีโกสต์ในฉากได้ */
+.mp-dot {
+  width: 11px; height: 11px; border-radius: 999px; flex: 0 0 auto;
+  box-shadow: 0 0 8px -1px currentColor;
+  background: currentColor;
 }
 
 @media (max-width: 560px) {

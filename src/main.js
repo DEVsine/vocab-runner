@@ -26,6 +26,7 @@ import { createHUD } from './hud.js';
 import { createUI } from './ui.js';
 import { createInput, ACTIONS } from './input.js';
 import { createNet } from './net.js';
+import { createGhosts } from './ghosts.js';
 import { loadDeckIndex, loadDeck, pickWord, buildQuestion } from './deck.js';
 import * as srs from './srs.js';
 import {
@@ -42,6 +43,7 @@ const gates = createGatePool(world.scene);
 const obstacles = createObstaclePool(world.scene);
 const trains = createTrainPool(world.scene);
 const pickups = createPickupPool(world.scene);
+const ghosts = createGhosts(world.scene);
 const hud = createHUD();
 
 /** boot | menu | lobby | countdown | running | dying | dead | paused | stats */
@@ -58,8 +60,10 @@ const net = createNet();
 let mpActive = false;          // อยู่ในรอบแข่งที่มีห้อง (ต้อง broadcast + โชว์ leaderboard)
 let mpRoster = [];             // roster ล่าสุดจาก host
 let mpFinished = false;        // รอบนี้เราจบ (ตาย) แล้วหรือยัง
+let mpRoundOver = false;       // มีผู้ชนะแล้ว — หยุดรับผลใหม่ รอกลับห้อง
 let mpBroadcastAt = 0;         // เวลาล่าสุดที่ส่งสถานะ (throttle)
 let countdownTimer = null;
+let winnerTimer = null;
 
 /* ── หน้าจอ/เมนู ─────────────────────────────────────────── */
 
@@ -210,6 +214,7 @@ function startRun() {
   obstacles.reset();
   trains.reset();
   pickups.reset();
+  if (!mpActive) ghosts.reset();   // เล่นเดี่ยวต้องไม่มีโกสต์ค้างจากรอบแข่ง
   player.reset();
 
   run = {
@@ -266,22 +271,58 @@ function setupNet() {
     mpRoster = players;
     if (state === 'lobby') ui.mpRenderPlayers(players, net.selfId());
     hud.setLeaderboard(players, net.selfId());
+    // อัปเดตโกสต์ของเพื่อนทันทีที่ได้ตำแหน่งใหม่ (เฉพาะตอนอยู่ในรอบแข่ง)
+    if (mpActive && (state === 'running' || state === 'dying' || state === 'dead')) {
+      ghosts.sync(players, net.selfId());
+    }
   });
   net.on('start', (deckFile) => beginRace(deckFile));
+  net.on('winner', (w) => onRoundWinner(w));
   net.on('status', (msg) => ui.mpSetStatus(msg));
   net.on('error', (msg) => ui.mpSetStatus(msg, 'fail'));
   net.on('closed', () => {
     mpActive = false;
     mpFinished = false;
+    mpRoundOver = false;
     clearInterval(countdownTimer);
+    clearTimeout(winnerTimer);
     hud.countdown(null);
+    hud.showWinner(null);
     hud.showLeaderboard(false);
+    ghosts.reset();
     hud.hide();
     ui.mpResetLobby();
     ui.show('multiplayer');
     state = 'lobby';
     ui.mpSetStatus('หัวห้องปิดห้อง หรือหลุดการเชื่อมต่อ', 'fail');
   });
+}
+
+/**
+ * Battle Royale จบรอบ: host ประกาศผู้รอดคนสุดท้าย → ทุกเครื่องโชว์ป้ายผู้ชนะ
+ * ค้างไว้ 3.2 วิ แล้วพากลับห้องอัตโนมัติ (host กดเริ่มรอบใหม่ได้เลย)
+ */
+function onRoundWinner(w) {
+  if (!mpActive || mpRoundOver) return;
+  mpRoundOver = true;
+
+  const isMe = w.id && w.id === net.selfId();
+  stopSpeaking();
+  if (state === 'running') {
+    // ผู้ชนะยังวิ่งอยู่ตอนรอบจบ — พักโลกไว้เฉย ๆ (สถานะ countdown ไม่มีการชน/ตัดสินใด ๆ)
+    stopAmbience();
+    state = 'countdown';
+  }
+  hud.showWinner(isMe
+    ? '🏆 คุณคือผู้รอดคนสุดท้าย!'
+    : (w.id ? `🏆 ${w.name} คือผู้รอดคนสุดท้าย!` : 'รอบนี้ไม่มีผู้รอด — เสมอกัน!'));
+  sfx.bonusStart();   // แตรฉลองที่มีอยู่แล้ว ใช้ซ้ำได้พอดี
+
+  clearTimeout(winnerTimer);
+  winnerTimer = setTimeout(() => {
+    hud.showWinner(null);
+    toLobby();
+  }, 3200);
 }
 
 function openMultiplayer() {
@@ -315,8 +356,11 @@ function mpStart() {
 /** เริ่มรอบแข่ง: โหลด deck ของหัวห้อง → นับถอยหลัง → ออกตัวพร้อมกัน */
 async function beginRace(deckFile) {
   clearInterval(countdownTimer);
+  clearTimeout(winnerTimer);
+  hud.showWinner(null);
   mpActive = true;
   mpFinished = false;
+  mpRoundOver = false;
   pendingRetryWord = null;      // เริ่มแข่งใหม่ต้องสะอาด ไม่เอาคำที่พลาดจากรอบเดี่ยวมาปน
   try {
     if (deckFile) deck = await loadDeck(deckFile);
@@ -347,10 +391,14 @@ function toLobby() {
   stopSpeaking();
   stopAmbience();
   clearInterval(countdownTimer);
+  clearTimeout(winnerTimer);
   hud.countdown(null);
+  hud.showWinner(null);
   hud.hide();
   hud.showLeaderboard(false);
+  ghosts.reset();
   mpFinished = false;
+  mpRoundOver = false;
   net.sendState({ score: 0, gates: 0, coins: 0, alive: false, finished: false });  // ล้างคะแนนเก่าใน roster
   ui.mpEnterRoom(net.code(), net.amHost());
   ui.mpRenderPlayers(mpRoster, net.selfId());
@@ -369,9 +417,13 @@ function leaveToMenu() {
   if (net.isConnected()) net.leave();
   mpActive = false;
   mpFinished = false;
+  mpRoundOver = false;
   clearInterval(countdownTimer);
+  clearTimeout(winnerTimer);
   hud.countdown(null);
+  hud.showWinner(null);
   hud.showLeaderboard(false);
+  ghosts.reset();
   toMenu();
 }
 
@@ -911,6 +963,8 @@ function collectPickups() {
 /* ── วงจรหลัก ────────────────────────────────────────────── */
 
 function update(dt) {
+  ghosts.update(dt);   // โกสต์เพื่อนขยับทุกสถานะ — ตายแล้วก็ยังดูเพื่อนแข่งต่อได้ (spectate)
+
   if (state === 'running') {
     run.time += dt;
     run.speed = Math.min(CFG.speed.max, CFG.speed.start + CFG.speed.accel * run.time);
@@ -948,11 +1002,16 @@ function update(dt) {
     }
 
     // โหมดแข่ง: ส่งสถานะสรุปให้เพื่อน ~6–7 ครั้ง/วินาที (ถี่พอให้ลื่น เบาพอไม่ท่วมเน็ต)
+    // lane/py = ตำแหน่งสำหรับวาดโกสต์ของเราในจอเพื่อน (โกสต์ฝั่งเราลื่นด้วย lerp ของเขา)
     if (mpActive && !mpFinished) {
       const now = performance.now();
       if (now - mpBroadcastAt > 150) {
         mpBroadcastAt = now;
-        net.sendState({ score: run.score, gates: run.gates, coins: run.coins, alive: true, finished: false });
+        net.sendState({
+          score: run.score, gates: run.gates, coins: run.coins,
+          alive: true, finished: false,
+          lane: player.nearestLane(), py: +player.group.position.y.toFixed(2),
+        });
       }
     }
     return;
@@ -1027,6 +1086,8 @@ async function boot() {
   setSpeechEnabled(prefs.speech);
   setupNet();
   loadJokes();
+
+  window.__bootOk?.();   // บูตถึงจุดนี้ = โมดูลครบทุกไฟล์ → ล้างธง auto-reload ของตาข่ายกันแคชปน
 
   try {
     const index = await loadDeckIndex();

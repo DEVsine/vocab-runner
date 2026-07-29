@@ -213,6 +213,42 @@
   <!-- นับถอยหลังก่อนออกตัว -->
   <div id="mp-countdown" class="hidden"><span id="mp-countdown-num">3</span></div>
 
+  <!-- ป้ายผู้ชนะ Battle Royale (ผู้รอดคนสุดท้าย) -->
+  <div id="mp-winner" class="hidden"><div id="mp-winner-text">🏆</div></div>
+
+  <!-- ══ ตาข่ายกันพังตอนบูต ══
+       ปัญหาจริงที่เจอบนมือถือ: หลังอัปเดตเวอร์ชัน เบราว์เซอร์อาจได้ "HTML ใหม่ + JS เก่าจากแคช"
+       ปน กัน → ปุ่มใหม่โผล่แต่โค้ดที่ฟังปุ่มนั้นไม่มี = กดแล้วเงียบโดยไม่มี error ให้ผู้เล่นเห็นเลย
+       ทางแก้ 2 ชั้น:
+         1) error ภายใน 3 วิแรก (ช่วงบูต) → รีโหลดเองหนึ่งครั้ง (บังคับ revalidate แคช — หายเกือบทุกเคส)
+         2) ยังพังอีก → แถบแดงบอกข้อความ error ตรง ๆ ผู้เล่นจะได้ส่งข้อความมาบอกเราได้ ไม่ใช่แค่ "มันกดไม่ได้" -->
+  <script>
+  (function () {
+    var KEY = 'vocab-runner:auto-reloaded';
+    var bootAt = Date.now();
+    window.addEventListener('error', function (e) {
+      try {
+        if (Date.now() - bootAt < 3000 && !sessionStorage.getItem(KEY)) {
+          sessionStorage.setItem(KEY, '1');
+          location.reload();
+          return;
+        }
+      } catch (_) { /* sessionStorage ถูกปิด — ข้ามไปโชว์แถบแทน */ }
+      var el = document.getElementById('boot-error');
+      if (!el) {
+        el = document.createElement('div');
+        el.id = 'boot-error';
+        el.style.cssText = 'position:fixed;left:0;right:0;bottom:0;z-index:9999;' +
+          'background:#7f1d1d;color:#fff;font:13px/1.5 -apple-system,sans-serif;padding:10px 14px;';
+        if (document.body) document.body.appendChild(el);
+      }
+      if (el) el.textContent = '⚠️ เกิดข้อผิดพลาด: ' + (e.message || 'ไม่ทราบสาเหตุ') +
+        ' — ลองปิดแท็บแล้วเปิดใหม่';
+    });
+    window.__bootOk = function () { try { sessionStorage.removeItem(KEY); } catch (_) {} };
+  })();
+  </script>
+
   <!-- PeerJS (WebRTC) สำหรับโหมดแข่งหลายคน — vendored เหมือน three.js ไม่พึ่ง CDN
        โหลดเป็นสคริปต์ธรรมดา (ไม่ใช่ module) เพื่อ expose window.Peer ให้ net.js ใช้
        ถ้าไฟล์นี้โหลดไม่ได้ เกมยังเล่นเดี่ยวได้ปกติ (net.js เช็ก window.Peer ก่อนเสมอ) -->

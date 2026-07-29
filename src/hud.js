@@ -12,6 +12,7 @@
 
 import { CFG } from './config.js';
 import { fetchImage, cachedImage } from './images.js';
+import { playerHue } from './net.js';
 
 const $ = id => document.getElementById(id);
 
@@ -43,6 +44,8 @@ export function createHUD() {
     mpLbList: $('mp-lb-list'),
     mpCountdown: $('mp-countdown'),
     mpCountdownNum: $('mp-countdown-num'),
+    mpWinner: $('mp-winner'),
+    mpWinnerText: $('mp-winner-text'),
   };
 
   const escapeHtml = s => String(s ?? '').replace(/[&<>"']/g, c =>
@@ -274,16 +277,28 @@ export function createHUD() {
       el.mpLeaderboard.classList.toggle('hidden', !on);
     },
 
-    /** วาดตารางคะแนนสด — เรียงคะแนนมาก→น้อย, ไฮไลต์แถวของเราเอง */
+    /** วาดตารางคะแนนสด — เรียงคะแนนมาก→น้อย, ไฮไลต์แถวของเราเอง
+     *  จุดสีหน้าชื่อ = สีเดียวกับโกสต์ของคนนั้นในฉาก (จับคู่กันได้ด้วยตาเดียว) */
     setLeaderboard(players, selfId) {
       const rows = [...players].sort((a, b) => (b.score - a.score) || (b.gates - a.gates));
       el.mpLbList.innerHTML = rows.map((p, i) => `
         <li class="${p.id === selfId ? 'me' : ''} ${p.finished ? 'dead' : ''}">
           <span class="lb-rank">${i + 1}</span>
+          <span class="mp-dot" style="color:hsl(${playerHue(p.id)},85%,62%)"></span>
           <span class="lb-name">${escapeHtml(p.name)}</span>
           <span class="lb-score">${p.score}</span>
           <span class="lb-flag">${p.finished ? '💀' : '🏃'}</span>
         </li>`).join('');
+    },
+
+    /** ป้ายผู้ชนะ Battle Royale — ส่งข้อความเพื่อโชว์, ส่ง null เพื่อซ่อน */
+    showWinner(text) {
+      if (!text) { el.mpWinner.classList.add('hidden'); return; }
+      el.mpWinnerText.textContent = text;
+      el.mpWinner.classList.remove('hidden');
+      el.mpWinnerText.style.animation = 'none';
+      void el.mpWinnerText.offsetWidth;
+      el.mpWinnerText.style.animation = '';
     },
 
     /** นับถอยหลัง: ส่งตัวเลข (โชว์+เล่นอนิเมชัน) หรือ null เพื่อซ่อน */

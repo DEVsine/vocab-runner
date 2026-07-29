@@ -30,6 +30,18 @@ function makeCode(n = 4) {
   return s;
 }
 
+/**
+ * สีประจำผู้เล่น (hue 0–360) คำนวณจาก id แบบ deterministic
+ * ทุกเครื่องได้สีเดียวกันโดย "ไม่ต้องส่งสีผ่านเน็ตเลย" — เพราะทุกคนเห็น id เดียวกัน
+ * ใช้ร่วมกัน 3 ที่: ตัวโกสต์ในฉาก, จุดสีในล็อบบี้, จุดสีในตารางคะแนน
+ */
+export function playerHue(id) {
+  let h = 0;
+  const s = String(id ?? '');
+  for (let i = 0; i < s.length; i++) h = (h * 31 + s.charCodeAt(i)) >>> 0;
+  return h % 360;
+}
+
 export function createNet() {
   let peer = null;
   let isHost = false;
@@ -42,12 +54,44 @@ export function createNet() {
   let lastBroadcast = 0;
   let staleTimer = null;
 
-  const cb = { roster: () => {}, start: () => {}, status: () => {}, error: () => {}, closed: () => {} };
+  const cb = {
+    roster: () => {}, start: () => {}, status: () => {},
+    error: () => {}, closed: () => {}, winner: () => {},
+  };
 
   /* ── ตัวช่วยฝั่ง host ─────────────────────────────────────── */
 
+  // lane/py = ตำแหน่งล่าสุดของผู้เล่น ใช้วาด "โกสต์" ของกันและกันในฉาก
   function blankState(id, name, host) {
-    return { id, name, host, score: 0, gates: 0, coins: 0, alive: false, finished: false };
+    return {
+      id, name, host,
+      score: 0, gates: 0, coins: 0, alive: false, finished: false,
+      lane: 1, py: 0,
+    };
+  }
+
+  /* ── Battle Royale: host ตัดสิน "ผู้รอดคนสุดท้าย" ──────────────
+   * participants = รายชื่อผู้เล่น ณ ตอนกดเริ่มรอบ (คนที่เข้าห้องทีหลังไม่นับรอบนี้)
+   * ตกรอบได้ 2 ทาง: ตายในเกม (finished=true) หรือหลุดการเชื่อมต่อ (หายจาก roster)
+   * เหลือ ≤1 คน → ประกาศผู้ชนะครั้งเดียวแล้วปิดรอบ
+   * (ต้องมีผู้เล่น ≥2 ตอนเริ่ม ไม่งั้นเล่นคนเดียวจะ "ชนะ" ทันทีที่ตาย ซึ่งประหลาด) */
+  let roundActive = false;
+  let participants = new Set();
+
+  function checkWinner() {
+    if (!isHost || !roundActive) return;
+    const alive = [...participants].filter(id => {
+      const p = roster.get(id);
+      return p && !p.finished;
+    });
+    if (alive.length > 1) return;
+
+    roundActive = false;
+    const winId = alive[0] ?? null;
+    const p = winId ? roster.get(winId) : null;
+    const msg = { t: 'winner', id: winId, name: p?.name ?? '—', score: p?.score ?? 0 };
+    for (const c of conns.values()) { try { c.send(msg); } catch { /* กำลังปิด */ } }
+    cb.winner(msg);
   }
 
   let trailingTimer = null;
@@ -104,6 +148,7 @@ export function createNet() {
         id: conn.peer, name: data.name || prev.name, host: false, lastSeen: performance.now(),
       });
       broadcastRoster();
+      checkWinner();     // สถานะใหม่อาจเป็น "ผมตายแล้ว" → เช็กว่าเหลือคนสุดท้ายหรือยัง
     }
   }
 
@@ -121,6 +166,7 @@ export function createNet() {
       conns.delete(conn.peer);
       roster.delete(conn.peer);
       broadcastRoster(true);
+      checkWinner();     // หลุดกลางรอบ = ตกรอบ (กติกา Battle Royale)
     };
     conn.on('close', drop);
     conn.on('error', drop);
@@ -132,6 +178,7 @@ export function createNet() {
     if (!data || typeof data !== 'object') return;
     if (data.t === 'roster') cb.roster(data.players || []);
     else if (data.t === 'start') cb.start(data.deck);
+    else if (data.t === 'winner') cb.winner(data);
     else if (data.t === 'closed') { cb.closed(); teardown(); }
   }
 
@@ -203,9 +250,14 @@ export function createNet() {
     peer.on('error', (err) => cb.error(peerErrorText(err)));
   }
 
-  /** host เริ่มแข่ง: กระจายสัญญาณเริ่ม + ชื่อ deck ให้ทุกคน แล้วเริ่มของตัวเองด้วย */
+  /** host เริ่มแข่ง: กระจายสัญญาณเริ่ม + ชื่อ deck ให้ทุกคน แล้วเริ่มของตัวเองด้วย
+   *  พร้อมล็อกรายชื่อผู้เข้ารอบ Battle Royale ณ วินาทีนี้ */
   function startRace(deckFile) {
     if (!isHost) return;
+    participants = new Set(roster.keys());
+    roundActive = participants.size >= 2;
+    // ล้างธง "ตกรอบ" ของรอบก่อน — ไม่งั้นเปิดรอบใหม่ปุ๊บระบบจะเห็นทุกคนตายแล้ว
+    for (const p of roster.values()) { p.finished = false; p.alive = false; }
     const msg = { t: 'start', deck: deckFile };
     for (const c of conns.values()) { try { c.send(msg); } catch { /* noop */ } }
     cb.start(deckFile);
@@ -213,7 +265,7 @@ export function createNet() {
 
   /**
    * อัปเดตสถานะของเรา (เรียกจากเกมเป็นระยะ)
-   * @param {{score:number,gates:number,coins:number,alive:boolean,finished:boolean}} s
+   * @param {{score:number,gates:number,coins:number,alive:boolean,finished:boolean,lane?:number,py?:number}} s
    */
   function sendState(s) {
     if (!peer) return;
@@ -221,6 +273,7 @@ export function createNet() {
       const cur = roster.get(selfId) || blankState(selfId, selfName, true);
       roster.set(selfId, { ...cur, ...s, id: selfId, name: selfName, host: true, lastSeen: performance.now() });
       broadcastRoster();
+      checkWinner();     // host ตายเองก็ต้องเช็กเหมือนกัน (host เป็นแค่ผู้เล่นคนหนึ่งในรอบ)
     } else if (hostConn && hostConn.open) {
       try { hostConn.send({ t: 'state', name: selfName, s }); } catch { /* คอนเนกชันปิด */ }
     }
@@ -231,6 +284,8 @@ export function createNet() {
     staleTimer = null;
     clearTimeout(trailingTimer);
     trailingTimer = null;
+    roundActive = false;
+    participants.clear();
     conns.clear();
     roster.clear();
     hostConn = null;
