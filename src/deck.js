@@ -125,6 +125,21 @@ export function pickWord(deck, recentQueue, rand = Math.random) {
   return candidates[candidates.length - 1];
 }
 
+/**
+ * เลือกคำแบบ "ไม่พึ่งสถิติของใครเลย" — ใช้เฉพาะรอบชิงของ Battle Royale
+ *
+ * ⚠️ ทำไมห้ามใช้ pickWord ตอนรอบชิง: pickWord ถ่วงน้ำหนักตามกล่อง Leitner
+ * ของ *เครื่องนั้น* ดังนั้นแม้ส่งเมล็ดสุ่มเดียวกันไป แต่ละคนก็จะได้คนละคำ
+ * เพราะน้ำหนักต่างกัน → "แทร็กเดียวกัน" จะพังทันทีโดยที่ตัวสุ่มไม่ได้ผิดอะไรเลย
+ * รอบชิงจึงต้องสุ่มจากรายการคำดิบ ๆ ล้วน ๆ
+ */
+export function pickWordSeeded(deck, recentQueue, rand) {
+  const recent = new Set(recentQueue);
+  const pool = deck.words.filter(w => !recent.has(w.en));
+  const candidates = pool.length >= 4 ? pool : deck.words;
+  return candidates[Math.floor(rand() * candidates.length)];
+}
+
 /* ── ปั้นโจทย์ 1 ข้อ ────────────────────────────────────────── */
 
 /**
@@ -152,8 +167,28 @@ export function chooseMode(word, { speechEnabled = true } = {}, rand = Math.rand
   return 'text';
 }
 
+/**
+ * "โซนลงจอด" ของ Battle Royale — หั่น deck เหลือเฉพาะคำในระดับที่เลือก
+ *
+ * คืน object หน้าตาเหมือน deck เดิมทุกอย่าง (คง id ไว้เพื่อให้สถิติ SRS ยังตรงชุดเดิม)
+ * ⚠️ ต้องมีตาข่ายกันพัง: ถ้าระดับที่เลือกมีคำน้อยเกินไป ตัวลวงจะซ้ำจนจำได้
+ * ภายในไม่กี่ข้อ → ถอยกลับไปใช้ deck เต็มแทน ดีกว่าให้ผู้เล่นเจอโจทย์เดิมวนซ้ำ
+ */
+export function zoneDeck(deck, levels) {
+  if (!Array.isArray(levels) || !levels.length) return deck;
+  const words = deck.words.filter(w => levels.includes(w.level ?? 2));
+  if (words.length < 12) return deck;
+  return { ...deck, words };
+}
+
+/**
+ * @param {object} opts
+ *   speechEnabled — เปิดโหมดฟังได้ไหม
+ *   box — บังคับกลยุทธ์ตัวลวง (ใช้ตอน "รอบชิง" ที่ทุกเครื่องต้องได้โจทย์เหมือนกันเป๊ะ
+ *         ถ้าปล่อยให้อ่านจากสถิติของแต่ละคน ตัวลวงจะไม่ตรงกันแม้เมล็ดสุ่มจะเดียวกัน)
+ */
 export function buildQuestion(deck, answer, opts = {}, rand = Math.random) {
-  const box = isUnseen(deck.id, answer.en) ? 1 : statOf(deck.id, answer.en).box;
+  const box = opts.box ?? (isUnseen(deck.id, answer.en) ? 1 : statOf(deck.id, answer.en).box);
 
   // 1) ตั้งต้นจากคำชนิดเดียวกัน (คำนาม/กริยา/คุณศัพท์/กริยาวิเศษณ์)
   //    เพราะถ้าปนชนิดคำ ผู้เล่นจะเดาถูกจากไวยากรณ์แทนความหมาย

@@ -48,6 +48,13 @@ export function createScene(canvas) {
   const camBase = new THREE.Vector3(0, CFG.camera.y, CFG.camera.z);
   camera.position.copy(camBase);
 
+  // ค่ากล้องที่ "ขึ้นกับรูปทรงจอ" — resize() เป็นคนคำนวณ (ดู computeView ท้ายไฟล์)
+  // ต้องมีค่าเริ่มต้นไว้ก่อน เพราะ update() อาจถูกเรียกก่อน resize รอบแรก
+  let view = {
+    fov: CFG.camera.fov, y: CFG.camera.y, z: CFG.camera.z,
+    lookAtY: CFG.camera.lookAtY, lookAtZ: CFG.camera.lookAtZ, portrait: false,
+  };
+
   // แสงในยาน: โทนเย็นจากเพดาน + ไฟส่องจากด้านหน้าให้เห็นรูปทรงชุดอวกาศ
   // (ตั้งชื่อไว้เพราะแต่ละธีมย้อมสีแสงต่างกัน — กลางแจ้งอุ่น/ในยานเย็น)
   const hemi = new THREE.HemisphereLight(0xbfe6ff, 0x0d1424, 1.5);
@@ -616,7 +623,10 @@ export function createScene(canvas) {
    * → ตอนกดเริ่มเกม กล้องจะไหลจากหน้าตัวละครกลับไปมุมวิ่งอย่างนุ่มนวล ฟรี ๆ
    */
   // กล้องเยื้องซ้ายเล็กน้อย → ตัวละครไปโผล่กลาง-ขวาของจอ เปิดที่ว่างให้แผงเมนูฝั่งซ้าย
-  const LOBBY_CAM = new THREE.Vector3(-1.5, 1.85, 4.6);
+  // มุมโชว์ตัวละครในล็อบบี้ — เดสก์ท็อปเยื้องซ้ายเพื่อเปิดเวทีฝั่งขวา (สไตล์ Fortnite)
+  // แต่บนมือถือแนวตั้ง แผงเมนูกินความกว้างทั้งจอ การเยื้องกล้องจะทำให้ตัวละคร
+  // ไปหลบอยู่หลังแผงพอดี → resize() จะดึงกลับมากลางจอและถอยออกให้เห็นเต็มตัว
+  const LOBBY_CAM = new THREE.Vector3(-1.5, 1.85, 4.6);   // resize() เขียนทับตามรูปทรงจอ
   const LOBBY_LOOK = new THREE.Vector3(0, 1.1, 0);
   let lobbyView = false;
   let lobbyBlend = 0;
@@ -695,7 +705,8 @@ export function createScene(canvas) {
 
     const liftTarget = environment === 'space' ? 1.5 : 0;
     camLift += (liftTarget - camLift) * Math.min(1, dt * 2.2);
-    camBase.y = CFG.camera.y + camLift;
+    camBase.y = view.y + camLift;
+    camBase.z = view.z;
 
     if (shakeAmount > 0.001) {
       shakeAmount = Math.max(0, shakeAmount - dt * CFG.camera.shakeDecay);
@@ -717,33 +728,82 @@ export function createScene(canvas) {
       camera.position.lerp(LOBBY_CAM, lobbyBlend);
       const look = new THREE.Vector3(
         focusX * CFG.camera.lookFollowX,
-        CFG.camera.lookAtY + camLift * 1.1,
-        CFG.camera.lookAtZ
+        view.lookAtY + camLift * 1.1,
+        view.lookAtZ
       ).lerp(LOBBY_LOOK, lobbyBlend);
       camera.lookAt(look);
     } else {
       camera.lookAt(
         focusX * CFG.camera.lookFollowX,
-        CFG.camera.lookAtY + camLift * 1.1,
-        CFG.camera.lookAtZ
+        view.lookAtY + camLift * 1.1,
+        view.lookAtZ
       );
     }
   }
 
+  /**
+   * ปรับ "มุมกล้อง" ตามรูปทรงของจอ — หัวใจของการรองรับมือถือ
+   *
+   * ⚠️ three.js ล็อก fov ไว้ที่แนวตั้ง มุมมองแนวนอนจึงเป็นผลพลอยได้ของอัตราส่วนจอ
+   *    จอสูง (มือถือแนวตั้ง) = มุมมองแนวนอนแคบลงเอง → เลนซ้าย/ขวาหลุดขอบ
+   *    บั๊กนี้ไม่มีวันเห็นตอนพัฒนาบนเดสก์ท็อป เพราะจอกว้างไปกลบมันไว้
+   *
+   * แก้ด้วยการ "ไล่เฉด" ระหว่างค่าเดสก์ท็อปกับค่าแนวตั้ง ตามอัตราส่วนจริง
+   * ไม่ใช่สลับเป็นขั้น — เพราะแท็บเล็ต/มือถือแนวนอนอยู่ตรงกลาง และการสลับเป็นขั้น
+   * จะทำให้ภาพ "กระตุก" ตอนหมุนเครื่องหรือเปิด/ปิดแถบเครื่องมือของ Safari
+   */
+  function computeView(aspect) {
+    const c = CFG.camera;
+    const p = c.portrait;
+    // 0 = แนวตั้งเต็มตัว, 1 = เดสก์ท็อปเต็มตัว
+    const t = Math.max(0, Math.min(1,
+      (aspect - c.portraitAspect) / (c.landscapeAspect - c.portraitAspect)));
+    const mix = (a, b) => b + (a - b) * t;   // t=1 → ค่าเดสก์ท็อป
+    return {
+      fov: mix(c.fov, p.fov),
+      y: mix(c.y, p.y),
+      z: mix(c.z, p.z),
+      lookAtY: mix(c.lookAtY, p.lookAtY),
+      lookAtZ: mix(c.lookAtZ, p.lookAtZ),
+      portrait: t < 0.5,
+    };
+  }
+
   function resize() {
-    const w = window.innerWidth;
-    const h = window.innerHeight;
-    camera.aspect = w / h;
+    // ⚠️ ใช้ขนาดของ canvas เอง ไม่ใช่ window.innerHeight
+    // บน iOS Safari ทั้งสองค่าไม่เท่ากัน (#app ใช้ 100dvh ซึ่งหักแถบเครื่องมือออกแล้ว)
+    // ถ้าอิง window เฟรมบัฟเฟอร์จะสูงกว่าพื้นที่จริง → ภาพถูกยืดและเลื่อนขึ้นเล็กน้อย
+    const w = canvas.clientWidth || window.innerWidth;
+    const h = canvas.clientHeight || window.innerHeight;
+    const aspect = w / Math.max(1, h);
+
+    view = computeView(aspect);
+    camera.fov = view.fov;
+    camera.aspect = aspect;
     camera.updateProjectionMatrix();
+    camBase.z = view.z;
+
+    // มือถือแนวตั้ง: ดึงกล้องล็อบบี้กลับมากลางจอ แล้ว "มองต่ำลง"
+    // การมองต่ำลงดันตัวละครขึ้นไปอยู่ครึ่งบนของเฟรม — ซึ่งเป็นครึ่งที่แผงเมนูไม่ได้ทับ
+    // (แผงเมนูบนมือถือถูกดันลงไปชิดล่างด้วย CSS อีกทาง ทั้งสองอย่างต้องทำคู่กัน)
+    const lob = view.portrait ? CFG.camera.lobbyPortrait : CFG.camera.lobby;
+    LOBBY_CAM.fromArray(lob.cam);
+    LOBBY_LOOK.fromArray(lob.look);
+
     renderer.setPixelRatio(Math.min(window.devicePixelRatio, 2));
     renderer.setSize(w, h, false);
   }
 
   window.addEventListener('resize', resize);
+  window.addEventListener('orientationchange', () => setTimeout(resize, 120));
+  // Safari บนมือถือย่อ/ขยายพื้นที่มองเห็นตอนซ่อนแถบเครื่องมือ โดยไม่ยิง resize ของ window
+  window.visualViewport?.addEventListener('resize', resize);
+  resize();
 
   return {
     scene, camera, renderer, update, shake, resize, setEnvironment,
     applyTheme, setLobbyView,
+    isPortrait: () => view.portrait,
     render: () => renderer.render(scene, camera),
   };
 }

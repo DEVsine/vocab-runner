@@ -17,6 +17,8 @@ export const ACTIONS = {
   SLIDE: 'slide',
   CONFIRM: 'confirm',   // Space / แตะจอ
   BACK: 'back',         // Esc
+  FIRE: 'fire',         // F / ปุ่มยิงบนจอ — ยิงอาวุธใส่เป้าที่เล็งไว้
+  SWITCH: 'switch',     // Q / แตะป้ายกระสุน — สลับชนิดกระสุน
 };
 
 /**
@@ -38,6 +40,8 @@ const CODE_MAP = {
   Enter: ACTIONS.CONFIRM,
   NumpadEnter: ACTIONS.CONFIRM,
   Escape: ACTIONS.BACK,
+  KeyF: ACTIONS.FIRE,
+  KeyQ: ACTIONS.SWITCH,
 };
 
 // เผื่อกรณีที่ e.code ว่าง (เบราว์เซอร์เก่า, คีย์บอร์ดบนจอ, เครื่องมือทดสอบอัตโนมัติ)
@@ -50,6 +54,8 @@ const KEY_FALLBACK = {
   Spacebar: ACTIONS.CONFIRM,
   Enter: ACTIONS.CONFIRM,
   Escape: ACTIONS.BACK,
+  f: ACTIONS.FIRE, F: ACTIONS.FIRE,
+  q: ACTIONS.SWITCH, Q: ACTIONS.SWITCH,
 };
 
 export function createInput(target, onAction) {

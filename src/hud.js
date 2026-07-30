@@ -8,15 +8,23 @@
  * ตัวเลือกคำศัพท์เคยเป็นป้ายในโลก 3D แล้วอ่านไม่ทัน เพราะขนาดตัวอักษร
  * ถูกจำกัดด้วยความกว้างเลนและถูกเปอร์สเปกทีฟบีบ พอย้ายมาเป็น "ธง" บน DOM
  * ข้อจำกัดนั้นหายไปหมด — และได้ฟอนต์ไทยของระบบมาใช้ฟรีด้วย
+ *
+ * ⚠️ กฎ pointer-events ของไฟล์นี้
+ * #hud ทั้งผืนตั้ง pointer-events:none เพื่อไม่ให้บังการปัดนิ้วบน canvas
+ * ของชิ้นไหนที่ "ต้องกดได้" (ปุ่มแอ็กชัน, แถวตารางคะแนน, การ์ดศึกชิงคำ)
+ * ต้องเปิด pointer-events:auto กลับมาเองเป็นชิ้น ๆ — ลืมข้อนี้เมื่อไหร่
+ * ปุ่มจะ "เห็นแต่กดไม่ได้" ซึ่งเป็นบั๊กที่หาสาเหตุยากมากบนมือถือ
  */
 
 import { CFG } from './config.js';
 import { fetchImage, cachedImage } from './images.js';
 import { playerHue } from './net.js';
+import { ammoById } from './weapons.js';
+import { stormPhase } from './storm.js';
 
 const $ = id => document.getElementById(id);
 
-export function createHUD() {
+export function createHUD(handlers = {}) {
   const el = {
     root: $('hud'),
     prompt: $('hud-prompt'),
@@ -27,10 +35,12 @@ export function createHUD() {
     coins: $('hud-coins'),
     stars: $('hud-stars'),
     starsBox: document.querySelector('.stat.stars'),
+    collect: $('hud-collect'),
     jets: $('hud-jets'),
     bonusBanner: $('bonus-banner'),
     bonusTimer: $('bonus-timer'),
     bonusTimerBar: $('bonus-timer-bar'),
+    finalBanner: $('final-banner'),
     combo: $('hud-combo'),
     comboValue: $('hud-combo-value'),
     promptLabel: $('hud-prompt-label'),
@@ -40,6 +50,23 @@ export function createHUD() {
     timerBar: $('hud-timer-bar'),
     hint: $('hud-controls-hint'),
     toast: $('hud-toast'),
+    practice: $('hud-practice'),
+    practiceBar: $('pr-hud-bar'),
+    practiceCount: $('pr-hud-count'),
+    stormBar: $('storm-bar'),
+    stormTag: $('storm-tag'),
+    stormPct: $('storm-pct'),
+    oxyFill: $('oxy-fill'),
+    actions: $('hud-actions'),
+    actEquip: $('act-equip'),
+    actAmmo: $('act-ammo'),
+    actAmmoIcon: $('act-ammo-icon'),
+    actAmmoText: $('act-ammo-text'),
+    actFire: $('act-fire'),
+    actFireText: $('act-fire-text'),
+    actFireCharge: $('act-fire-charge'),
+    actBonus: $('act-bonus'),
+    cheatTag: $('cheat-tag'),
     mpLeaderboard: $('mp-leaderboard'),
     mpLbList: $('mp-lb-list'),
     mpCountdown: $('mp-countdown'),
@@ -47,8 +74,15 @@ export function createHUD() {
     mpWinner: $('mp-winner'),
     mpWinnerText: $('mp-winner-text'),
     spectate: $('spectate-banner'),
+    spectateExit: $('btn-spectate-exit'),
+    pause: $('btn-hud-pause'),
     bonusTitle: document.querySelector('#bonus-banner .bonus-title'),
     bonusSub: document.querySelector('#bonus-banner .bonus-sub'),
+    contest: $('contest'),
+    contestWord: $('contest-word'),
+    contestOptions: $('contest-options'),
+    contestBar: $('contest-bar'),
+    contestResult: $('contest-result'),
   };
 
   const escapeHtml = s => String(s ?? '').replace(/[&<>"']/g, c =>
@@ -70,6 +104,9 @@ export function createHUD() {
 
   let hintTimer = null;
   let toastTimer = null;
+  let bannerTimer = null;
+  let contestCursor = 1;
+  let contestLocked = false;
 
   const PROMPT_LABEL = {
     text: 'วิ่งเข้าเลนที่แปลว่า',
@@ -77,6 +114,33 @@ export function createHUD() {
     audio: 'ฟังแล้วเลือกคำที่ได้ยิน',
     joke: 'มุกกวน — ตอบผิดก็ไม่เป็นไร',
   };
+
+  /* ── ปุ่มแอ็กชันบนจอ ─────────────────────────────────────── */
+  el.actEquip.addEventListener('click', (e) => { e.stopPropagation(); handlers.onEquip?.(); });
+  el.actAmmo.addEventListener('click', (e) => { e.stopPropagation(); handlers.onCycleAmmo?.(); });
+  el.actFire.addEventListener('click', (e) => { e.stopPropagation(); handlers.onFire?.(); });
+  // ⚠️ สองปุ่มนี้คือทางออกเดียวของผู้เล่นมือถือ (ไม่มีปุ่ม Esc ให้กด)
+  el.pause.addEventListener('click', (e) => { e.stopPropagation(); handlers.onPause?.(); });
+  el.actBonus.addEventListener('click', (e) => { e.stopPropagation(); handlers.onForceBonus?.(); });
+  el.spectateExit.addEventListener('click', (e) => { e.stopPropagation(); handlers.onLeaveSpectate?.(); });
+
+  /* ── แตะชื่อในตารางคะแนน = เล็งเป้า ──────────────────────── */
+  el.mpLbList.addEventListener('click', (e) => {
+    const li = e.target.closest('li[data-id]');
+    if (li) handlers.onSelectTarget?.(li.dataset.id);
+  });
+
+  /* ── การ์ดศึกชิงคำ: แตะตัวเลือกได้ตรง ๆ ──────────────────── */
+  el.contestOptions.addEventListener('click', (e) => {
+    const btn = e.target.closest('button[data-index]');
+    if (btn && !contestLocked) handlers.onContestPick?.(Number(btn.dataset.index));
+  });
+
+  function renderContestCursor() {
+    Array.from(el.contestOptions.children).forEach((btn, i) => {
+      btn.classList.toggle('cursor', i === contestCursor);
+    });
+  }
 
   /**
    * โหลดรูปจริงของคำแล้ว "สลับ" เข้ามาแทน emoji เมื่อพร้อม
@@ -114,10 +178,11 @@ export function createHUD() {
       el.root.classList.add('hidden');
       clearTimeout(hintTimer);
       clearTimeout(toastTimer);
-      clearTimeout(this._bannerTimer);
+      clearTimeout(bannerTimer);
       el.toast.classList.add('hidden');
       el.bonusBanner.classList.add('hidden');
       el.bonusTimer.classList.add('hidden');
+      el.finalBanner.classList.add('hidden');
     },
 
     /** แสดงโจทย์ 1 ข้อ (รูปแบบ text / image / audio) พร้อมธงคำตอบ 3 ใบ */
@@ -138,7 +203,6 @@ export function createHUD() {
         showPhoto(word, token);
       } else if (mode === 'audio') {
         // โหมดเสียง: โชว์คำแปลไทยคู่กับไอคอนลำโพง
-        // → เปลี่ยนจาก "จับเสียงให้ได้แล้วสะกด" เป็น "ฟังเสียง + เห็นความหมาย เลือกคำอังกฤษ"
         el.promptEmoji.classList.add('hidden');
         el.promptWord.textContent = `🔊 ${word.th}`;
         el.promptWord.classList.remove('hidden');
@@ -155,8 +219,7 @@ export function createHUD() {
       });
     },
 
-    /** ตอบเสร็จแล้ว → เผยคำแปลไทยใต้ทุกธง (โดยเฉพาะใบที่ถูก) เพื่อปิดวงจรการเรียนรู้
-     *  โจทย์มุกกวนในโบนัสไม่มีคำแปล (options เป็น {en} ล้วน) จะข้ามให้เอง */
+    /** ตอบเสร็จแล้ว → เผยคำแปลไทยใต้ทุกธง เพื่อปิดวงจร "เห็นคำ↔รู้ความหมาย" */
     revealMeanings(options) {
       flags.forEach((f, i) => {
         const th = options[i]?.th;
@@ -166,8 +229,6 @@ export function createHUD() {
       });
     },
 
-    /** ซ่อน/แสดง UI ของคำถาม (กล่องโจทย์ + ธง 3 ใบ)
-     *  ด่านโบนัสไม่มีคำถามแล้ว การปล่อยกล่องว่าง "—" ค้างไว้ดูรก จึงซ่อนทั้งชุด */
     setQuestionVisible(on) {
       el.prompt.classList.toggle('hidden', !on);
       el.laneFlags.classList.toggle('hidden', !on);
@@ -188,17 +249,32 @@ export function createHUD() {
       this.setTimer(0);
     },
 
-    /** ไฮไลต์ธงของเลนที่ตัวละครอยู่ตอนนี้ */
     setActiveLane(index) {
       flags.forEach((f, i) => f.node.classList.toggle('active', i === index));
     },
 
-    /** ระบายผลตอนหมดเวลา: เขียว = คำตอบที่ถูก, แดง = เลนที่โดนเลเซอร์ */
     markResult(correctIndex) {
       flags.forEach((f, i) => {
         f.node.classList.toggle('correct', i === correctIndex);
         f.node.classList.toggle('wrong', i !== correctIndex);
       });
+    },
+
+    /** 🔀 โดนกระสุนสลับธง — กะพริบทั้งแถวให้รู้ตัวว่า "ต้องอ่านใหม่" */
+    flashSwap() {
+      el.laneFlags.classList.remove('swapping');
+      void el.laneFlags.offsetWidth;   // reflow เพื่อรีสตาร์ทอนิเมชัน
+      el.laneFlags.classList.add('swapping');
+      setTimeout(() => el.laneFlags.classList.remove('swapping'), 700);
+    },
+
+    /** 🌫️ หมอกบังคำแปล — เบลอ "โจทย์" เท่านั้น ไม่แตะธงคำตอบ
+     *  (เบลอทั้งจอ = ตอบไม่ได้ ซึ่งผิดกฎเหล็กของอาวุธ) */
+    setFog(ratio) {
+      const r = Math.max(0, Math.min(1, ratio));
+      // 5.5px คือ "อ่านยากขึ้นชัดเจน แต่ยังเดารูปคำได้" — 9px ทำให้ตัวหนังสือหายไปเลย
+      el.prompt.style.setProperty('--fog', `${(r * 5.5).toFixed(2)}px`);
+      el.prompt.classList.toggle('fogged', r > 0.01);
     },
 
     setScore(score, gates, combo) {
@@ -219,18 +295,92 @@ export function createHUD() {
       el.starsBox.classList.toggle('ready', collected >= needed);
     },
 
+    /** ของสะสมทั้งชุด (เหรียญ/ดาว/เกราะ) — ห้องซ้อมปิดทั้งแถบ */
+    setCollectiblesVisible(on) {
+      el.collect.classList.toggle('hidden', !on);
+      el.actEquip.classList.toggle('hidden', !on);
+      el.practice.classList.toggle('hidden', on);
+    },
+
+    /** ปุ่มเกราะต้องพูดภาษาของตัวละครที่ใส่อยู่ (โล่/คาตานะ/ดาวกระจาย/ไลต์เซเบอร์) */
+    setArmorLabel(emoji, name) {
+      el.actEquip.querySelector('.act-icon').textContent = emoji;
+      el.actEquip.querySelector('.act-text').textContent = `ใส่${name}`;
+    },
+
+    setPracticeProgress(done, total) {
+      el.practiceCount.textContent = `${Math.max(0, done)}/${total}`;
+      el.practiceBar.style.transform = `scaleX(${total ? Math.max(0, done) / total : 0})`;
+    },
+
+    /* ── 🌪️ พายุ + ⚔️ อาวุธ (เฉพาะ Battle Royale) ────────── */
+
+    setBattleVisible(on) {
+      el.stormBar.classList.toggle('hidden', !on);
+      el.actAmmo.classList.toggle('hidden', !on);
+      el.actFire.classList.toggle('hidden', !on);
+    },
+
+    setOxygen(ratio, level) {
+      const r = Math.max(0, Math.min(1, ratio));
+      el.oxyFill.style.transform = `scaleX(${r})`;
+      el.stormPct.textContent = `${Math.round(r * 100)}%`;
+      const phase = stormPhase(level || 1);
+      el.stormTag.textContent = `🌪️ ${phase.tag} ×${(level || 1).toFixed(1)}`;
+      // ⚠️ ห้ามใช้ className = '…' ตรงนี้เด็ดขาด
+      // มันเขียนทับ "ทุกคลาส" รวมถึง .hidden ที่ setBattleVisible เพิ่งใส่ไว้
+      // ผลคือแถบพายุโผล่ในโหมดเล่นเดี่ยวทั้งที่ไม่ควรมี — และหาสาเหตุยากมาก
+      // เพราะโค้ดที่ "ซ่อน" กับโค้ดที่ "ทำให้โผล่" อยู่คนละฟังก์ชันและดูไม่เกี่ยวกันเลย
+      for (const c of ['calm', 'rising', 'strong', 'extreme']) {
+        el.stormBar.classList.toggle(c, c === phase.cls);
+      }
+      el.stormBar.classList.toggle('danger', r < CFG.br.storm.warnAt);
+    },
+
+    /** เติมพลังสำเร็จ — กะพริบเขียวสั้น ๆ ให้รู้สึกว่า "ตอบถูก = ได้หายใจ" */
+    pulseOxygen() {
+      el.oxyFill.classList.remove('pulse');
+      void el.oxyFill.offsetWidth;
+      el.oxyFill.classList.add('pulse');
+    },
+
+    /**
+     * @param {number} ammo กระสุนในมือ
+     * @param {number} charge ความคืบหน้าไปยังกระสุนนัดถัดไป 0..1
+     * @param {string} ammoId ชนิดกระสุนที่เลือกอยู่
+     * @param {string|null} targetId เป้าที่เล็งไว้ (null = ให้ระบบเล็งผู้นำให้)
+     */
+    setWeapon(ammo, charge, ammoId, targetId) {
+      const a = ammoById(ammoId);
+      el.actAmmoIcon.textContent = a.emoji;
+      el.actAmmoText.textContent = a.name;
+      el.actFireText.textContent = ammo > 0 ? `ยิง ×${ammo}` : 'ชาร์จ…';
+      el.actFire.classList.toggle('ready', ammo > 0);
+      el.actFire.classList.toggle('aimed', !!targetId);
+      el.actFireCharge.style.transform = `scaleX(${Math.max(0, Math.min(1, charge))})`;
+    },
+
+    setFinalBanner(on) {
+      el.finalBanner.classList.toggle('hidden', !on);
+    },
+
+    /** 🧪 โหมดทดลอง (ปลดด้วยรหัสลับในร้านค้า) — ปุ่มลัดเข้าด่านโบนัส + ป้ายบอกว่ากำลังเปิดอยู่ */
+    setCheatVisible(on) {
+      el.actBonus.classList.toggle('hidden', !on);
+      el.cheatTag.classList.toggle('hidden', !on);
+    },
+
     showBonusBanner(ms = 2600) {
       el.bonusBanner.classList.remove('hidden');
-      // สร้าง element ใหม่เพื่อรีสตาร์ทอนิเมชัน (วิธีที่ถูกคือ reflow แต่แบบนี้อ่านง่ายกว่า)
       el.bonusBanner.style.animation = 'none';
       void el.bonusBanner.offsetWidth;
       el.bonusBanner.style.animation = '';
-      clearTimeout(this._bannerTimer);
-      this._bannerTimer = setTimeout(() => el.bonusBanner.classList.add('hidden'), ms);
+      clearTimeout(bannerTimer);
+      bannerTimer = setTimeout(() => el.bonusBanner.classList.add('hidden'), ms);
     },
 
     hideBonusBanner() {
-      clearTimeout(this._bannerTimer);
+      clearTimeout(bannerTimer);
       el.bonusBanner.classList.add('hidden');
     },
 
@@ -243,7 +393,7 @@ export function createHUD() {
       el.bonusTimerBar.style.transform = `scaleX(${Math.max(0, Math.min(1, ratio))})`;
     },
 
-    /** @param {number} n ไอพ่นในคลัง (ยังไม่ใส่) @param {boolean} armed ใส่อยู่ = pip เรืองแสงพิเศษ */
+    /** @param {number} n เกราะในคลัง (ยังไม่ใส่) @param {boolean} armed ใส่อยู่ = pip เรืองแสงพิเศษ */
     setJets(n, armed = false) {
       el.jets.innerHTML = '';
       if (armed) {
@@ -256,6 +406,8 @@ export function createHUD() {
         pip.className = 'jet-pip';
         el.jets.appendChild(pip);
       }
+      el.actEquip.classList.toggle('ready', n > 0 && !armed);
+      el.actEquip.classList.toggle('armed', armed);
     },
 
     setBest(best) { el.best.textContent = best; },
@@ -274,24 +426,106 @@ export function createHUD() {
       toastTimer = setTimeout(() => el.toast.classList.add('hidden'), ms);
     },
 
+    /* ── ⚡ ศึกชิงคำ ────────────────────────────────────────── */
+
+    showContest(contest) {
+      if (!contest) {
+        el.contest.classList.add('hidden');
+        el.contestResult.textContent = '';
+        el.contestResult.className = '';
+        return;
+      }
+      contestCursor = 1;
+      contestLocked = false;
+      el.contestWord.textContent = contest.th;
+      el.contestResult.textContent = '';
+      el.contestResult.className = '';
+      el.contestOptions.innerHTML = contest.options.map((o, i) => `
+        <button type="button" data-index="${i}" style="--lane:${CFG.world.laneColorsCss[i]}">
+          <span class="co-bar"></span>
+          <span class="co-en">${escapeHtml(o.en)}</span>
+        </button>`).join('');
+      renderContestCursor();
+      el.contest.classList.remove('hidden');
+      el.contestBar.style.transform = 'scaleX(1)';
+    },
+
+    setContestTimer(ratio) {
+      const r = Math.max(0, Math.min(1, ratio));
+      el.contestBar.style.transform = `scaleX(${r})`;
+      el.contestBar.classList.toggle('urgent', r < 0.35);
+    },
+
+    moveContestCursor(delta) {
+      const n = el.contestOptions.children.length || 3;
+      contestCursor = (contestCursor + delta + n) % n;
+      renderContestCursor();
+    },
+
+    contestCursor: () => contestCursor,
+
+    markContestPick(index) {
+      contestLocked = true;
+      Array.from(el.contestOptions.children).forEach((btn, i) => {
+        btn.classList.toggle('picked', i === index);
+      });
+      el.contestResult.textContent = 'ล็อกคำตอบแล้ว — รอผลตัดสิน…';
+      el.contestResult.className = 'waiting';
+    },
+
+    /** เฉลย + ประกาศผู้ชนะ — ช่วงนี้คือ "บทเรียน" ของคนที่ตอบผิด ต้องค้างให้อ่านทัน */
+    revealContest(correctIndex, picked, winnerName, iWon) {
+      Array.from(el.contestOptions.children).forEach((btn, i) => {
+        btn.classList.toggle('correct', i === correctIndex);
+        btn.classList.toggle('wrong', i === picked && i !== correctIndex);
+        btn.classList.remove('cursor');
+      });
+      if (iWon) {
+        el.contestResult.textContent = '⚡ คุณตอบถูกก่อน! พลังเต็ม + กระสุน 1 นัด';
+        el.contestResult.className = 'win';
+      } else if (picked === correctIndex) {
+        el.contestResult.textContent = `ถูกต้อง! แต่ ${winnerName || 'คู่แข่ง'} เร็วกว่า — ได้พลังคืนบางส่วน`;
+        el.contestResult.className = 'ok';
+      } else {
+        el.contestResult.textContent = winnerName
+          ? `${winnerName} ตอบถูกก่อน — พายุกินพลังคุณไปนิดหน่อย`
+          : 'ไม่มีใครตอบถูก — พายุกินพลังทุกคน';
+        el.contestResult.className = 'lose';
+      }
+    },
+
     /* ── โหมดแข่งหลายคน ── */
 
     showLeaderboard(on) {
       el.mpLeaderboard.classList.toggle('hidden', !on);
     },
 
-    /** วาดตารางคะแนนสด — เรียงคะแนนมาก→น้อย, ไฮไลต์แถวของเราเอง
-     *  จุดสีหน้าชื่อ = สีเดียวกับโกสต์ของคนนั้นในฉาก (จับคู่กันได้ด้วยตาเดียว) */
-    setLeaderboard(players, selfId) {
+    /**
+     * วาดตารางคะแนนสด — เรียงคะแนนมาก→น้อย, ไฮไลต์แถวของเราเอง
+     * จุดสีหน้าชื่อ = สีเดียวกับโกสต์ของคนนั้นในฉาก (จับคู่กันได้ด้วยตาเดียว)
+     * แถบใต้ชื่อ = ออกซิเจนของคนนั้น — เห็นได้ทันทีว่าใครกำลังจะร่วง (= เป้าที่คุ้มที่สุด)
+     */
+    setLeaderboard(players, selfId, targetId = null) {
       const rows = [...players].sort((a, b) => (b.score - a.score) || (b.gates - a.gates));
-      el.mpLbList.innerHTML = rows.map((p, i) => `
-        <li class="${p.id === selfId ? 'me' : ''} ${p.finished ? 'dead' : ''}">
-          <span class="lb-rank">${i + 1}</span>
+      el.mpLbList.innerHTML = rows.map((p, i) => {
+        const oxy = Math.max(0, Math.min(1, p.oxy ?? 1));
+        const cls = [
+          p.id === selfId ? 'me' : '',
+          p.finished ? 'dead' : '',
+          p.id === targetId ? 'targeted' : '',
+        ].filter(Boolean).join(' ');
+        return `
+        <li class="${cls}" data-id="${escapeHtml(p.id)}">
+          <span class="lb-rank">${i === 0 ? '👑' : i + 1}</span>
           <span class="mp-dot" style="color:hsl(${playerHue(p.id)},85%,62%)"></span>
-          <span class="lb-name">${escapeHtml(p.name)}${p.team != null ? ` <small>T${p.team + 1}</small>` : ''}</span>
+          <span class="lb-body">
+            <span class="lb-name">${escapeHtml(p.name)}${p.team != null ? ` <small>T${p.team + 1}</small>` : ''}</span>
+            <span class="lb-oxy"><i style="transform:scaleX(${oxy.toFixed(2)})"></i></span>
+          </span>
           <span class="lb-score">${p.score}</span>
-          <span class="lb-flag">${p.finished ? '💀' : '🏃'}</span>
-        </li>`).join('');
+          <span class="lb-flag">${p.finished ? '💀' : (p.id === targetId ? '🎯' : '🏃')}</span>
+        </li>`;
+      }).join('');
     },
 
     /** เปลี่ยนข้อความป้ายด่านโบนัสตามธีม (ทางช้างเผือก/เมืองใต้ทะเล/ฯลฯ) */
@@ -300,12 +534,10 @@ export function createHUD() {
       el.bonusSub.textContent = sub;
     },
 
-    /** แถบโหมดผู้ชม — ตกรอบแล้วนั่งดูเพื่อนที่เหลือ */
     showSpectate(on) {
       el.spectate.classList.toggle('hidden', !on);
     },
 
-    /** ป้ายผู้ชนะ Battle Royale — ส่งข้อความเพื่อโชว์, ส่ง null เพื่อซ่อน */
     showWinner(text) {
       if (!text) { el.mpWinner.classList.add('hidden'); return; }
       el.mpWinnerText.textContent = text;
@@ -315,7 +547,6 @@ export function createHUD() {
       el.mpWinnerText.style.animation = '';
     },
 
-    /** นับถอยหลัง: ส่งตัวเลข (โชว์+เล่นอนิเมชัน) หรือ null เพื่อซ่อน */
     countdown(n) {
       if (n === null) { el.mpCountdown.classList.add('hidden'); return; }
       el.mpCountdown.classList.remove('hidden');

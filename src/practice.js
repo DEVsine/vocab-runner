@@ -2,52 +2,121 @@
  * practice.js — โหมดฝึก: สอนคำใหม่ทีละชุด แล้วออกวิ่งกับคำชุดนั้นล้วน ๆ
  *
  * วงจรการฝึก (ตามหลัก teach → retrieve → repeat):
- *   1) สอน 10 คำ (การ์ดทีละคำ: เห็นคำ+คำแปล+รูป+เสียง)
- *   2) วิ่งกับ 10 คำนั้น — แต่ละคำเจอ 2 ครั้ง คนละรูปแบบโจทย์ (อ่าน/ดูรูป/ฟัง)
+ *   1) สอนคำทีละใบ (เห็นคำ+คำแปล+รูป+เสียง)
+ *   2) วิ่งกับคำชุดนั้น — คนละรูปแบบโจทย์ (อ่าน/ดูรูป/ฟัง)
  *      เพราะการ "ดึงความจำ" (retrieval) ผ่านหลายช่องทางคือสิ่งที่ทำให้จำติด
  *      ไม่ใช่การเห็นซ้ำเฉย ๆ
  *   3) ตอบผิด = ไม่ตาย แค่คำนั้นวนกลับมาถามใหม่ท้ายคิว — ฝึกจนกว่าจะได้
- *   4) ครบทุกคำ → สรุปผล → สอนชุดถัดไป (คำใหม่ถูกเลือกจากสถิติ SRS เสมอ)
+ *   4) ครบทุกคำ → สรุปผล → ชุดถัดไป
  *
- * ── "ดูจากการเรียนของเขาว่าควรเสริมคำอะไร" ──
- * ใช้ข้อมูล Leitner ที่เกมเก็บอยู่แล้ว: คำที่ยังไม่เคยเจอมาก่อน → คำที่พลาดบ่อย
- * (กล่อง 1) → กล่อง 2 → กล่อง 3 ดังนั้นยิ่งเล่น ชุดฝึกยิ่งตรงจุดอ่อนของคนคนนั้น
+ * ── สองอย่างที่ห้องซ้อมต้อง "ไม่มี" ──
+ * ไม่มีเหรียญ ไม่มีเกราะ ไม่มีดาว ไม่มีตาย
+ * ของสะสมคือรางวัลที่ดีในเกมจริง แต่ในห้องซ้อมมันคือคู่แข่งของความสนใจ:
+ * ทุกวินาทีที่สายตาไปอยู่ที่แถวเหรียญ คือวินาทีที่ไม่ได้อยู่กับตัวคำ
+ * ห้องซ้อมที่ดีต้องมีสิ่งเดียวให้สนใจ
+ *
+ * ── "คำที่ต้องทวน" ต้องมาบ่อยกว่า ──
+ * ความถี่ในการฝึกต้องแปรผกผันกับความแม่น ไม่ใช่เท่ากันหมด:
+ *   ชุดคำถูกเลือกโดยสงวนช่องส่วนใหญ่ให้ "คำที่พลาดมาแล้ว" ก่อนคำใหม่
+ *   และภายในรอบวิ่ง คำที่ไม่แม่นจะถูกถามซ้ำมากครั้งกว่าคำที่แม่นแล้ว
+ * คำที่ตอบผิดในเกมจริงจะไหลเข้ามาทาง inbox.js โดยอัตโนมัติ
  */
 
+import { CFG } from './config.js';
 import { statOf, isUnseen } from './srs.js';
+import { pending as inboxPending } from './inbox.js';
 
-export const PRACTICE_BATCH = 10;
+export const PRACTICE_BATCH = CFG.practice.batch;
 
-/** เลือกคำสำหรับชุดฝึกถัดไป — จุดอ่อนก่อนเสมอ (ยังไม่เจอ → กล่อง 1 → 2 → 3) */
-export function pickPracticeWords(deck, n = PRACTICE_BATCH) {
-  const rank = w => (isUnseen(deck.id, w.en) ? 0 : statOf(deck.id, w.en).box);
-  const jitter = new Map(deck.words.map(w => [w.en, Math.random()]));  // สุ่มลำดับในกลุ่มเดียวกัน
-  const sorted = [...deck.words].sort(
-    (a, b) => rank(a) - rank(b) || jitter.get(a.en) - jitter.get(b.en)
-  );
-  return sorted.slice(0, Math.min(n, sorted.length));
+function shuffle(arr) {
+  const out = arr.slice();
+  for (let i = out.length - 1; i > 0; i--) {
+    const j = Math.floor(Math.random() * (i + 1));
+    [out[i], out[j]] = [out[j], out[i]];
+  }
+  return out;
+}
+
+/** 0 = ยังไม่เคยเจอ, 1–3 = กล่อง Leitner */
+function boxOf(deckId, en) {
+  return isUnseen(deckId, en) ? 0 : statOf(deckId, en).box;
 }
 
 /**
- * สร้างคิวโจทย์ของรอบวิ่งฝึก: แต่ละคำ 2 ข้อ คนละโหมด, สลับคำไม่ให้คำเดิมติดกัน
- * @returns {Array<{word:object, mode:string}>}
+ * เลือกคำสำหรับชุดฝึกถัดไป
+ *
+ * ลำดับความสำคัญ (สูง→ต่ำ):
+ *   1) คำที่เพิ่งพลาดในเกมจริง (มาจากกล่อง inbox — ตายเพราะคำไหน ได้ซ้อมคำนั้น)
+ *   2) คำที่เคยเจอแต่ยังไม่แม่น (กล่อง 1 ก่อน แล้วกล่อง 2) เรียงตามจำนวนครั้งที่ผิด
+ *   3) คำใหม่ที่ยังไม่เคยเจอ
+ * โดยสงวน "อย่างน้อย" reviewSlots ช่องแรกไว้ให้กลุ่ม 1–2 เสมอ
+ * ถ้าไม่มีคำต้องทวนเลย (ผู้เล่นใหม่) ชุดจะกลายเป็นคำใหม่ล้วนโดยอัตโนมัติ
  */
-export function buildPracticeQueue(words, { speechOk = false } = {}) {
-  const shuffle = arr => {
-    const out = arr.slice();
-    for (let i = out.length - 1; i > 0; i--) {
-      const j = Math.floor(Math.random() * (i + 1));
-      [out[i], out[j]] = [out[j], out[i]];
+export function pickPracticeWords(deck, n = PRACTICE_BATCH) {
+  const byEn = new Map(deck.words.map(w => [w.en, w]));
+
+  // 1) คำที่พลาดล่าสุดจากเกมจริง (เรียงตามลำดับที่พลาด ล่าสุดก่อน)
+  const fromInbox = inboxPending(deck.id).map(en => byEn.get(en)).filter(Boolean);
+
+  const inInbox = new Set(fromInbox.map(w => w.en));
+  const seen = deck.words.filter(w => !inInbox.has(w.en) && !isUnseen(deck.id, w.en));
+  const fresh = shuffle(deck.words.filter(w => !inInbox.has(w.en) && isUnseen(deck.id, w.en)));
+
+  // 2) คำที่เคยเจอแต่ยังไม่แม่น — ผิดเยอะสุดก่อน แล้วกล่องต่ำสุด
+  const review = seen
+    .filter(w => statOf(deck.id, w.en).box < CFG.srs.boxCount)
+    .sort((a, b) => {
+      const sa = statOf(deck.id, a.en);
+      const sb = statOf(deck.id, b.en);
+      return (sb.wrong - sa.wrong) || (sa.box - sb.box) || (sa.last - sb.last);
+    });
+
+  const reviewQueue = [...fromInbox, ...review];
+  const out = [];
+  const take = (list, count) => {
+    for (const w of list) {
+      if (out.length >= n || count <= 0) break;
+      if (out.some(x => x.en === w.en)) continue;
+      out.push(w);
+      count -= 1;
     }
-    return out;
   };
 
-  const round1 = [];
-  const round2 = [];
-  for (const w of words) {
+  take(reviewQueue, Math.min(CFG.practice.reviewSlots, n));   // ทวนก่อน
+  take(fresh, n - out.length);                                 // แล้วเติมคำใหม่
+  take(reviewQueue, n - out.length);                           // คำใหม่หมดแล้ว → ทวนเพิ่ม
+  // 3) เกมมาถึงตรงนี้แปลว่า deck เล็กมาก — เติมด้วยอะไรก็ได้ที่เหลือ
+  take(shuffle(deck.words.filter(w => statOf(deck.id, w.en).box >= CFG.srs.boxCount)), n - out.length);
+
+  return out;
+}
+
+/**
+ * สร้างคิวโจทย์ของรอบวิ่งฝึก
+ *
+ * จำนวนครั้งที่แต่ละคำถูกถาม = ฟังก์ชันของความไม่แม่น (repsByBox)
+ *   ยังไม่เคยเจอ → 2 ครั้ง | กล่อง 1 → 3 ครั้ง | กล่อง 2 → 2 | กล่อง 3 → 1
+ *
+ * ⚠️ วิธีเรียงสำคัญพอ ๆ กับจำนวนครั้ง: เราไม่ได้เอาคำเดิมมาต่อกันรัว ๆ
+ * (การถามซ้ำติดกันคือการทดสอบ "ความจำระยะสั้น" ซึ่งไม่ได้แปลว่าจำได้จริง)
+ * แต่จัดเป็น "รอบ" — รอบที่ r บรรจุทุกคำที่ยังเหลือครั้งมากกว่า r แล้วสับไพ่ในรอบ
+ * ผลคือคำที่ไม่แม่นจะโผล่ในรอบท้าย ๆ ด้วย = ได้ระยะห่างก่อนถูกถามซ้ำเสมอ
+ */
+export function buildPracticeQueue(words, { speechOk = false, deckId = '' } = {}) {
+  const plan = words.map(w => {
+    const box = boxOf(deckId, w.en);
+    const reps = CFG.practice.repsByBox[box] ?? 2;
     const modes = shuffle(['text', ...(w.emoji ? ['image'] : []), ...(speechOk ? ['audio'] : [])]);
-    round1.push({ word: w, mode: modes[0] });
-    round2.push({ word: w, mode: modes[1 % modes.length] });   // คำที่มีโหมดเดียวก็ซ้ำโหมดเดิม
+    return { word: w, reps, modes };
+  });
+
+  const maxReps = plan.reduce((m, p) => Math.max(m, p.reps), 0);
+  const queue = [];
+  for (let r = 0; r < maxReps; r++) {
+    const round = plan
+      .filter(p => p.reps > r)
+      .map(p => ({ word: p.word, mode: p.modes[r % p.modes.length] }));
+    queue.push(...shuffle(round));
   }
-  return [...shuffle(round1), ...shuffle(round2)];
+  return queue;
 }

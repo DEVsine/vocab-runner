@@ -8,6 +8,7 @@ import { playerHue } from './net.js';
 import { THEMES, THEME_ORDER } from './themes.js';
 import { CHARACTERS, CHARACTER_ORDER, characterById } from './characters.js';
 import { wallet } from './wallet.js';
+import { cheats, redeem } from './cheats.js';
 import * as srs from './srs.js';
 
 const $ = id => document.getElementById(id);
@@ -160,13 +161,49 @@ export function createUI(handlers) {
     refreshIdentity();
   });
 
-  $('btn-shop').addEventListener('click', () => { renderShop(); show('shop'); });
+  $('btn-shop').addEventListener('click', () => { renderShop(); shopCodeStatus(''); show('shop'); });
   $('btn-shop-close').addEventListener('click', () => handlers.onMenu());
+
+  /* ── รหัสลับของบัญชีทดลอง ────────────────────────────────── */
+
+  function shopCodeStatus(message, kind = '') {
+    const node = $('shop-code-status');
+    node.textContent = message || '';
+    node.className = `shop-code-status ${kind}`;
+  }
+
+  function useShopCode() {
+    const input = $('shop-code-input');
+    const result = redeem(input.value);
+    if (!result) return;
+
+    if (result.action === 'invalid') {
+      shopCodeStatus(result.message, 'fail');
+      return;
+    }
+
+    if (result.action === 'coins') wallet.deposit(result.coins);
+    cheats.setEnabled(result.enable);
+
+    input.value = '';
+    shopCodeStatus(result.message + (result.note ? `\n${result.note}` : ''), 'ok');
+    renderShop();
+    refreshIdentity();
+    handlers.onCheatsChanged?.();
+  }
+
+  $('btn-shop-code').addEventListener('click', useShopCode);
+  $('shop-code-input').addEventListener('keydown', (e) => {
+    // ⚠️ ต้องหยุด event ไม่ให้ไหลไปถึงตัวรับปุ่มของเกม ไม่งั้นการพิมพ์จะถูกแปลเป็นคำสั่งเดินซ้าย/ขวา
+    e.stopPropagation();
+    if (e.key === 'Enter') useShopCode();
+  });
 
   /* ── โหมดฝึก: การ์ดสอนคำทีละใบ ──────────────────────────── */
 
   let prWords = [];
   let prIdx = 0;
+  let prMissed = new Set();
 
   function prRender() {
     const w = prWords[prIdx];
@@ -176,6 +213,8 @@ export function createUI(handlers) {
     $('pr-emoji').textContent = w.emoji || '📝';
     $('pr-en').textContent = w.en;
     $('pr-th').textContent = w.th;
+    // ป้าย "เคยพลาด" ทำให้ผู้เล่นเห็นว่าชุดนี้ไม่ได้สุ่มมั่ว แต่มาจากความผิดพลาดของเขาเอง
+    $('pr-tag').classList.toggle('hidden', !prMissed.has(w.en));
     $('btn-pr-prev').disabled = prIdx === 0;
     const last = prIdx === prWords.length - 1;
     $('btn-pr-next').classList.toggle('hidden', last);
@@ -183,8 +222,9 @@ export function createUI(handlers) {
     handlers.onSpeakWord(w);      // อ่านออกเสียงอัตโนมัติทุกครั้งที่เปิดการ์ด (dual coding)
   }
 
-  function showPracticeTeach(words) {
+  function showPracticeTeach(words, missed = new Set()) {
     prWords = words;
+    prMissed = missed;
     prIdx = 0;
     show('practice');
     prRender();
@@ -199,10 +239,9 @@ export function createUI(handlers) {
   $('btn-pr-done-menu').addEventListener('click', () => handlers.onMenu());
   $('btn-practice').addEventListener('click', () => handlers.onPracticeAgain());
 
-  function showPracticeDone(words, coins) {
+  function showPracticeDone(words) {
     $('pr-done-words').innerHTML = words.map(w =>
-      `<span class="chip">${w.en} = ${w.th}</span>`).join('');
-    $('pr-done-coin-count').textContent = coins;
+      `<span class="chip">${escapeHtml(w.en)} = ${escapeHtml(w.th)}</span>`).join('');
     refreshIdentity();
     show('practiceDone');
   }
@@ -230,6 +269,7 @@ export function createUI(handlers) {
   $('btn-test-speech').addEventListener('click', () => handlers.onTestSpeech());
   $('btn-start').addEventListener('click', () => handlers.onStart());
   $('btn-retry').addEventListener('click', () => handlers.onStart());
+  $('btn-dead-practice').addEventListener('click', () => handlers.onPracticeAgain());
   $('btn-to-menu').addEventListener('click', () => handlers.onMenu());
   $('btn-resume').addEventListener('click', () => handlers.onResume());
   $('btn-quit').addEventListener('click', () => handlers.onMenu());
@@ -276,6 +316,28 @@ export function createUI(handlers) {
     });
   });
 
+  /* ── โซนลงจอด — "เลือกจุดดรอป" ของเราคือเลือกระดับความยากของคำ ────
+   * ต่างจากโหมดทีมตรงที่ทุกคนเลือกเองได้ (ไม่ใช่แค่หัวห้อง) เพราะมันคือ
+   * การเดิมพันของแต่ละคน: โซนโหดคืนออกซิเจน/แต้มต่อคำมากกว่า แต่ตอบยากกว่า */
+  let mpZoneValue = CFG.br.zones.some(z => z.id === prefs.zone) ? prefs.zone : 'mid';
+  const mpZones = $('mp-zones');
+  mpZones.innerHTML = CFG.br.zones.map(z => `
+    <button type="button" class="mp-zone ${z.id === mpZoneValue ? 'active' : ''}" data-zone="${z.id}">
+      <b>${z.name}</b>
+      <small>${z.sub}</small>
+      <em>×${z.reward.toFixed(2)} แต้ม/พลัง</em>
+    </button>`).join('');
+
+  mpZones.addEventListener('click', (e) => {
+    const btn = e.target.closest('[data-zone]');
+    if (!btn) return;
+    mpZoneValue = btn.dataset.zone;
+    prefs.zone = mpZoneValue;
+    savePrefs(prefs);
+    mpZones.querySelectorAll('.mp-zone').forEach(b =>
+      b.classList.toggle('active', b === btn));
+  });
+
   /** สลับล็อบบี้ไปสถานะ "อยู่ในห้องแล้ว" */
   function mpEnterRoom(code, amHost) {
     mpSetup.classList.add('hidden');
@@ -310,14 +372,25 @@ export function createUI(handlers) {
 
   /* ── จอตาย ─────────────────────────────────────────────── */
 
+  const DEATH_TAG = {
+    obstacle: 'ชนสิ่งกีดขวาง',
+    lane: 'โดนเลเซอร์ — เลือกเลนผิด',
+    storm: '🌪️ พลังหมด — พายุกลืนไป',
+    quit: 'ออกจากรอบเอง',
+  };
+  const DEATH_NOTE = {
+    obstacle: 'ชนสิ่งกีดขวาง — คำนี้ยังไม่ถูกนับว่าตอบผิด',
+    storm: 'เติมพลังได้ทางเดียวคือตอบถูก — คำที่ค้างอยู่ถูกส่งไปซ้อมแล้ว',
+    quit: 'ออกจากรอบกลางคัน — คะแนนถูกล็อกไว้เท่าที่ทำได้',
+  };
+
   function showDeath(info) {
     $('dead-word').textContent = info.word ? info.word.en : '—';
     $('dead-meaning').textContent = info.word ? info.word.th : '';
     $('dead-chose').textContent = info.chosen
-      ? `คุณอยู่เลน "${info.chosen.en}" = ${info.chosen.th}`
-      : (info.cause === 'obstacle' ? 'ชนสิ่งกีดขวาง — คำนี้ยังไม่ถูกนับว่าตอบผิด' : '');
-    document.querySelector('.dead-tag').textContent =
-      info.cause === 'obstacle' ? 'ชนสิ่งกีดขวาง' : 'โดนเลเซอร์ — เลือกเลนผิด';
+      ? `คุณอยู่เลน "${escapeHtml(info.chosen.en)}" = ${escapeHtml(info.chosen.th)}`
+      : (DEATH_NOTE[info.cause] || '');
+    document.querySelector('.dead-tag').textContent = DEATH_TAG[info.cause] || DEATH_TAG.lane;
     $('dead-score').textContent = info.score;
     $('dead-gates').textContent = info.gates;
     $('dead-coins').textContent = info.coins ?? 0;
@@ -410,11 +483,19 @@ export function createUI(handlers) {
     mpSetStatus,
     mpNameValue: () => mpName.value.trim(),
     mpMode: () => mpModeValue,
+    selectedZone: () => mpZoneValue,
 
     // ── ธีม / ร้านค้า / โหมดฝึก ──
     selectedTheme: () => themeSelect.value,
     refreshIdentity,
     showPracticeTeach,
     showPracticeDone,
+
+    /** ป้ายตัวเลขบนปุ่มโหมดฝึก = จำนวนคำที่รอทวนอยู่ (มาจากการพลาดในเกมจริง) */
+    setPracticeBadge(n) {
+      const badge = $('practice-badge');
+      badge.textContent = n;
+      badge.classList.toggle('hidden', !n);
+    },
   };
 }

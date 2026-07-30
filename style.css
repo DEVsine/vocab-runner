@@ -1,20 +1,38 @@
 /* ══════════════════════════════════════════════════════════════
    Vocab Runner — สไตล์ทั้งหมด
+
+   ── เขียนแบบ "มือถือมาก่อน" (mobile-first) ──
+   ค่าเริ่มต้นทุกตัวในไฟล์นี้คือค่าสำหรับ "จอมือถือแนวตั้ง"
+   แล้วค่อยขยายขึ้นด้วย @media (min-width: …) สำหรับจอใหญ่
+
+   ทำไมทิศทางนี้ถึงสำคัญ (ไม่ใช่แค่เรื่องสไตล์การเขียน)?
+   ถ้าเขียนจากเดสก์ท็อปแล้วค่อย "หด" ลงมา สิ่งที่ได้คือหน้าจอเดสก์ท็อปที่ถูกบีบ —
+   ทุกอย่างยังอยู่ครบแต่เล็กจนใช้ไม่ได้ และเราจะไม่มีวันรู้ตัวเพราะเราเทสต์บนจอใหญ่
+   การเริ่มจากมือถือบังคับให้ตอบคำถามที่ถูกก่อน: "ในพื้นที่เท่านี้ อะไรจำเป็นจริง ๆ"
+   ของที่เหลือจากคำถามนั้นคือของที่ควรอยู่บนเดสก์ท็อปด้วย
+
    พาเลตจำกัด 5 สี: พื้นเข้ม / ฟ้านีออน / ชมพู / เขียวมะนาว / ขาวนวล
-   ความจำกัดของพาเลตคือสิ่งที่ทำให้กราฟิกเรียบ ๆ ดู "ตั้งใจออกแบบ"
    ══════════════════════════════════════════════════════════════ */
 
 :root {
   --bg: #05060f;
-  --panel: rgba(12, 16, 38, 0.92);
+  --panel: rgba(12, 16, 38, 0.94);
   --ink: #e8f2ff;
   --dim: #8fa2c7;
   --cyan: #22d3ee;
   --pink: #f472b6;
   --lime: #a3e635;
+  --gold: #fbbf24;
   --danger: #fb7185;
   --font: "Noto Sans Thai", "IBM Plex Sans Thai", -apple-system, BlinkMacSystemFont,
           "Segoe UI", "Helvetica Neue", sans-serif;
+
+  /* ระยะปลอดภัยจากรอยบาก/แถบโฮมของ iPhone — อ้างถึงได้จากทุกที่ในไฟล์
+     (เบราว์เซอร์ที่ไม่รองรับ env() จะได้ 0px จาก fallback โดยอัตโนมัติ) */
+  --sa-top: env(safe-area-inset-top, 0px);
+  --sa-bottom: env(safe-area-inset-bottom, 0px);
+  --sa-left: env(safe-area-inset-left, 0px);
+  --sa-right: env(safe-area-inset-right, 0px);
 }
 
 * { box-sizing: border-box; margin: 0; padding: 0; }
@@ -29,8 +47,21 @@ html, body {
   /* กันการเลือกข้อความ/ซูมสองนิ้วตอนปัดบนมือถือ */
   user-select: none;
   -webkit-user-select: none;
-  touch-action: none;
+  overscroll-behavior: none;
 }
+
+/* ⚠️ touch-action ต้องอยู่ที่ canvas เท่านั้น ห้ามใส่ไว้ที่ body เด็ดขาด
+ *
+ * touch-action ไม่ได้ "สืบทอด" แบบ CSS ปกติ แต่เบราว์เซอร์คิดค่าที่ใช้จริงจาก
+ * การ "ตัดกัน" (intersect) ของทุก ancestor ตั้งแต่จุดที่นิ้วแตะขึ้นไป
+ * ดังนั้น body{touch-action:none} จะทำให้ลูกหลานทุกตัว "เลื่อนไม่ได้" ตลอดกาล
+ * และ .screen{touch-action:pan-y} ก็ *เปิดคืนไม่ได้* — เปิดกว้างกว่า ancestor ไม่ได้
+ *
+ * ผลของการวางผิดที่: บนมือถือจริง หน้าสถิติ/ร้านค้า/ล็อบบี้ที่ยาวเกินจอจะเลื่อนไม่ได้เลย
+ * ปุ่มล่างสุดกลายเป็นปุ่มที่ "เห็นแต่กดไม่ถึง" — และบนเดสก์ท็อปจะไม่มีวันเจอบั๊กนี้
+ * เพราะเมาส์ใช้ scroll wheel ซึ่งไม่ผ่านกติกา touch-action เลย
+ * (ค่าจริงถูกตั้งไว้ที่กฎของ #game-canvas ด้านล่าง)
+ */
 
 /* ⚠️ กับดัก iOS Safari: ถ้า ancestor มี -webkit-user-select:none
    ช่องพิมพ์จะ "โฟกัสไม่ได้เลย" (แตะแล้วคีย์บอร์ดไม่เด้ง) — ต้องเปิดคืนที่ตัว input เอง
@@ -39,13 +70,15 @@ input, textarea, select {
   user-select: text;
   -webkit-user-select: text;
   touch-action: manipulation;
+  /* ⚠️ ต่ำกว่า 16px iOS จะ "ซูมเข้า" อัตโนมัติตอนโฟกัส แล้วซูมค้างไว้ทั้งหน้า */
+  font-size: 16px;
 }
-button { touch-action: manipulation; }
+button { touch-action: manipulation; -webkit-tap-highlight-color: transparent; }
 
 /* 100vh บน iOS สูงกว่าจอจริงเพราะนับพื้นที่ใต้แถบเครื่องมือ Safari ด้วย
    → ใช้ 100dvh (ความสูงที่มองเห็นจริง) เมื่อเบราว์เซอร์รองรับ */
-#app { position: relative; width: 100vw; height: 100vh; height: 100dvh; }
-#game-canvas { display: block; width: 100%; height: 100%; }
+#app { position: relative; width: 100vw; height: 100vh; height: 100dvh; overflow: hidden; }
+#game-canvas { display: block; width: 100%; height: 100%; touch-action: none; }
 .hidden { display: none !important; }
 
 /* ── HUD ───────────────────────────────────────────────────── */
@@ -53,59 +86,104 @@ button { touch-action: manipulation; }
   position: absolute;
   inset: 0;
   pointer-events: none;   /* HUD ต้องไม่ขวางการปัดนิ้วบน canvas */
-  padding: 18px 22px;
+  padding: calc(10px + var(--sa-top)) calc(12px + var(--sa-right))
+           calc(10px + var(--sa-bottom)) calc(12px + var(--sa-left));
 }
 
-#hud-top-left  { position: absolute; top: 18px; left: 22px; }
-#hud-top-right { position: absolute; top: 18px; right: 22px; text-align: right; }
+/* ── แถวสถิติแถวเดียวบนสุด ──────────────────────────────────
+   เดิมเป็นสองกอง (ซ้ายบน/ขวาบน) ซึ่งบนจอแคบจะถูกกล่องโจทย์ตรงกลางทับทั้งคู่
+   แถวเดียวที่ไหลตามความกว้างแก้ที่ต้นเหตุ: ไม่มีอะไรวางทับกันได้อีกเลย */
+#hud-stats {
+  display: flex;
+  align-items: flex-start;
+  gap: 10px;
+  flex-wrap: nowrap;
+}
+#hud-collect { display: flex; align-items: flex-start; gap: 10px; margin-left: auto; }
+#hud-practice + #btn-hud-pause, #hud-collect + #hud-practice { margin-left: auto; }
 
-.stat { display: flex; flex-direction: column; line-height: 1.15; margin-bottom: 8px; }
-#hud-top-right .stat { align-items: flex-end; }
-.stat-label { font-size: 11px; letter-spacing: .12em; color: var(--dim); text-transform: uppercase; }
-#hud-score, #hud-gates, #hud-best { font-size: 30px; font-weight: 800; font-variant-numeric: tabular-nums; }
-.stat.dim #hud-best { font-size: 18px; color: var(--dim); }
+.stat { display: flex; flex-direction: column; line-height: 1.1; }
+.stat-label { font-size: 9px; letter-spacing: .1em; color: var(--dim); text-transform: uppercase; white-space: nowrap; }
+#hud-score, #hud-gates, #hud-best { font-size: 20px; font-weight: 800; font-variant-numeric: tabular-nums; }
+.stat.dim #hud-best { font-size: 15px; color: var(--dim); }
+.stat.coins #hud-coins { font-size: 17px; color: var(--gold); }
+.stat.stars #hud-stars { font-size: 16px; color: #fff3b0; }
+.stat.stars.ready #hud-stars { color: var(--lime); text-shadow: 0 0 14px rgba(163,230,53,.6); }
 
 .combo {
-  display: inline-block;
-  margin-top: 2px;
-  padding: 2px 10px;
+  align-self: center;
+  padding: 1px 8px;
   border-radius: 999px;
   background: rgba(163, 230, 53, .14);
   border: 1px solid rgba(163, 230, 53, .5);
   color: var(--lime);
   font-weight: 800;
-  font-size: 15px;
+  font-size: 13px;
 }
 
-/* โจทย์ไทย — ต้องเป็นสิ่งที่อ่านง่ายที่สุดในเฟรม
-   top นี้คือค่าสำหรับ "จอ desktop" (มือถือมี media query กด top ให้ต่ำลงอยู่แล้วด้านล่าง)
-   เลื่อนลงจาก 16px มาที่ 48px ตามที่ขอ — ให้โจทย์ลงมาอยู่ในระยะสายตาที่สบายกว่า
-   ไม่ลอยติดขอบบนจนเกินไป (ยังสูงกว่าแถวธงที่ 33% เยอะ ไม่ชนกัน) */
+.jets { display: flex; gap: 4px; align-self: center; }
+.jet-pip {
+  width: 11px; height: 16px;
+  border-radius: 4px 4px 2px 2px;
+  border: 1px solid var(--cyan);
+  background: linear-gradient(180deg, rgba(34, 211, 238, .85), rgba(34, 211, 238, .18));
+  box-shadow: 0 0 10px -2px var(--cyan);
+}
+/* เกราะที่ "ใส่อยู่" — สีทองเต้นตุบ ๆ บอกว่าพร้อมทำงาน */
+.jet-pip.armed {
+  border-color: var(--gold);
+  background: linear-gradient(180deg, rgba(251, 191, 36, .95), rgba(251, 146, 60, .4));
+  box-shadow: 0 0 16px -1px var(--gold);
+  animation: jet-armed-pulse 0.9s ease-in-out infinite;
+}
+@keyframes jet-armed-pulse {
+  0%, 100% { transform: scale(1); }
+  50% { transform: scale(1.18); }
+}
+
+/* ── โหมดฝึก: แถบความคืบหน้า (แทนที่ของสะสมทั้งชุด) ───────── */
+#hud-practice {
+  display: flex; align-items: center; gap: 7px; align-self: center;
+  font-size: 11px; color: var(--dim); white-space: nowrap;
+}
+.pr-hud-track { width: 74px; height: 5px; border-radius: 99px; background: rgba(255,255,255,.12); overflow: hidden; }
+#pr-hud-bar { height: 100%; background: linear-gradient(90deg, var(--cyan), var(--lime)); transform-origin: left center; transform: scaleX(0); transition: transform .3s ease; }
+#pr-hud-count { font-variant-numeric: tabular-nums; }
+
+/* ── โจทย์ไทย — ต้องเป็นสิ่งที่อ่านง่ายที่สุดในเฟรม ───────── */
 #hud-prompt {
   position: absolute;
-  top: 48px; left: 50%;
+  top: calc(44px + var(--sa-top)); left: 50%;
   transform: translateX(-50%);
-  min-width: 260px;
-  max-width: min(72vw, 560px);
-  padding: 12px 26px 14px;
+  width: min(92vw, 560px);
+  padding: 8px 16px 10px;
   text-align: center;
-  background: rgba(5, 8, 22, .72);
+  background: rgba(5, 8, 22, .74);
   border: 1px solid rgba(34, 211, 238, .28);
-  border-radius: 16px;
+  border-radius: 14px;
   backdrop-filter: blur(6px);
 }
-.prompt-label { font-size: 12px; letter-spacing: .1em; color: var(--dim); }
+.prompt-label { font-size: 11px; letter-spacing: .08em; color: var(--dim); }
 #hud-prompt-word {
-  font-size: clamp(26px, 4.6vw, 42px);
+  font-size: clamp(24px, 7vw, 42px);
   font-weight: 800;
   line-height: 1.25;
   margin-top: 2px;
   text-shadow: 0 0 22px rgba(34, 211, 238, .35);
 }
 
+/* 🌫️ กระสุน "หมอกบังคำแปล" — เบลอเฉพาะกล่องโจทย์ แล้วจางเองตามเวลา
+   ธงคำตอบไม่ถูกแตะเลย เพราะข้อมูลต้องยังครบพอให้คนที่รู้คำตอบได้ */
+#hud-prompt.fogged #hud-prompt-word,
+#hud-prompt.fogged #hud-prompt-emoji,
+#hud-prompt.fogged #hud-prompt-image {
+  filter: blur(var(--fog, 0px));
+  transition: filter .1s linear;
+}
+
 /* แถบเวลาตอบ — บอก answer window ที่เหลือแบบไม่ต้องอ่านตัวเลข */
 #hud-timer-track {
-  height: 4px; margin-top: 10px; border-radius: 99px;
+  height: 4px; margin-top: 8px; border-radius: 99px;
   background: rgba(255,255,255,.09); overflow: hidden;
 }
 #hud-timer-bar {
@@ -116,18 +194,16 @@ button { touch-action: manipulation; }
 #hud-timer-bar.urgent { background: linear-gradient(90deg, var(--pink), var(--danger)); }
 
 #hud-prompt-emoji {
-  font-size: clamp(48px, 8vw, 88px);
+  font-size: clamp(42px, 12vw, 88px);
   line-height: 1.15;
   filter: drop-shadow(0 0 18px rgba(34, 211, 238, .35));
 }
 
-/* รูปจริงของโจทย์ภาพ (Openverse) — คุมขนาดไม่ให้สูงจนชนแถวธง
-   ความสูงใกล้เคียง emoji เดิม เพื่อไม่ให้กล่องโจทย์ "เด้ง" ตอนสลับ emoji↔รูป */
 #hud-prompt-image {
   display: block;
   margin: 4px auto 0;
-  width: clamp(88px, 13vw, 116px);
-  height: clamp(88px, 13vw, 116px);
+  width: clamp(78px, 22vw, 116px);
+  height: clamp(78px, 22vw, 116px);
   object-fit: cover;
   border-radius: 14px;
   border: 1px solid rgba(34, 211, 238, .45);
@@ -136,27 +212,28 @@ button { touch-action: manipulation; }
 
 /* ── ธงคำตอบ 3 ใบ ─────────────────────────────────────────────
    หัวใจของการอ่านออก: ตัวหนังสืออยู่บน DOM ขนาดคงที่เสมอ
-   ไม่ถูกเปอร์สเปกทีฟบีบเหมือนตอนเป็นป้ายในโลก 3D
    สีของแถบบนธง = สีพื้นเรืองแสงของเลนนั้นเป๊ะ ๆ (นี่คือตัวเชื่อมเพียงอย่างเดียว
    ที่บอกผู้เล่นว่าธงใบไหนคือเลนไหน — ห้ามเปลี่ยนให้ไม่ตรงกันเด็ดขาด) */
 #lane-flags {
   position: absolute;
-  top: 33%;
+  top: 31%;
   left: 50%;
   transform: translateX(-50%);
-  width: min(940px, 90vw);
+  width: calc(100vw - 12px);
+  max-width: 940px;
   display: flex;
   justify-content: space-between;
-  gap: 10px;
+  gap: 5px;
   pointer-events: none;
 }
 
 .flag {
   flex: 1 1 0;
+  min-width: 0;
   max-width: 260px;
-  padding: 9px 10px 13px;
-  border-radius: 15px;
-  background: rgba(6, 10, 24, .8);
+  padding: 6px 5px 9px;
+  border-radius: 11px;
+  background: rgba(6, 10, 24, .82);
   border: 2px solid rgba(255, 255, 255, .12);
   text-align: center;
   backdrop-filter: blur(5px);
@@ -164,145 +241,153 @@ button { touch-action: manipulation; }
 }
 
 .flag-bar {
-  height: 6px;
+  height: 5px;
   border-radius: 99px;
-  margin-bottom: 8px;
+  margin-bottom: 6px;
   background: var(--lane, #22d3ee);
   box-shadow: 0 0 12px var(--lane, #22d3ee);
 }
 
 .flag-word {
-  font-size: clamp(18px, 3vw, 33px);
+  font-size: clamp(14px, 4vw, 33px);
   font-weight: 800;
   line-height: 1.15;
   overflow-wrap: anywhere;
 }
 
-/* คำแปลไทย — ซ่อนอยู่ตอนตอบ แล้ว "คลี่" ออกมาตอนเฉลย (max-height + opacity)
-   ใช้ max-height ทรานสิชันเพื่อให้ธงไม่กระโดดสูงตอนคำแปลโผล่ */
+/* คำแปลไทย — ซ่อนอยู่ตอนตอบ แล้ว "คลี่" ออกมาตอนเฉลย */
 .flag-trans {
   max-height: 0;
   margin-top: 0;
   opacity: 0;
   overflow: hidden;
-  font-size: clamp(13px, 1.8vw, 18px);
+  font-size: clamp(11px, 2.6vw, 18px);
   font-weight: 600;
   color: var(--dim);
   line-height: 1.2;
   transition: max-height .22s ease, opacity .22s ease, margin-top .22s ease;
 }
-.flag.revealed .flag-trans {
-  max-height: 2.6em;
-  margin-top: 6px;
-  opacity: 1;
-}
-/* ใบที่ตอบถูก — คำแปลเด่นเป็นสีเขียวมะนาว = "จำคู่คำนี้ไว้" */
+.flag.revealed .flag-trans { max-height: 2.6em; margin-top: 5px; opacity: 1; }
 .flag.revealed.correct .flag-trans { color: var(--lime); }
 
-/* เลนที่ตัวละครอยู่ตอนนี้ — ต้องเห็นชัดโดยไม่ต้องละสายตาจากจอกลาง */
 .flag.active {
-  transform: translateY(-9px) scale(1.06);
+  transform: translateY(-8px) scale(1.05);
   border-color: var(--lane, #22d3ee);
   box-shadow: 0 0 30px -6px var(--lane, #22d3ee);
-  background: rgba(10, 18, 40, .92);
+  background: rgba(10, 18, 40, .93);
+}
+.flag.correct { background: rgba(163, 230, 53, .2); border-color: var(--lime); box-shadow: 0 0 34px -6px var(--lime); }
+.flag.wrong { background: rgba(255, 77, 109, .22); border-color: var(--danger); box-shadow: 0 0 34px -6px var(--danger); }
+
+/* 🔀 โดนกระสุนสลับธง — สั่นทั้งแถวเพื่อบอกว่า "อ่านใหม่!" */
+#lane-flags.swapping .flag { animation: flag-swap .55s cubic-bezier(.3,1.5,.4,1); }
+@keyframes flag-swap {
+  0% { transform: rotateY(0deg) scale(1); }
+  40% { transform: rotateY(80deg) scale(.9); }
+  100% { transform: rotateY(0deg) scale(1); }
 }
 
-.flag.correct {
-  background: rgba(163, 230, 53, .2);
-  border-color: var(--lime);
-  box-shadow: 0 0 34px -6px var(--lime);
-}
-
-.flag.wrong {
-  background: rgba(255, 77, 109, .22);
-  border-color: var(--danger);
-  box-shadow: 0 0 34px -6px var(--danger);
-}
-
-/* ── เหรียญ / ไอพ่นสำรอง ─────────────────────────────────── */
-.stat.coins { margin-top: 10px; }
-.stat.coins #hud-coins { font-size: 21px; color: #fbbf24; }
-
-.stat.stars { margin-top: 8px; }
-.stat.stars #hud-stars { font-size: 19px; color: #fff3b0; }
-.stat.stars.ready #hud-stars { color: var(--lime); text-shadow: 0 0 14px rgba(163,230,53,.6); }
-
-/* ── ด่านโบนัสทางช้างเผือก ─────────────────────────────────── */
-#bonus-banner {
+/* ── 🌪️ พายุ: หลอดออกซิเจน ─────────────────────────────────
+   วางเหนือแถบปุ่มพอดี — เป็นสิ่งสุดท้ายที่สายตากวาดเจอก่อนถึงนิ้วตัวเอง */
+#storm-bar {
   position: absolute;
-  top: 17%;
-  left: 50%;
-  transform: translateX(-50%);
-  text-align: center;
-  animation: bonus-in .5s cubic-bezier(.2, 1.4, .4, 1);
+  left: 50%; transform: translateX(-50%);
+  bottom: calc(84px + var(--sa-bottom));
+  width: min(92vw, 460px);
+  padding: 6px 10px 8px;
+  border-radius: 12px;
+  background: rgba(6, 10, 24, .78);
+  border: 1px solid rgba(255,255,255,.12);
+  backdrop-filter: blur(5px);
 }
-.bonus-title {
-  font-size: clamp(30px, 6vw, 58px);
-  font-weight: 900;
-  letter-spacing: .06em;
-  background: linear-gradient(90deg, #a78bfa, #22d3ee, #fbbf24, #f472b6);
-  -webkit-background-clip: text;
-  background-clip: text;
-  color: transparent;
-  filter: drop-shadow(0 0 24px rgba(167, 139, 250, .5));
-}
-.bonus-sub { margin-top: 4px; font-size: 13px; color: #cfe3ff; }
-@keyframes bonus-in {
-  from { opacity: 0; transform: translate(-50%, 26px) scale(.85); }
-  to   { opacity: 1; transform: translate(-50%, 0) scale(1); }
-}
-
-#bonus-timer {
-  position: absolute;
-  bottom: 46px; left: 50%;
-  transform: translateX(-50%);
-  width: min(420px, 62vw);
-  height: 5px;
-  border-radius: 99px;
-  background: rgba(255, 255, 255, .12);
-  overflow: hidden;
-}
-#bonus-timer-bar {
+.storm-head { display: flex; justify-content: space-between; font-size: 11px; font-weight: 700; color: var(--dim); margin-bottom: 5px; }
+#storm-pct { font-variant-numeric: tabular-nums; color: var(--ink); }
+#oxy-track { height: 9px; border-radius: 99px; background: rgba(255,255,255,.1); overflow: hidden; }
+#oxy-fill {
   height: 100%;
-  background: linear-gradient(90deg, #a78bfa, #22d3ee, #fbbf24);
+  background: linear-gradient(90deg, var(--cyan), var(--lime));
   transform-origin: left center;
+  transition: transform .12s linear;
+}
+/* ระดับพายุเปลี่ยนสีของหลอด — อ่านความอันตรายได้โดยไม่ต้องอ่านตัวเลข */
+#storm-bar.rising  #oxy-fill { background: linear-gradient(90deg, var(--cyan), var(--gold)); }
+#storm-bar.strong  #oxy-fill { background: linear-gradient(90deg, var(--gold), #fb923c); }
+#storm-bar.extreme #oxy-fill { background: linear-gradient(90deg, #fb923c, var(--danger)); }
+#storm-bar.extreme { border-color: rgba(251,113,133,.5); }
+#storm-bar.danger { animation: storm-warn .8s ease-in-out infinite; }
+@keyframes storm-warn {
+  0%, 100% { box-shadow: 0 0 0 0 rgba(251,113,133,0); }
+  50% { box-shadow: 0 0 22px -2px rgba(251,113,133,.75); }
+}
+#oxy-fill.pulse { animation: oxy-pulse .45s ease; }
+@keyframes oxy-pulse {
+  0% { filter: brightness(2.4); }
+  100% { filter: brightness(1); }
 }
 
-/* คำถามมุกกวนยาวกว่าคำแปลปกติมาก ต้องลดขนาดลงไม่งั้นล้นกรอบ */
-#hud-prompt-word.joke { font-size: clamp(17px, 2.6vw, 26px); line-height: 1.35; }
-
-.jets { display: flex; gap: 5px; margin-top: 8px; }
-.jet-pip {
-  width: 15px; height: 21px;
-  border-radius: 5px 5px 3px 3px;
-  border: 1px solid var(--cyan);
-  background: linear-gradient(180deg, rgba(34, 211, 238, .85), rgba(34, 211, 238, .18));
-  box-shadow: 0 0 12px -2px var(--cyan);
-}
-/* ไอพ่นที่ "ใส่อยู่" — สีทองเต้นตุบ ๆ บอกว่าเกราะพร้อมทำงาน */
-.jet-pip.armed {
-  border-color: #fbbf24;
-  background: linear-gradient(180deg, rgba(251, 191, 36, .95), rgba(251, 146, 60, .4));
-  box-shadow: 0 0 16px -1px #fbbf24;
-  animation: jet-armed-pulse 0.9s ease-in-out infinite;
-}
-@keyframes jet-armed-pulse {
-  0%, 100% { transform: scale(1); }
-  50% { transform: scale(1.18); }
+/* ── แถบปุ่มแอ็กชันบนจอ ─────────────────────────────────────
+   ⚠️ ต้องเปิด pointer-events กลับมาเอง เพราะ #hud ปิดไว้ทั้งผืน */
+#hud-actions {
+  position: absolute;
+  left: 50%; transform: translateX(-50%);
+  bottom: calc(14px + var(--sa-bottom));
+  display: flex; gap: 8px;
+  pointer-events: auto;
 }
 
+/* ปุ่มพัก/ออก — บนมือถือไม่มีปุ่ม Esc ถ้าไม่มีปุ่มนี้ผู้เล่นจะออกจากรอบไม่ได้เลย
+   (แตะจอเปล่า ๆ ถูกจองไว้ให้ "ใส่เกราะ" แล้ว)
+   อยู่ในแถวสถิติเพื่อให้ flex จัดตำแหน่งให้เอง — absolute ตรงมุมจะไปทับของสะสม */
+#btn-hud-pause {
+  flex: 0 0 auto; align-self: center; margin-left: 8px;
+  width: 40px; height: 40px; border-radius: 12px;
+  display: flex; align-items: center; justify-content: center;
+  background: rgba(10,16,36,.7); border: 1px solid rgba(255,255,255,.16);
+  color: var(--dim); font-size: 15px; cursor: pointer;
+  pointer-events: auto; backdrop-filter: blur(5px);
+}
+.act {
+  display: flex; flex-direction: column; align-items: center; justify-content: center;
+  gap: 1px;
+  min-width: 78px; min-height: 52px;      /* ≥44px ตามเกณฑ์เป้าแตะของ Apple/Google */
+  padding: 6px 10px;
+  border-radius: 14px;
+  border: 1px solid rgba(255,255,255,.18);
+  background: rgba(10, 16, 36, .82);
+  color: var(--dim);
+  font-family: inherit; font-size: 11px; font-weight: 700;
+  backdrop-filter: blur(6px);
+  position: relative; overflow: hidden;
+  transition: transform .08s ease, border-color .15s ease, color .15s ease, background .15s ease;
+}
+.act:active { transform: translateY(1px) scale(.97); }
+.act-icon { font-size: 19px; line-height: 1; }
+.act.ready { color: var(--ink); border-color: rgba(34,211,238,.6); background: rgba(34,211,238,.16); }
+.act.armed { color: #fff7d6; border-color: rgba(251,191,36,.75); background: rgba(251,191,36,.2); }
+.act-fire.ready { border-color: rgba(244,114,182,.7); background: rgba(244,114,182,.2); color: #ffe7f5; }
+.act-fire.aimed { box-shadow: 0 0 18px -4px var(--pink); }
+.act-charge { position: absolute; left: 0; right: 0; bottom: 0; height: 3px; background: rgba(255,255,255,.1); }
+.act-charge i { display: block; height: 100%; background: var(--pink); transform-origin: left center; transform: scaleX(0); transition: transform .25s ease; }
+
+/* ⚠️ ต้องอยู่ "ใต้แถวธง" ไม่ใช่เหนือมัน
+   กล่องโจทย์สูงไม่คงที่ (โหมดรูปมีภาพ 116px, โหมดตัวหนังสือไม่มี) การวาง toast
+   ด้วยเปอร์เซ็นต์เหนือแถวธงจึงทับขอบล่างของกล่องโจทย์ทันทีที่เจอโจทย์ภาพ
+   — ซึ่งเป็นแถบเวลาตอบพอดี คือสิ่งที่บังไม่ได้ที่สุดในจอ */
 #hud-toast {
   position: absolute;
-  top: 23%;
+  top: calc(47% + var(--sa-top));
   left: 50%;
   transform: translateX(-50%);
-  padding: 9px 20px;
-  border-radius: 13px;
-  background: rgba(34, 211, 238, .16);
+  width: max-content;
+  max-width: 92vw;
+  padding: 8px 16px;
+  border-radius: 12px;
+  background: rgba(34, 211, 238, .18);
   border: 1px solid rgba(34, 211, 238, .65);
-  font-size: 15px;
+  font-size: 13px;
   font-weight: 700;
-  white-space: nowrap;
+  text-align: center;
+  line-height: 1.35;
   animation: toast-in .18s ease;
 }
 @keyframes toast-in {
@@ -310,12 +395,7 @@ button { touch-action: manipulation; }
   to   { opacity: 1; transform: translate(-50%, 0); }
 }
 
-#hud-controls-hint {
-  position: absolute; bottom: 16px; left: 50%; transform: translateX(-50%);
-  font-size: 12px; color: var(--dim); opacity: .75;
-  transition: opacity .6s ease;
-}
-#hud-controls-hint.faded { opacity: 0; }
+#hud-controls-hint { display: none; }
 
 kbd {
   display: inline-block;
@@ -327,29 +407,91 @@ kbd {
   color: var(--ink);
 }
 
+/* ── ด่านโบนัส ─────────────────────────────────────────────── */
+#bonus-banner {
+  position: absolute;
+  top: 16%;
+  left: 50%;
+  transform: translateX(-50%);
+  width: 94vw;
+  text-align: center;
+  animation: bonus-in .5s cubic-bezier(.2, 1.4, .4, 1);
+}
+.bonus-title {
+  font-size: clamp(26px, 8vw, 58px);
+  font-weight: 900;
+  letter-spacing: .04em;
+  background: linear-gradient(90deg, #a78bfa, #22d3ee, #fbbf24, #f472b6);
+  -webkit-background-clip: text;
+  background-clip: text;
+  color: transparent;
+  filter: drop-shadow(0 0 24px rgba(167, 139, 250, .5));
+}
+.bonus-sub { margin-top: 4px; font-size: 12px; color: #cfe3ff; }
+@keyframes bonus-in {
+  from { opacity: 0; transform: translate(-50%, 26px) scale(.85); }
+  to   { opacity: 1; transform: translate(-50%, 0) scale(1); }
+}
+
+/* วางเหนือแถบพายุ — ในโหมดแข่ง แถบโบนัสกับแถบพายุโผล่พร้อมกันได้ */
+#bonus-timer {
+  position: absolute;
+  bottom: calc(128px + var(--sa-bottom)); left: 50%;
+  transform: translateX(-50%);
+  width: min(420px, 70vw);
+  height: 5px;
+  border-radius: 99px;
+  background: rgba(255, 255, 255, .12);
+  overflow: hidden;
+}
+#bonus-timer-bar {
+  height: 100%;
+  background: linear-gradient(90deg, #a78bfa, #22d3ee, #fbbf24);
+  transform-origin: left center;
+}
+
+/* 🏁 ป้ายรอบชิง — ค้างไว้ตลอดรอบ เพราะกติกาเปลี่ยนไปแล้วจริง ๆ
+   วางเหนือแถบพายุ ไม่ใช่ขอบบน (ขอบบนเป็นที่ของแถวคะแนนแล้ว) */
+#final-banner {
+  position: absolute;
+  bottom: calc(128px + var(--sa-bottom)); left: 50%; transform: translateX(-50%);
+  padding: 5px 14px; border-radius: 99px;
+  background: rgba(251,191,36,.16); border: 1px solid rgba(251,191,36,.6);
+  color: #fff3cc; font-size: 12px; font-weight: 800; white-space: nowrap;
+  animation: final-glow 1.8s ease-in-out infinite;
+}
+@keyframes final-glow {
+  0%, 100% { box-shadow: 0 0 10px -4px var(--gold); }
+  50% { box-shadow: 0 0 26px -2px var(--gold); }
+}
+
+/* คำถามมุกกวนยาวกว่าคำแปลปกติมาก ต้องลดขนาดลงไม่งั้นล้นกรอบ */
+#hud-prompt-word.joke { font-size: clamp(15px, 4vw, 26px); line-height: 1.35; }
+
 /* ── หน้าจอเต็ม (เมนู / ตาย / สถิติ / พัก) ─────────────────── */
 .screen {
   position: absolute; inset: 0;
   display: flex;
-  background: radial-gradient(ellipse at 50% 40%, rgba(34,211,238,.10), transparent 60%),
-              rgba(3, 5, 14, .88);
+  background: radial-gradient(ellipse at 50% 34%, rgba(34,211,238,.10), transparent 60%),
+              rgba(3, 5, 14, .9);
   backdrop-filter: blur(3px);
-  padding: 24px;
+  padding: calc(14px + var(--sa-top)) calc(14px + var(--sa-right))
+           calc(14px + var(--sa-bottom)) calc(14px + var(--sa-left));
   z-index: 10;
   /* จอเตี้ย (มือถือแนวนอน/Safari ที่แถบเครื่องมือกินที่) แผงอาจสูงกว่าจอ
-     → ต้องเลื่อนได้ ไม่งั้นปุ่มล่างสุดจะถูกตัดทิ้งแบบเอื้อมไม่ถึงเลย
-     (touch-action ต้องเปิด pan-y ที่นี่ เพราะ body ปิด gesture ไว้หมด) */
+     → ต้องเลื่อนได้ ไม่งั้นปุ่มล่างสุดจะถูกตัดทิ้งแบบเอื้อมไม่ถึงเลย */
   overflow-y: auto;
   -webkit-overflow-scrolling: touch;
   touch-action: pan-y;
+  overscroll-behavior: contain;
 }
 
 .panel {
   width: min(440px, 100%);
-  padding: 30px 30px 26px;
+  padding: 20px 18px 18px;
   background: var(--panel);
   border: 1px solid rgba(255,255,255,.09);
-  border-radius: 22px;
+  border-radius: 20px;
   box-shadow: 0 26px 70px rgba(0,0,0,.6);
   text-align: center;
   /* จัดกลางด้วย margin:auto แทน align-items:center ของ flex —
@@ -360,30 +502,33 @@ kbd {
 }
 .panel-wide { width: min(720px, 100%); text-align: left; }
 
-.title { font-size: 42px; font-weight: 900; letter-spacing: .02em; line-height: 1; }
+.title { font-size: clamp(28px, 9vw, 42px); font-weight: 900; letter-spacing: .01em; line-height: 1; }
 .title-accent { color: var(--cyan); text-shadow: 0 0 28px rgba(34,211,238,.45); }
-.subtitle { margin: 10px 0 22px; color: var(--dim); font-size: 14px; }
-h2 { font-size: 22px; margin-bottom: 16px; }
+.subtitle { margin: 8px 0 16px; color: var(--dim); font-size: 13px; line-height: 1.5; }
+h2 { font-size: 19px; margin-bottom: 14px; }
 
 .field { display: block; text-align: left; margin-bottom: 8px; }
-.field > span { display: block; font-size: 12px; color: var(--dim); margin-bottom: 6px; letter-spacing: .06em; }
+.field > span { display: block; font-size: 12px; color: var(--dim); margin-bottom: 5px; letter-spacing: .05em; }
 select {
-  width: 100%; padding: 11px 12px;
+  width: 100%; padding: 12px;
   background: rgba(255,255,255,.05);
   color: var(--ink);
   border: 1px solid rgba(255,255,255,.15);
   border-radius: 11px;
-  font-family: inherit; font-size: 15px;
+  font-family: inherit;
 }
-.deck-info { font-size: 12px; color: var(--dim); margin-bottom: 16px; text-align: left; min-height: 16px; }
+.deck-info { font-size: 12px; color: var(--dim); margin-bottom: 12px; text-align: left; min-height: 16px; line-height: 1.5; }
 
-.toggles { display: flex; gap: 18px; justify-content: center; margin-bottom: 20px; }
-.toggle { display: flex; align-items: center; gap: 7px; font-size: 13px; color: var(--dim); cursor: pointer; }
-.toggle input { accent-color: var(--cyan); width: 15px; height: 15px; }
+.toggles { display: flex; gap: 16px; justify-content: center; margin: 14px 0; flex-wrap: wrap; }
+.toggle { display: flex; align-items: center; gap: 8px; font-size: 13px; color: var(--dim); cursor: pointer; min-height: 44px; padding: 0 6px; }
+.toggle input { accent-color: var(--cyan); width: 18px; height: 18px; }
 
 .btn {
-  display: block; width: 100%;
-  padding: 13px 18px; margin-top: 9px;
+  display: flex; align-items: center; justify-content: center; gap: 6px;
+  position: relative;
+  width: 100%;
+  min-height: 48px;             /* เป้าแตะขั้นต่ำบนมือถือ */
+  padding: 12px 14px; margin-top: 8px;
   background: rgba(255,255,255,.06);
   color: var(--ink);
   border: 1px solid rgba(255,255,255,.15);
@@ -399,140 +544,186 @@ select {
   border-color: rgba(34,211,238,.6);
   color: #eafdff;
 }
+.btn-hero { min-height: 58px; font-size: 19px; font-weight: 800; letter-spacing: .02em; }
 .btn-danger { border-color: rgba(251,113,133,.45); color: var(--danger); }
+.btn-small { min-height: 44px; padding: 10px 14px; font-size: 13.5px; margin-top: 0; }
 
-.btn-small { padding: 9px 14px; font-size: 13.5px; margin-top: 0; }
-.speech-status {
-  min-height: 17px;
-  margin: 7px 0 12px;
-  font-size: 12px;
-  line-height: 1.5;
-  color: var(--dim);
+/* ป้ายตัวเลขบนปุ่ม (จำนวนคำที่รอทวน) */
+.badge {
+  min-width: 20px; padding: 1px 6px; border-radius: 99px;
+  background: var(--danger); color: #2a0410;
+  font-size: 11px; font-weight: 900; line-height: 1.5;
 }
+
+.speech-status { min-height: 17px; margin: 7px 0 4px; font-size: 12px; line-height: 1.5; color: var(--dim); }
 .speech-status.ok { color: var(--lime); }
 .speech-status.fail { color: var(--danger); }
 
-.hint { margin-top: 16px; font-size: 11.5px; color: var(--dim); line-height: 1.9; }
+.hint { margin-top: 14px; font-size: 11.5px; color: var(--dim); line-height: 1.9; }
+.row { display: flex; gap: 8px; margin-top: 8px; }
+.row .btn { margin-top: 0; }
+
+/* ตั้งค่าถูกพับไว้ — บนมือถือ ตัวเลือกที่แทบไม่เคยเปลี่ยนไม่ควรกินพื้นที่เหนือปุ่มเล่น */
+#menu-settings {
+  margin-top: 12px; text-align: left;
+  border: 1px solid rgba(255,255,255,.1); border-radius: 13px; overflow: hidden;
+}
+#menu-settings > summary {
+  padding: 13px 14px; font-size: 14px; font-weight: 600; color: var(--dim);
+  cursor: pointer; list-style: none; min-height: 46px; display: flex; align-items: center;
+}
+#menu-settings > summary::-webkit-details-marker { display: none; }
+#menu-settings[open] > summary { border-bottom: 1px solid rgba(255,255,255,.08); color: var(--ink); }
+.settings-body { padding: 12px 14px 14px; }
+
+/* ── เมนู: แถวตัวละคร + กระเป๋าเหรียญ ───────────────────────── */
+#menu-char-row {
+  display: flex; justify-content: space-between; align-items: center;
+  margin-top: 12px; padding: 10px 13px; border-radius: 12px;
+  background: rgba(255,255,255,.04); border: 1px solid rgba(255,255,255,.09);
+  font-size: 14px;
+}
+#menu-char-emoji { font-size: 19px; }
+#menu-wallet { font-weight: 800; color: var(--gold); }
+
+.desktop-only { display: none; }
 
 /* ── จอตาย ─────────────────────────────────────────────────── */
 .panel-dead { border-color: rgba(244,114,182,.35); }
 .dead-tag {
-  display: inline-block; margin-bottom: 14px;
+  display: inline-block; margin-bottom: 12px;
   padding: 3px 14px; border-radius: 99px;
   background: rgba(244,114,182,.14); border: 1px solid rgba(244,114,182,.45);
-  color: var(--pink); font-size: 12px; letter-spacing: .14em;
+  color: var(--pink); font-size: 11.5px; letter-spacing: .12em;
 }
 .missed-card {
-  padding: 16px; border-radius: 15px;
+  padding: 14px; border-radius: 15px;
   background: rgba(255,255,255,.04);
   border: 1px solid rgba(255,255,255,.09);
 }
 .missed-label { font-size: 11px; letter-spacing: .14em; color: var(--dim); }
 .missed-word {
-  font-size: 40px; font-weight: 900; color: var(--lime);
-  letter-spacing: .01em; line-height: 1.2; margin-top: 2px;
+  font-size: clamp(28px, 9vw, 40px); font-weight: 900; color: var(--lime);
+  line-height: 1.2; margin-top: 2px; overflow-wrap: anywhere;
   text-shadow: 0 0 26px rgba(163,230,53,.3);
 }
-.missed-meaning { font-size: 18px; color: var(--ink); }
+.missed-meaning { font-size: 17px; color: var(--ink); }
 .missed-chose { margin-top: 8px; font-size: 12.5px; color: var(--pink); min-height: 16px; }
-.requeue-note { margin: 12px 0 16px; font-size: 12px; color: var(--dim); }
+.requeue-note { margin: 10px 0 14px; font-size: 12px; color: var(--dim); line-height: 1.6; }
+.requeue-note b { color: var(--cyan); }
 
-.dead-scores { display: flex; justify-content: space-around; margin-bottom: 18px; }
+.dead-scores { display: flex; justify-content: space-around; margin-bottom: 14px; flex-wrap: wrap; gap: 8px; }
 .dead-scores div { display: flex; flex-direction: column; gap: 2px; }
-.dead-scores strong { font-size: 24px; font-variant-numeric: tabular-nums; }
+.dead-scores strong { font-size: 21px; font-variant-numeric: tabular-nums; }
 
 /* ── สถิติ ─────────────────────────────────────────────────── */
-.stats-summary {
-  display: flex; flex-wrap: wrap; gap: 10px; margin-bottom: 14px;
-  font-size: 12.5px; color: var(--dim);
-}
+.stats-summary { display: flex; flex-wrap: wrap; gap: 8px; margin-bottom: 12px; font-size: 12.5px; color: var(--dim); }
 .stats-summary b { color: var(--ink); font-size: 15px; }
-.stats-summary .chip {
-  padding: 7px 13px; border-radius: 11px;
-  background: rgba(255,255,255,.05); border: 1px solid rgba(255,255,255,.09);
-}
-.table-wrap { max-height: 46vh; overflow: auto; border-radius: 12px; border: 1px solid rgba(255,255,255,.08); }
-table { width: 100%; border-collapse: collapse; font-size: 13.5px; }
-th, td { padding: 8px 12px; text-align: left; border-bottom: 1px solid rgba(255,255,255,.06); }
-th { position: sticky; top: 0; background: #0b1024; color: var(--dim); font-size: 11px; letter-spacing: .1em; }
+.stats-summary .chip { padding: 7px 12px; border-radius: 11px; background: rgba(255,255,255,.05); border: 1px solid rgba(255,255,255,.09); }
+.table-wrap { max-height: 44vh; overflow: auto; border-radius: 12px; border: 1px solid rgba(255,255,255,.08); -webkit-overflow-scrolling: touch; }
+table { width: 100%; border-collapse: collapse; font-size: 13px; }
+th, td { padding: 8px 10px; text-align: left; border-bottom: 1px solid rgba(255,255,255,.06); }
+th { position: sticky; top: 0; background: #0b1024; color: var(--dim); font-size: 11px; letter-spacing: .08em; }
 td.en { font-weight: 700; }
-.box-pill {
-  display: inline-block; min-width: 22px; text-align: center;
-  padding: 1px 7px; border-radius: 99px; font-size: 11.5px; font-weight: 700;
-}
+.box-pill { display: inline-block; min-width: 22px; text-align: center; padding: 1px 7px; border-radius: 99px; font-size: 11.5px; font-weight: 700; }
 .box-1 { background: rgba(251,113,133,.16); color: var(--danger); }
 .box-2 { background: rgba(250,204,21,.16); color: #facc15; }
 .box-3 { background: rgba(163,230,53,.16); color: var(--lime); }
-.row { display: flex; gap: 9px; margin-top: 14px; }
-.row .btn { margin-top: 0; }
-
-.empty-note { padding: 26px; text-align: center; color: var(--dim); font-size: 13px; }
+.empty-note { padding: 24px; text-align: center; color: var(--dim); font-size: 13px; }
 
 /* ── เล่นหลายคน: ล็อบบี้ ────────────────────────────────────── */
 #mp-name, .mp-code-input {
-  width: 100%; padding: 11px 12px;
+  width: 100%; padding: 12px;
   background: rgba(255,255,255,.05); color: var(--ink);
   border: 1px solid rgba(255,255,255,.15); border-radius: 11px;
-  font-family: inherit; font-size: 15px;
+  font-family: inherit;
 }
-.mp-code-input { text-transform: uppercase; letter-spacing: .3em; font-weight: 800; text-align: center; }
+.mp-code-input { text-transform: uppercase; letter-spacing: .3em; font-weight: 800; text-align: center; font-size: 20px; }
 .mp-or { margin: 12px 0; font-size: 12px; color: var(--dim); }
 
-.mp-code-box {
-  margin-bottom: 16px; padding: 14px; border-radius: 14px;
-  background: rgba(34,211,238,.08); border: 1px solid rgba(34,211,238,.35);
-}
-.mp-code-label { font-size: 11px; letter-spacing: .1em; color: var(--dim); }
-.mp-code-value { display: flex; align-items: center; justify-content: center; gap: 10px; margin-top: 4px; }
-#mp-room-code {
-  font-size: 40px; font-weight: 900; letter-spacing: .22em;
-  color: var(--cyan); text-shadow: 0 0 24px rgba(34,211,238,.5);
-}
+.mp-code-box { margin-bottom: 14px; padding: 12px; border-radius: 14px; background: rgba(34,211,238,.08); border: 1px solid rgba(34,211,238,.35); }
+.mp-code-label { font-size: 11px; letter-spacing: .08em; color: var(--dim); }
+.mp-code-value { display: flex; align-items: center; justify-content: center; gap: 10px; margin-top: 4px; flex-wrap: wrap; }
+#mp-room-code { font-size: clamp(30px, 10vw, 40px); font-weight: 900; letter-spacing: .2em; color: var(--cyan); text-shadow: 0 0 24px rgba(34,211,238,.5); }
 .mp-copy { margin-top: 0; width: auto; }
 
-.mp-players-label { font-size: 11px; letter-spacing: .12em; color: var(--dim); text-align: left; margin-bottom: 6px; }
-.mp-players { list-style: none; text-align: left; margin-bottom: 14px; max-height: 34vh; overflow: auto; }
+.mp-players-label, .mp-zone-label { font-size: 11px; letter-spacing: .1em; color: var(--dim); text-align: left; margin-bottom: 6px; }
+.mp-zone-label { margin-top: 12px; }
+.mp-players { list-style: none; text-align: left; margin-bottom: 12px; max-height: 30vh; overflow: auto; }
 .mp-players li {
-  display: flex; align-items: center; gap: 8px;
-  padding: 9px 12px; margin-bottom: 6px; border-radius: 10px;
+  display: flex; align-items: center; gap: 8px; flex-wrap: wrap;
+  padding: 10px 12px; margin-bottom: 6px; border-radius: 10px;
   background: rgba(255,255,255,.05); border: 1px solid rgba(255,255,255,.08);
-  font-size: 15px;
+  font-size: 14px;
 }
-.mp-players li .mp-host-badge {
-  margin-left: auto; font-size: 10.5px; letter-spacing: .1em; color: var(--lime);
-  border: 1px solid rgba(163,230,53,.4); border-radius: 99px; padding: 1px 8px;
-}
-.mp-players li .mp-you { color: var(--cyan); font-size: 12px; margin-left: 6px; }
+.mp-players li .mp-host-badge { margin-left: auto; font-size: 10.5px; letter-spacing: .08em; color: var(--lime); border: 1px solid rgba(163,230,53,.4); border-radius: 99px; padding: 1px 8px; }
+.mp-players li .mp-you { color: var(--cyan); font-size: 12px; }
 .mp-wait { font-size: 13px; color: var(--dim); margin: 4px 0 8px; }
 .mp-status { min-height: 17px; margin: 8px 0 10px; font-size: 12.5px; color: var(--dim); line-height: 1.5; }
 .mp-status.fail { color: var(--danger); }
 .mp-status.ok { color: var(--lime); }
 
-/* ── ตารางคะแนนสด (ระหว่างแข่ง) ─────────────────────────────── */
+/* ตัวเลือกโหมดทีม */
+.mp-modes { display: flex; gap: 6px; margin-bottom: 12px; }
+.mp-mode {
+  flex: 1; min-height: 44px; padding: 8px 4px; font-size: 12.5px; font-weight: 700;
+  background: rgba(255,255,255,.05); color: var(--dim);
+  border: 1px solid rgba(255,255,255,.14); border-radius: 11px;
+  font-family: inherit; cursor: pointer;
+}
+.mp-mode.active { color: #eafdff; border-color: rgba(34,211,238,.65); background: rgba(34,211,238,.16); box-shadow: 0 0 14px -4px var(--cyan); }
+.mp-team-badge { font-size: 10.5px; letter-spacing: .05em; border: 1px solid rgba(255,255,255,.3); border-radius: 99px; padding: 1px 7px; color: var(--ink); }
+
+/* โซนลงจอด */
+.mp-zones { display: flex; flex-direction: column; gap: 6px; margin-bottom: 12px; }
+.mp-zone {
+  display: flex; flex-direction: column; align-items: flex-start; gap: 1px;
+  min-height: 52px; padding: 9px 12px; border-radius: 12px;
+  background: rgba(255,255,255,.04); border: 1px solid rgba(255,255,255,.12);
+  color: var(--dim); font-family: inherit; text-align: left; cursor: pointer;
+}
+.mp-zone b { font-size: 14px; color: var(--ink); font-weight: 700; }
+.mp-zone small { font-size: 11px; }
+.mp-zone em { font-size: 11px; font-style: normal; color: var(--gold); font-weight: 700; }
+.mp-zone.active { border-color: rgba(34,211,238,.65); background: rgba(34,211,238,.14); box-shadow: 0 0 14px -5px var(--cyan); }
+
+/* ── ตารางคะแนนสด (ระหว่างแข่ง) ───────────────────────────────
+   ⚠️ pointer-events ต้องเป็น auto ที่ระดับ li — นี่คือวิธี "เล็งเป้า" เพียงทางเดียว
+   บนมือถือ ถ้าปิดไว้ ระบบอาวุธทั้งระบบจะกลายเป็นของที่แตะไม่ได้ */
+/* บนมือถือ ตารางต้องอยู่ใน "ช่องว่างระหว่างแถวธงกับตัวละคร" พอดี
+   ต่ำกว่านี้จะไปทับลูกศร "คุณ" เหนือหัวตัวเอง ซึ่งเป็นสิ่งที่ห้ามบังที่สุดในโหมดแข่ง */
 #mp-leaderboard {
-  position: absolute; bottom: 58px; right: 18px; z-index: 6;
-  min-width: 190px; max-width: 250px;
-  padding: 10px 12px; border-radius: 13px;
-  background: rgba(6, 10, 24, .82);
+  position: absolute; top: 43%; right: calc(6px + var(--sa-right)); z-index: 6;
+  width: min(42vw, 200px);
+  max-height: 24vh; overflow: auto;
+  padding: 8px 8px 9px; border-radius: 12px;
+  background: rgba(6, 10, 24, .84);
   border: 1px solid rgba(255,255,255,.12);
   backdrop-filter: blur(6px);
   pointer-events: none;
 }
-.mp-lb-title {
-  font-size: 10.5px; letter-spacing: .16em; text-transform: uppercase;
-  color: var(--cyan); margin-bottom: 7px;
-}
-#mp-lb-list { list-style: none; display: flex; flex-direction: column; gap: 4px; }
+.mp-lb-title { font-size: 9.5px; letter-spacing: .1em; text-transform: uppercase; color: var(--cyan); margin-bottom: 6px; }
+#mp-lb-list { list-style: none; display: flex; flex-direction: column; gap: 3px; }
+/* ⚠️ แถวนี้คือ "ปุ่มเล็งเป้า" เพียงทางเดียวบนมือถือ — ต้องสูงพอให้นิ้วแตะได้จริง
+   ถ้าปล่อยไว้ที่ 29px ระบบอาวุธทั้งระบบจะใช้ไม่ได้เลยสำหรับคนเล่นมือถือ */
 #mp-lb-list li {
-  display: flex; align-items: center; gap: 7px;
-  font-size: 13.5px; padding: 3px 4px; border-radius: 7px;
+  display: flex; align-items: center; gap: 5px;
+  min-height: 38px;
+  font-size: 12px; padding: 5px 5px; border-radius: 8px;
+  pointer-events: auto; cursor: pointer;
 }
 #mp-lb-list li.me { background: rgba(34,211,238,.16); }
-#mp-lb-list li.dead { opacity: .55; }
-#mp-lb-list .lb-rank { width: 16px; color: var(--dim); font-weight: 700; font-variant-numeric: tabular-nums; }
-#mp-lb-list .lb-name { flex: 1 1 auto; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
-#mp-lb-list .lb-score { font-weight: 800; font-variant-numeric: tabular-nums; }
-#mp-lb-list .lb-flag { width: 16px; text-align: center; }
+#mp-lb-list li.dead { opacity: .5; pointer-events: none; }
+#mp-lb-list li.targeted { background: rgba(244,114,182,.22); box-shadow: inset 0 0 0 1px rgba(244,114,182,.6); }
+#mp-lb-list .lb-rank { width: 15px; color: var(--dim); font-weight: 700; font-variant-numeric: tabular-nums; flex: 0 0 auto; font-size: 11px; }
+#mp-lb-list .lb-body { flex: 1 1 auto; min-width: 0; display: flex; flex-direction: column; gap: 2px; }
+#mp-lb-list .lb-name { overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+#mp-lb-list .lb-oxy { display: block; height: 3px; border-radius: 99px; background: rgba(255,255,255,.12); overflow: hidden; }
+#mp-lb-list .lb-oxy i { display: block; height: 100%; background: linear-gradient(90deg, var(--cyan), var(--lime)); transform-origin: left center; }
+#mp-lb-list .lb-score { font-weight: 800; font-variant-numeric: tabular-nums; flex: 0 0 auto; }
+#mp-lb-list .lb-flag { width: 15px; text-align: center; flex: 0 0 auto; }
+
+.mp-dot { width: 9px; height: 9px; border-radius: 999px; flex: 0 0 auto; box-shadow: 0 0 8px -1px currentColor; background: currentColor; }
 
 /* ── นับถอยหลังก่อนออกตัว ───────────────────────────────────── */
 #mp-countdown {
@@ -542,7 +733,7 @@ td.en { font-weight: 700; }
   pointer-events: none;
 }
 #mp-countdown-num {
-  font-size: clamp(90px, 20vw, 200px); font-weight: 900;
+  font-size: clamp(90px, 26vw, 200px); font-weight: 900;
   color: var(--cyan); text-shadow: 0 0 50px rgba(34,211,238,.6);
   animation: mp-count-pop .9s ease;
 }
@@ -561,14 +752,10 @@ td.en { font-weight: 700; }
   padding: 24px;
 }
 #mp-winner-text {
-  font-size: clamp(26px, 6vw, 54px);
-  font-weight: 900;
-  text-align: center;
-  line-height: 1.35;
+  font-size: clamp(24px, 8vw, 54px);
+  font-weight: 900; text-align: center; line-height: 1.35;
   background: linear-gradient(90deg, #fbbf24, #f472b6, #22d3ee);
-  -webkit-background-clip: text;
-  background-clip: text;
-  color: transparent;
+  -webkit-background-clip: text; background-clip: text; color: transparent;
   filter: drop-shadow(0 0 30px rgba(251, 191, 36, .55));
   animation: mp-winner-in .6s cubic-bezier(.2, 1.5, .4, 1);
 }
@@ -577,87 +764,238 @@ td.en { font-weight: 700; }
   to   { opacity: 1; transform: scale(1) translateY(0); }
 }
 
-/* จุดสีประจำผู้เล่น — ใช้ทั้งในล็อบบี้และตารางคะแนน ให้จับคู่กับสีโกสต์ในฉากได้ */
-.mp-dot {
-  width: 11px; height: 11px; border-radius: 999px; flex: 0 0 auto;
-  box-shadow: 0 0 8px -1px currentColor;
-  background: currentColor;
+/* ── ⚡ ศึกชิงคำ ─────────────────────────────────────────────
+   เต็มจอโดยตั้งใจ: 7 วินาทีนี้เกมหยุดเป็นเกมวิ่ง แล้วกลายเป็นการดวลศัพท์ล้วน ๆ
+   ถ้าทำเป็นกล่องเล็ก ๆ มุมจอ ผู้เล่นจะไม่รู้ว่าต้องเปลี่ยนโหมดความคิด */
+#contest {
+  position: absolute; inset: 0; z-index: 19;
+  display: flex; align-items: center; justify-content: center;
+  /* การ์ดสูงกว่าจอได้ (คำยาว + 3 ตัวเลือก บนจอเตี้ย) — ต้องเลื่อนถึงทุกตัวเลือกเสมอ
+     align-items:center + overflow:visible จะดันส่วนเกินออกทั้งบนและล่างแบบเอื้อมไม่ถึง */
+  overflow-y: auto; -webkit-overflow-scrolling: touch; touch-action: pan-y;
+  padding: calc(16px + var(--sa-top)) 14px calc(16px + var(--sa-bottom));
+  background: radial-gradient(ellipse at 50% 40%, rgba(251,191,36,.16), transparent 62%), rgba(3,5,14,.82);
+  backdrop-filter: blur(4px);
+  pointer-events: auto;
+  animation: contest-in .25s ease;
 }
+@keyframes contest-in { from { opacity: 0; } to { opacity: 1; } }
 
-/* ── ตัวเลือกโหมดทีม (เดี่ยว/ดูโอ้/สควอด) ──────────────────── */
-.mp-modes { display: flex; gap: 7px; margin-bottom: 14px; }
-.mp-mode {
-  flex: 1; padding: 9px 6px; font-size: 13.5px; font-weight: 700;
-  background: rgba(255,255,255,.05); color: var(--dim);
-  border: 1px solid rgba(255,255,255,.14); border-radius: 11px;
-  font-family: inherit; cursor: pointer;
+.contest-card {
+  width: min(520px, 100%);
+  margin: auto;   /* จัดกลางแบบที่ยัง scroll ถึงหัว-ท้ายได้ตอนการ์ดสูงกว่าจอ */
+  padding: 18px 16px 16px;
+  border-radius: 20px;
+  background: rgba(10, 14, 34, .95);
+  border: 1px solid rgba(251,191,36,.45);
+  box-shadow: 0 0 60px -14px rgba(251,191,36,.6);
+  text-align: center;
 }
-.mp-mode.active {
-  color: #eafdff; border-color: rgba(34,211,238,.65);
-  background: rgba(34,211,238,.16); box-shadow: 0 0 14px -4px var(--cyan);
+.contest-title {
+  font-size: clamp(20px, 6vw, 30px); font-weight: 900; letter-spacing: .04em;
+  color: var(--gold); text-shadow: 0 0 22px rgba(251,191,36,.5);
 }
-.mp-team-badge {
-  margin-left: 6px; font-size: 10.5px; letter-spacing: .06em;
-  border: 1px solid rgba(255,255,255,.3); border-radius: 99px; padding: 1px 7px;
-  color: var(--ink);
+.contest-sub { margin-top: 3px; font-size: 11.5px; color: var(--dim); line-height: 1.5; }
+#contest-word {
+  margin: 14px 0 12px;
+  font-size: clamp(26px, 8vw, 44px); font-weight: 900; line-height: 1.2;
+  overflow-wrap: anywhere;
 }
+#contest-options { display: flex; flex-direction: column; gap: 8px; }
+#contest-options button {
+  display: flex; align-items: center; gap: 10px;
+  width: 100%; min-height: 52px; padding: 10px 14px;
+  border-radius: 13px; border: 2px solid rgba(255,255,255,.14);
+  background: rgba(255,255,255,.05); color: var(--ink);
+  font-family: inherit; font-size: 17px; font-weight: 800;
+  cursor: pointer; transition: transform .08s ease, border-color .12s, background .12s;
+}
+#contest-options button:active { transform: translateY(1px); }
+#contest-options .co-bar { width: 5px; align-self: stretch; border-radius: 99px; background: var(--lane); box-shadow: 0 0 10px var(--lane); flex: 0 0 auto; }
+#contest-options .co-en { flex: 1 1 auto; text-align: left; overflow-wrap: anywhere; }
+#contest-options button.cursor { border-color: var(--lane); background: rgba(255,255,255,.1); }
+#contest-options button.picked { border-color: var(--cyan); background: rgba(34,211,238,.18); }
+#contest-options button.correct { border-color: var(--lime); background: rgba(163,230,53,.2); }
+#contest-options button.wrong { border-color: var(--danger); background: rgba(251,113,133,.2); }
 
-/* ── แถบโหมดผู้ชม (spectate) ────────────────────────────────── */
+#contest-track { height: 6px; margin-top: 12px; border-radius: 99px; background: rgba(255,255,255,.1); overflow: hidden; }
+#contest-bar { height: 100%; background: linear-gradient(90deg, var(--gold), var(--pink)); transform-origin: left center; transition: transform .1s linear; }
+#contest-bar.urgent { background: linear-gradient(90deg, var(--danger), var(--pink)); }
+#contest-result { min-height: 20px; margin-top: 9px; font-size: 13px; font-weight: 700; line-height: 1.4; }
+#contest-result.waiting { color: var(--dim); }
+#contest-result.win { color: var(--gold); }
+#contest-result.ok { color: var(--lime); }
+#contest-result.lose { color: var(--danger); }
+
+/* ── แถบโหมดผู้ชม (spectate) ──────────────────────────────────
+   ⚠️ ต้องมี "ปุ่มออก" จริง ๆ ไม่ใช่แค่บอกให้กด Esc
+   บนมือถือไม่มีปุ่ม Esc — ถ้าไม่มีปุ่มนี้ ผู้เล่นที่ตกรอบจะติดอยู่ในโหมดผู้ชม
+   ตลอดกาลเมื่อรอบไม่มีวันประกาศผู้ชนะ (เช่น หัวห้องกดเริ่มตอนอยู่คนเดียว)
+   ย้ายมาไว้ล่างจอด้วย เพราะขอบบนเป็นที่ของแถวคะแนนแล้ว */
 #spectate-banner {
-  position: absolute; top: 14px; left: 50%; transform: translateX(-50%);
-  z-index: 7; padding: 9px 20px; border-radius: 99px;
-  background: rgba(6,10,24,.85); border: 1px solid rgba(251,113,133,.5);
-  font-size: 14px; font-weight: 700; color: var(--ink);
-  backdrop-filter: blur(5px); pointer-events: none;
+  position: absolute; left: 50%; transform: translateX(-50%);
+  bottom: calc(16px + var(--sa-bottom));
+  z-index: 8; padding: 8px 10px 8px 16px; border-radius: 99px;
+  display: flex; align-items: center; gap: 10px;
+  background: rgba(6,10,24,.92); border: 1px solid rgba(251,113,133,.5);
+  font-size: 13px; font-weight: 700; color: var(--ink);
+  backdrop-filter: blur(5px); pointer-events: auto; white-space: nowrap;
+  max-width: calc(100vw - 20px);
 }
-
-/* ── เมนู: แถวตัวละคร + กระเป๋าเหรียญ ───────────────────────── */
-#menu-char-row {
-  display: flex; justify-content: space-between; align-items: center;
-  margin-bottom: 14px; padding: 9px 13px; border-radius: 12px;
-  background: rgba(255,255,255,.04); border: 1px solid rgba(255,255,255,.09);
-  font-size: 14px;
+#spectate-banner span { overflow: hidden; text-overflow: ellipsis; }
+#btn-spectate-exit {
+  flex: 0 0 auto; min-height: 36px; padding: 6px 14px; border-radius: 99px;
+  background: rgba(255,255,255,.08); border: 1px solid rgba(255,255,255,.28);
+  color: var(--ink); font-family: inherit; font-size: 12.5px; font-weight: 700; cursor: pointer;
 }
-#menu-char-emoji { font-size: 19px; }
-#menu-wallet { font-weight: 800; color: #fbbf24; }
 
 /* ── ร้านค้า ────────────────────────────────────────────────── */
-.shop-wallet { margin-bottom: 14px; font-size: 15px; color: var(--ink); }
-.shop-wallet b { color: #fbbf24; font-size: 19px; }
-#shop-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 10px; margin-bottom: 14px; }
-.shop-card {
-  padding: 13px 10px; border-radius: 14px; text-align: center;
-  background: rgba(255,255,255,.04); border: 1px solid rgba(255,255,255,.1);
-}
+.shop-wallet { margin-bottom: 12px; font-size: 15px; color: var(--ink); }
+.shop-wallet b { color: var(--gold); font-size: 19px; }
+#shop-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 8px; margin-bottom: 12px; }
+.shop-card { padding: 12px 8px; border-radius: 14px; text-align: center; background: rgba(255,255,255,.04); border: 1px solid rgba(255,255,255,.1); }
 .shop-card.selected { border-color: var(--cyan); box-shadow: 0 0 18px -6px var(--cyan); }
-.shop-emoji { font-size: 34px; line-height: 1.2; }
-.shop-name { font-weight: 800; font-size: 15px; margin-top: 3px; }
-.shop-weapon { font-size: 11.5px; color: var(--dim); margin: 2px 0 8px; }
-.shop-card .btn { margin-top: 0; padding: 8px 10px; font-size: 13px; }
-.shop-price { color: #fbbf24; font-weight: 700; }
-.shop-owned-tag { font-size: 11px; color: var(--lime); letter-spacing: .08em; }
+.shop-emoji { font-size: 32px; line-height: 1.2; }
+.shop-name { font-weight: 800; font-size: 14px; margin-top: 3px; }
+.shop-weapon { font-size: 11px; color: var(--dim); margin: 2px 0 8px; line-height: 1.4; }
+.shop-card .btn { margin-top: 0; min-height: 40px; padding: 8px; font-size: 12.5px; }
+.shop-price { color: var(--gold); font-weight: 700; }
+.shop-owned-tag { font-size: 11px; color: var(--lime); letter-spacing: .06em; }
+
+/* รหัสลับของบัญชีทดลอง */
+.shop-code { display: flex; gap: 8px; align-items: stretch; margin-bottom: 4px; }
+#shop-code-input {
+  flex: 1 1 auto; min-width: 0; padding: 10px 12px;
+  background: rgba(255,255,255,.05); color: var(--ink);
+  border: 1px dashed rgba(255,255,255,.22); border-radius: 11px;
+  font-family: inherit; letter-spacing: .18em; text-align: center;
+}
+.shop-code .btn { flex: 0 0 auto; width: auto; }
+.shop-code-status {
+  min-height: 16px; margin: 4px 0 10px; font-size: 12px; line-height: 1.5;
+  color: var(--dim); white-space: pre-line;
+}
+.shop-code-status.ok { color: var(--lime); }
+.shop-code-status.fail { color: var(--danger); }
+
+/* ปุ่ม/ป้ายของโหมดทดลอง — ใช้สีม่วงที่ไม่ซ้ำกับอะไรในเกม เพื่อให้แยกออกทันทีว่า
+   "นี่ไม่ใช่ของที่ผู้เล่นทั่วไปมี" */
+.act-cheat { border-color: rgba(167,139,250,.6); color: #e9deff; background: rgba(167,139,250,.16); }
+#cheat-tag {
+  position: absolute; left: 50%; transform: translateX(-50%);
+  bottom: calc(160px + var(--sa-bottom));
+  padding: 3px 12px; border-radius: 99px;
+  background: rgba(167,139,250,.16); border: 1px dashed rgba(167,139,250,.7);
+  color: #e9deff; font-size: 11px; font-weight: 700; letter-spacing: .06em;
+}
 
 /* ── โหมดฝึก ────────────────────────────────────────────────── */
-.pr-count { font-size: 12px; letter-spacing: .14em; color: var(--dim); margin-bottom: 10px; }
-.pr-card {
-  padding: 22px 16px; border-radius: 16px; margin-bottom: 14px;
-  background: rgba(255,255,255,.04); border: 1px solid rgba(34,211,238,.25);
+.pr-count { font-size: 12px; letter-spacing: .12em; color: var(--dim); margin-bottom: 10px; }
+.pr-card { padding: 18px 14px; border-radius: 16px; margin-bottom: 12px; background: rgba(255,255,255,.04); border: 1px solid rgba(34,211,238,.25); }
+#pr-emoji { font-size: 52px; line-height: 1.15; min-height: 60px; }
+#pr-en { font-size: clamp(26px, 9vw, 38px); font-weight: 900; color: var(--cyan); text-shadow: 0 0 24px rgba(34,211,238,.4); line-height: 1.2; overflow-wrap: anywhere; }
+#pr-th { font-size: 19px; margin: 4px 0 10px; }
+.pr-tag {
+  display: inline-block; margin-bottom: 10px; padding: 3px 12px; border-radius: 99px;
+  background: rgba(251,113,133,.14); border: 1px solid rgba(251,113,133,.45);
+  color: var(--danger); font-size: 11.5px; font-weight: 700;
 }
-#pr-emoji { font-size: 58px; line-height: 1.15; min-height: 66px; }
-#pr-en {
-  font-size: 38px; font-weight: 900; color: var(--cyan);
-  text-shadow: 0 0 24px rgba(34,211,238,.4); line-height: 1.2;
+.pr-done-words { display: flex; flex-wrap: wrap; gap: 6px; justify-content: center; margin-bottom: 12px; }
+.pr-done-words .chip { padding: 5px 11px; border-radius: 99px; font-size: 12.5px; background: rgba(163,230,53,.12); border: 1px solid rgba(163,230,53,.4); }
+.pr-done-coins { margin-bottom: 14px; color: var(--dim); font-size: 12.5px; line-height: 1.6; }
+
+/* มือถือแนวตั้ง: ดันแผงเมนูลงชิดล่าง เพื่อ "เปิดเวที" ให้ตัวละครที่อยู่ครึ่งบน
+   (กล้องล็อบบี้ใน scene.js ดันตัวละครขึ้นไปครึ่งบนไว้แล้ว — ต้องทำคู่กันถึงจะได้ผล
+   ถ้าทำแค่ฝั่งเดียว จะได้แผงลอยกลางจอทับตัวละคร เหมือนเดิมทุกประการ) */
+@media (max-width: 619px) and (min-height: 620px) {
+  #screen-menu { align-items: flex-end; }
+  #screen-menu .panel { margin-bottom: 0; }
+  #screen-menu { background: linear-gradient(180deg,
+      rgba(3, 5, 14, .1) 0%, rgba(3, 5, 14, .35) 26%, rgba(3, 5, 14, .82) 46%, rgba(3, 5, 14, .95) 62%);
+    backdrop-filter: none; }
 }
-#pr-th { font-size: 21px; margin: 4px 0 12px; }
-.pr-done-words {
-  display: flex; flex-wrap: wrap; gap: 7px; justify-content: center; margin-bottom: 14px;
+
+/* ══════════════════════════════════════════════════════════════
+   จอใหญ่ขึ้น — จากนี้ไปคือ "ส่วนเพิ่ม" ไม่ใช่ "ส่วนแก้"
+   ══════════════════════════════════════════════════════════════ */
+
+/* แท็บเล็ต / มือถือแนวนอน ขึ้นไป */
+@media (min-width: 620px) {
+  #hud { padding: calc(16px + var(--sa-top)) calc(20px + var(--sa-right))
+                  calc(14px + var(--sa-bottom)) calc(20px + var(--sa-left)); }
+  #hud-stats { gap: 16px; }
+  .stat-label { font-size: 10px; }
+  #hud-score, #hud-gates { font-size: 27px; }
+  #hud-prompt { top: calc(52px + var(--sa-top)); padding: 11px 24px 13px; }
+  #lane-flags { top: 33%; gap: 10px; width: min(940px, 92vw); }
+  .flag { padding: 9px 10px 13px; border-radius: 15px; }
+  .jet-pip { width: 14px; height: 20px; }
+  #hud-toast { font-size: 15px; padding: 9px 20px; }
+  #mp-leaderboard { top: auto; bottom: calc(132px + var(--sa-bottom)); width: 240px; max-height: 42vh; padding: 10px 12px; }
+  #mp-lb-list li { font-size: 13.5px; }
+  .mp-lb-title { font-size: 10.5px; }
+  .act { min-width: 92px; min-height: 58px; font-size: 12px; }
+  .act-icon { font-size: 22px; }
+  /* จอใหญ่มีที่พอให้ "คำใบ้ปุ่ม" อยู่ใต้แถบปุ่มได้ โดยไม่ทับกัน */
+  #hud-actions { bottom: calc(26px + var(--sa-bottom)); }
+  #storm-bar { bottom: calc(104px + var(--sa-bottom)); }
+  #bonus-timer { bottom: calc(146px + var(--sa-bottom)); }
+  .panel { padding: 28px 28px 24px; }
+  .desktop-only { display: block; }
+  .touch-only { display: none; }
+  #hud-controls-hint {
+    display: block;
+    position: absolute; bottom: calc(4px + var(--sa-bottom)); left: 50%; transform: translateX(-50%);
+    font-size: 11.5px; color: var(--dim); opacity: .7; white-space: nowrap;
+    transition: opacity .6s ease;
+  }
+  #hud-controls-hint.faded { opacity: 0; }
+  .mp-zones { flex-direction: row; }
+  .mp-zone { flex: 1; }
 }
-.pr-done-words .chip {
-  padding: 5px 12px; border-radius: 99px; font-size: 13px;
-  background: rgba(163,230,53,.12); border: 1px solid rgba(163,230,53,.4);
+
+/* ── จอเตี้ยมาก (มือถือแนวนอน) ────────────────────────────────
+   ที่นี่ความสูงคือทรัพยากรที่ขาดแคลนที่สุด — แถบล่างที่วางซ้อนกันกลางจอ
+   (พายุ + ปุ่ม + คำใบ้) กินไปเกือบ 1 ใน 3 ของจอ และบังตัวละครพอดี
+   ทางแก้คือ "แยกไปอยู่คนละมุม" แทนที่จะซ้อนกันตรงกลาง:
+   พายุมุมซ้ายล่าง / ปุ่มมุมขวาล่าง / ตรงกลางเว้นว่างไว้ให้ตัวละคร */
+@media (max-height: 480px) {
+  /* จอเตี้ยกว้าง: กล่องโจทย์ต้องแคบลงด้วย ไม่ใช่แค่เตี้ยลง
+     ไม่งั้นขอบซ้าย/ขวาของมันจะไปคร่อมแถวคะแนนที่อยู่มุมบนทั้งสองข้าง */
+  #hud-prompt { top: calc(26px + var(--sa-top)); padding: 5px 14px 7px; width: min(56vw, 460px); }
+  #hud-prompt-word { font-size: clamp(18px, 4.4vh, 28px); }
+  #hud-prompt-emoji { font-size: clamp(30px, 9vh, 52px); }
+  #hud-prompt-image { width: 56px; height: 56px; }
+  #lane-flags { top: 34%; }
+  .flag { padding: 5px 6px 7px; }
+  .flag-word { font-size: clamp(13px, 3.4vh, 22px); }
+
+  #storm-bar {
+    left: calc(10px + var(--sa-left)); transform: none;
+    bottom: calc(10px + var(--sa-bottom));
+    width: min(46vw, 300px); padding: 4px 10px 6px;
+  }
+  #hud-actions {
+    left: auto; transform: none;
+    right: calc(10px + var(--sa-right));
+    bottom: calc(10px + var(--sa-bottom));
+  }
+  .act { min-height: 46px; min-width: 68px; font-size: 10.5px; }
+  .act-icon { font-size: 17px; }
+  #hud-controls-hint { display: none; }
+
+  #mp-leaderboard {
+    top: auto; bottom: calc(66px + var(--sa-bottom));
+    width: min(36vw, 200px); max-height: 30vh;
+  }
+  #bonus-timer { bottom: calc(66px + var(--sa-bottom)); width: min(300px, 46vw); }
+
+  #hud-toast { top: calc(24% + var(--sa-top)); }
+  #contest-word { margin: 8px 0 8px; font-size: clamp(20px, 6vh, 32px); }
+  #contest-options button { min-height: 44px; font-size: 15px; }
+  .contest-card { padding: 12px 14px 12px; }
+  .contest-sub { font-size: 10.5px; }
 }
-.pr-done-coins { margin-bottom: 16px; color: var(--dim); }
-.pr-done-coins b { color: #fbbf24; }
 
 /* ── จอกว้าง: เมนูสไตล์ Fortnite — แผงเลื่อนไปซ้าย ตัวละครโชว์ฝั่งขวา ── */
 @media (min-width: 920px) {
@@ -670,17 +1008,5 @@ td.en { font-weight: 700; }
       rgba(3, 5, 14, .28) 62%, rgba(3, 5, 14, .05) 100%);
     backdrop-filter: none;
   }
-}
-
-@media (max-width: 560px) {
-  #hud-prompt { top: 10px; padding: 9px 16px 11px; }
-  #hud-score, #hud-gates { font-size: 22px; }
-  #hud-controls-hint { display: none; }
-  .panel { padding: 24px 20px 20px; }
-  #lane-flags { top: 30%; width: 96vw; gap: 5px; }
-  .flag { padding: 6px 5px 9px; border-radius: 11px; }
-  .flag-word { font-size: 15px; }
-  .flag-trans { font-size: 11.5px; }
-  #hud-prompt-emoji { font-size: 44px; }
-  #hud-prompt-image { width: 82px; height: 82px; }
+  #shop-grid { grid-template-columns: repeat(3, 1fr); }
 }

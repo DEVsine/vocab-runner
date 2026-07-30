@@ -2,7 +2,13 @@
 <html lang="th">
 <head>
   <meta charset="utf-8">
-  <meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1, user-scalable=no">
+  <!-- viewport-fit=cover = ยอมให้เนื้อหาไหลใต้รอยบาก/แถบโฮมของ iPhone
+       แล้วเราค่อยเว้นระยะเองด้วย env(safe-area-inset-*) ใน CSS
+       ถ้าไม่ใส่ ขอบจอจะมีแถบดำและพื้นที่เล่นจะหดลงโดยไม่จำเป็น -->
+  <meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1, user-scalable=no, viewport-fit=cover">
+  <meta name="theme-color" content="#05060f">
+  <meta name="mobile-web-app-capable" content="yes">
+  <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
   <title>Vocab Runner — วิ่งทะลุกำแพงคำศัพท์</title>
   <link rel="stylesheet" href="./style.css">
 
@@ -27,12 +33,29 @@
 
     <!-- ══ HUD (DOM overlay — คมกว่าการวาดลง canvas และได้ฟอนต์ไทยของระบบฟรี) ══ -->
     <div id="hud" class="hidden">
-      <div id="hud-top-left">
+
+      <!-- แถวสถิติแถวเดียวด้านบน
+           เดิมแยกเป็นกอง "ซ้ายบน" กับ "ขวาบน" ซึ่งพอจอแคบลง กล่องโจทย์ตรงกลาง
+           จะขยายไปทับทั้งสองกองพอดี → บนมือถืออ่านคะแนนไม่ได้เลย
+           แถวเดียวที่ "ไหลตามความกว้าง" แก้ปัญหานี้ที่ต้นเหตุ -->
+      <div id="hud-stats">
         <div class="stat"><span class="stat-label">คะแนน</span><span id="hud-score">0</span></div>
         <div id="hud-combo" class="combo hidden">×<span id="hud-combo-value">1</span></div>
-        <div class="stat coins"><span class="stat-label">เหรียญ</span><span id="hud-coins">0</span></div>
-        <div class="stat stars"><span class="stat-label">ดาวสะสม</span><span id="hud-stars">0/5</span></div>
-        <div id="hud-jets" class="jets"></div>
+        <div class="stat"><span class="stat-label">ด่าน</span><span id="hud-gates">0</span></div>
+        <div class="stat dim"><span class="stat-label">สูงสุด</span><span id="hud-best">0</span></div>
+        <div id="hud-collect">
+          <div class="stat coins"><span class="stat-label">เหรียญ</span><span id="hud-coins">0</span></div>
+          <div class="stat stars"><span class="stat-label">ดาว</span><span id="hud-stars">0/5</span></div>
+          <div id="hud-jets" class="jets"></div>
+        </div>
+        <!-- โหมดฝึก: แถบความคืบหน้าเข้ามาแทนที่ของสะสมทั้งชุดในแถวเดียวกัน
+             (อยู่ใน flow เดียวกัน จึงไม่มีทางวางทับกันได้เลย) -->
+        <div id="hud-practice" class="hidden">
+          <span class="pr-hud-label">ฝึก</span>
+          <div class="pr-hud-track"><div id="pr-hud-bar"></div></div>
+          <span id="pr-hud-count">0/0</span>
+        </div>
+        <button id="btn-hud-pause" type="button" title="พัก / ออก">⏸</button>
       </div>
 
       <div id="hud-prompt">
@@ -41,11 +64,6 @@
         <div id="hud-prompt-emoji" class="hidden">🚀</div>
         <img id="hud-prompt-image" class="hidden" alt="" decoding="async">
         <div id="hud-timer-track"><div id="hud-timer-bar"></div></div>
-      </div>
-
-      <div id="hud-top-right">
-        <div class="stat"><span class="stat-label">ด่านผ่าน</span><span id="hud-gates">0</span></div>
-        <div class="stat dim"><span class="stat-label">สถิติสูงสุด</span><span id="hud-best">0</span></div>
       </div>
 
       <!-- ธงคำตอบ 3 ใบ — แทนป้ายบนกำแพงเดิม สีของแต่ละใบตรงกับสีพื้นของเลนนั้น
@@ -65,9 +83,49 @@
       </div>
       <div id="bonus-timer" class="hidden"><div id="bonus-timer-bar"></div></div>
 
+      <div id="final-banner" class="hidden">🏁 รอบชิง — ทุกคนวิ่งบนแทร็กเดียวกัน</div>
+
+      <!-- 🌪️ พายุ: หลอดพลังที่ไหลลงตลอด เติมได้ทางเดียวคือตอบถูก
+           วางไว้เหนือแถบปุ่ม เพราะมันคือ "นาฬิกาชีวิต" ที่ต้องเหลือบเห็นได้ตลอดโดยไม่ต้องหา -->
+      <div id="storm-bar" class="hidden">
+        <div class="storm-head">
+          <span id="storm-tag">🌪️ สงบ</span>
+          <span id="storm-pct">100%</span>
+        </div>
+        <div id="oxy-track"><div id="oxy-fill"></div></div>
+      </div>
+
+      <!-- แถบปุ่มบนจอ — บนมือถือการปัดนิ้วใช้ได้เฉพาะ "เคลื่อนที่"
+           ส่วนใส่เกราะ/เลือกกระสุน/ยิง ต้องมีปุ่มจริง ไม่งั้นผู้เล่นมือถือ
+           จะเข้าไม่ถึงครึ่งหนึ่งของระบบที่เราเพิ่งสร้าง -->
+      <div id="hud-actions">
+        <button id="act-ammo" class="act hidden" type="button">
+          <span class="act-icon" id="act-ammo-icon">🔀</span>
+          <span class="act-text" id="act-ammo-text">สลับธง</span>
+        </button>
+        <button id="act-equip" class="act" type="button">
+          <span class="act-icon">🛡️</span>
+          <span class="act-text">ใส่เกราะ</span>
+        </button>
+        <button id="act-fire" class="act act-fire hidden" type="button">
+          <span class="act-icon">🎯</span>
+          <span class="act-text" id="act-fire-text">ยิง</span>
+          <span class="act-charge"><i id="act-fire-charge"></i></span>
+        </button>
+        <!-- ปุ่มโหมดทดลอง: เข้าด่านโบนัสประจำธีมทันทีโดยไม่ต้องเก็บดาวครบ -->
+        <button id="act-bonus" class="act act-cheat hidden" type="button">
+          <span class="act-icon">★</span>
+          <span class="act-text">ด่านโบนัส</span>
+        </button>
+      </div>
+
+      <!-- ป้ายเตือนว่ากำลังเปิดโหมดทดลองอยู่ — ของลับที่มองไม่เห็นว่าเปิดอยู่
+           คือที่มาของรายงานบั๊กที่ผิดพลาด -->
+      <div id="cheat-tag" class="hidden">🧪 โหมดทดลอง</div>
+
       <div id="hud-controls-hint">
         <kbd>←</kbd><kbd>→</kbd> เปลี่ยนเลน · <kbd>↑</kbd> กระโดด · <kbd>↓</kbd> สไลด์ ·
-        <kbd>Space</kbd> ใส่ไอพ่น · <kbd>Esc</kbd> พัก
+        <kbd>Space</kbd> ใส่เกราะ · <kbd>Q</kbd> เลือกกระสุน · <kbd>F</kbd> ยิง · <kbd>Esc</kbd> พัก
       </div>
     </div>
 
@@ -75,48 +133,57 @@
     <section id="screen-menu" class="screen">
       <div class="panel">
         <h1 class="title">VOCAB<span class="title-accent">RUNNER</span></h1>
-        <p class="subtitle">คุณคือนักบินอวกาศในทางเดินสถานี — อ่านโจทย์ไทย<br>แล้ววิ่งทะลุประตูคำอังกฤษที่ถูกต้อง</p>
+        <p class="subtitle">อ่านโจทย์ไทย แล้ววิ่งเข้าเลนคำอังกฤษที่ถูกต้อง</p>
 
-        <label class="field">
-          <span>ชุดคำศัพท์</span>
-          <select id="deck-select"></select>
-        </label>
-        <p id="deck-info" class="deck-info">กำลังโหลด…</p>
+        <!-- ปุ่มหลักอยู่ "บนสุด" บนมือถือ — คนเปิดเกมมาเพื่อเล่น ไม่ใช่เพื่อตั้งค่า
+             การให้ตัวเลือกมาก่อนปุ่มเล่นคือการบังคับให้ทุกคนเลื่อนหาปุ่มทุกครั้ง -->
+        <button id="btn-start" class="btn btn-primary btn-hero">▶ เริ่มเล่น</button>
+        <div class="row">
+          <button id="btn-practice" class="btn">📖 โหมดฝึก<span id="practice-badge" class="badge hidden">0</span></button>
+          <button id="btn-multiplayer" class="btn">🎮 เล่นหลายคน</button>
+        </div>
 
-        <label class="field">
-          <span>ธีมของโลก</span>
-          <select id="theme-select"></select>
-        </label>
-
-        <!-- ตัวละครที่ใส่อยู่ + กระเป๋าเหรียญ (แตะเพื่อเข้าร้านค้า) -->
         <div id="menu-char-row">
           <div id="menu-char"><span id="menu-char-emoji">🧑‍🚀</span> <span id="menu-char-name">นักบินอวกาศ</span></div>
           <div id="menu-wallet">🪙 <span id="menu-wallet-coins">0</span></div>
         </div>
 
-        <div class="toggles">
-          <label class="toggle"><input type="checkbox" id="toggle-sfx" checked> <span>เสียงประกอบ</span></label>
-          <label class="toggle"><input type="checkbox" id="toggle-speech" checked> <span>อ่านออกเสียงคำ</span></label>
-        </div>
+        <details id="menu-settings">
+          <summary>⚙️ ตั้งค่า &amp; ชุดคำศัพท์</summary>
+          <div class="settings-body">
+            <label class="field">
+              <span>ชุดคำศัพท์</span>
+              <select id="deck-select"></select>
+            </label>
+            <p id="deck-info" class="deck-info">กำลังโหลด…</p>
 
-        <!-- ปุ่มตรวจเครื่องอ่านออกเสียงของเบราว์เซอร์ — โหมดฟังพึ่งพาสิ่งนี้ทั้งหมด
-             และมันพังเงียบ ๆ ได้หลายทาง จึงต้องมีวิธีตรวจที่ให้คำตอบชัด ๆ -->
-        <button id="btn-test-speech" class="btn btn-small">🔊 ทดสอบเสียงอ่าน</button>
-        <p id="speech-status" class="speech-status"></p>
+            <label class="field">
+              <span>ธีมของโลก</span>
+              <select id="theme-select"></select>
+            </label>
 
-        <button id="btn-start" class="btn btn-primary">เริ่มเล่น <kbd>Space</kbd></button>
-        <button id="btn-practice" class="btn">📖 โหมดฝึก — สอนคำใหม่ทีละ 10 คำ</button>
-        <button id="btn-multiplayer" class="btn">🎮 เล่นหลายคน (Battle Royale)</button>
+            <div class="toggles">
+              <label class="toggle"><input type="checkbox" id="toggle-sfx" checked> <span>เสียงประกอบ</span></label>
+              <label class="toggle"><input type="checkbox" id="toggle-speech" checked> <span>อ่านออกเสียงคำ</span></label>
+            </div>
+
+            <!-- ปุ่มตรวจเครื่องอ่านออกเสียงของเบราว์เซอร์ — โหมดฟังพึ่งพาสิ่งนี้ทั้งหมด
+                 และมันพังเงียบ ๆ ได้หลายทาง จึงต้องมีวิธีตรวจที่ให้คำตอบชัด ๆ -->
+            <button id="btn-test-speech" class="btn btn-small">🔊 ทดสอบเสียงอ่าน</button>
+            <p id="speech-status" class="speech-status"></p>
+          </div>
+        </details>
+
         <div class="row">
           <button id="btn-shop" class="btn">🛒 ร้านค้า</button>
-          <button id="btn-stats" class="btn">สถิติคำศัพท์</button>
+          <button id="btn-stats" class="btn">📊 สถิติ</button>
         </div>
 
-        <p class="hint">
-          <kbd>←</kbd><kbd>→</kbd> หรือ <kbd>A</kbd><kbd>D</kbd> เปลี่ยนเลน ·
-          <kbd>↑</kbd>/<kbd>W</kbd> กระโดด · <kbd>↓</kbd>/<kbd>S</kbd> สไลด์ ·
-          <kbd>Space</kbd> ใส่ไอพ่นที่เก็บมา · บนมือถือปัดนิ้ว / แตะจอเพื่อใส่ไอพ่น
+        <p class="hint desktop-only">
+          <kbd>←</kbd><kbd>→</kbd> เปลี่ยนเลน · <kbd>↑</kbd> กระโดด · <kbd>↓</kbd> สไลด์ ·
+          <kbd>Space</kbd> ใส่เกราะ · <kbd>Q</kbd>/<kbd>F</kbd> เลือก/ยิงอาวุธ
         </p>
+        <p class="hint touch-only">ปัดนิ้วเพื่อเปลี่ยนเลน/กระโดด/สไลด์ · ปุ่มด้านล่างจอสำหรับเกราะและอาวุธ</p>
       </div>
     </section>
 
@@ -132,7 +199,7 @@
           <div id="dead-chose" class="missed-chose"></div>
         </div>
 
-        <p class="requeue-note">คำนี้จะเป็นกำแพงบานแรกของรอบถัดไป</p>
+        <p class="requeue-note">คำนี้ถูกส่งเข้าคิว <b>โหมดฝึก</b> แล้ว — และจะเป็นด่านแรกของรอบถัดไป</p>
 
         <div class="dead-scores">
           <div><span class="stat-label">คะแนน</span><strong id="dead-score">0</strong></div>
@@ -141,8 +208,9 @@
           <div><span class="stat-label">สูงสุด</span><strong id="dead-best">0</strong></div>
         </div>
 
-        <button id="btn-retry" class="btn btn-primary">เล่นอีกครั้ง <kbd>Space</kbd></button>
-        <button id="btn-to-menu" class="btn">กลับเมนู <kbd>Esc</kbd></button>
+        <button id="btn-retry" class="btn btn-primary">เล่นอีกครั้ง</button>
+        <button id="btn-dead-practice" class="btn">📖 ไปซ้อมคำที่พลาด</button>
+        <button id="btn-to-menu" class="btn">กลับเมนู</button>
       </div>
     </section>
 
@@ -162,6 +230,8 @@
         <div class="row">
           <button id="btn-export" class="btn">ส่งออก JSON</button>
           <button id="btn-import" class="btn">นำเข้า JSON</button>
+        </div>
+        <div class="row">
           <button id="btn-reset" class="btn btn-danger">ล้างสถิติชุดนี้</button>
           <button id="btn-stats-close" class="btn btn-primary">ปิด</button>
         </div>
@@ -175,6 +245,16 @@
         <h2>🛒 ร้านค้า</h2>
         <p class="shop-wallet">เหรียญในกระเป๋า: 🪙 <b id="shop-coins">0</b></p>
         <div id="shop-grid"></div>
+
+        <!-- รหัสลับสำหรับบัญชีทดลอง — เปิดประตูลัดให้คนทดสอบเข้าถึงของที่ต้องเล่นนานกว่าจะได้
+             (ดูเหตุผลเต็มใน src/cheats.js) -->
+        <div class="shop-code">
+          <input id="shop-code-input" type="text" maxlength="12" placeholder="รหัสลับ"
+                 autocomplete="off" autocapitalize="off" spellcheck="false">
+          <button id="btn-shop-code" class="btn btn-small">ใช้โค้ด</button>
+        </div>
+        <p id="shop-code-status" class="shop-code-status"></p>
+
         <p class="hint">เก็บเหรียญจากการวิ่งทุกโหมด — จบรอบแล้วเหรียญเข้ากระเป๋าอัตโนมัติ<br>
         ตัวละครทุกตัวเก่งเท่ากัน ต่างแค่ความเท่และอาวุธประจำตัว</p>
         <button id="btn-shop-close" class="btn btn-primary">กลับเมนู</button>
@@ -189,6 +269,7 @@
           <div id="pr-emoji">🐘</div>
           <div id="pr-en">elephant</div>
           <div id="pr-th">ช้าง</div>
+          <div id="pr-tag" class="pr-tag hidden">🔁 คำที่เคยพลาด</div>
           <button id="btn-pr-speak" class="btn btn-small">🔊 ฟังเสียงอ่าน</button>
         </div>
         <div class="row">
@@ -205,8 +286,8 @@
       <div class="panel">
         <h2>🎉 ฝึกครบชุดแล้ว!</h2>
         <div id="pr-done-words" class="pr-done-words"></div>
-        <p class="pr-done-coins">ได้เหรียญเข้ากระเป๋า 🪙 <b id="pr-done-coin-count">0</b></p>
-        <button id="btn-pr-again" class="btn btn-primary">📖 สอนชุดต่อไป (คำใหม่)</button>
+        <p class="pr-done-coins">ห้องซ้อมไม่มีเหรียญและไม่มีเกราะ — มีแค่คุณกับคำศัพท์</p>
+        <button id="btn-pr-again" class="btn btn-primary">📖 ชุดต่อไป</button>
         <button id="btn-pr-done-menu" class="btn">กลับเมนู</button>
       </div>
     </section>
@@ -215,7 +296,7 @@
     <section id="screen-pause" class="screen hidden">
       <div class="panel">
         <h2>พักเกม</h2>
-        <button id="btn-resume" class="btn btn-primary">เล่นต่อ <kbd>Esc</kbd></button>
+        <button id="btn-resume" class="btn btn-primary">เล่นต่อ</button>
         <button id="btn-quit" class="btn">ออกไปเมนู</button>
       </div>
     </section>
@@ -223,7 +304,7 @@
     <!-- ══ เล่นหลายคน: ล็อบบี้ ══ -->
     <section id="screen-mp" class="screen hidden">
       <div class="panel">
-        <h2>เล่นหลายคน — แข่งสด</h2>
+        <h2>Battle Royale — แข่งสด</h2>
 
         <!-- ขั้นที่ 1: ยังไม่อยู่ในห้อง -->
         <div id="mp-setup">
@@ -236,7 +317,7 @@
           <label class="field">
             <span>เข้าห้องด้วยรหัส</span>
             <input id="mp-code" type="text" maxlength="4" placeholder="เช่น K7QP"
-                   autocapitalize="characters" autocomplete="off" class="mp-code-input">
+                   inputmode="latin" autocapitalize="characters" autocomplete="off" class="mp-code-input">
           </label>
           <button id="btn-mp-join" class="btn">เข้าห้อง</button>
         </div>
@@ -257,6 +338,11 @@
             <button class="mp-mode" data-mode="squad">👨‍👩‍👧‍👦 สควอด</button>
           </div>
 
+          <!-- โซนลงจอด: แต่ละคนเลือกเองได้ (เหมือนเลือกจุดดรอปใน BR)
+               ยากกว่า = ได้ออกซิเจนและแต้มต่อคำมากกว่า -->
+          <div class="mp-zone-label">โซนลงจอด (เลือกเองได้ทุกคน)</div>
+          <div id="mp-zones" class="mp-zones"></div>
+
           <div class="mp-players-label">ผู้เล่นในห้อง</div>
           <ul id="mp-players" class="mp-players"></ul>
           <button id="btn-mp-start" class="btn btn-primary hidden">เริ่มแข่ง!</button>
@@ -267,11 +353,17 @@
         <button id="btn-mp-back" class="btn">กลับเมนู</button>
       </div>
     </section>
-  </div>
 
-  <!-- ตารางคะแนนสด (นอก #hud เพื่อให้ยังเห็นตอนตายด้วย) -->
+  <!-- ⚠️ ห้าชั้นซ้อนด้านล่างต้องอยู่ "ใน #app" ไม่ใช่ข้างนอก
+       ทั้งหมดใช้ position:absolute ซึ่งวัดจาก "ancestor ที่ positioned ตัวใกล้สุด"
+       ถ้าอยู่นอก #app จะไม่มี ancestor แบบนั้นเลย → ไปวัดจากกรอบเริ่มต้นของหน้า (100vh)
+       ขณะที่ตัวเกมใช้ 100dvh — บน iOS สองค่านี้ต่างกันเท่าความสูงแถบเครื่องมือ Safari
+       ผลคือแถบพวกนี้จะเลื่อนหลุดจอไปตามการซ่อน/โผล่ของแถบเครื่องมือ -->
+
+  <!-- ตารางคะแนนสด (นอก #hud เพื่อให้ยังเห็นตอนตายด้วย)
+       แถวกดได้ = เล็งเป้าอาวุธ — นี่คือวิธีเล็งที่ใช้ได้ทั้งเมาส์และนิ้ว -->
   <div id="mp-leaderboard" class="hidden">
-    <div class="mp-lb-title">แข่งสด</div>
+    <div class="mp-lb-title">แตะชื่อเพื่อเล็งเป้า</div>
     <ol id="mp-lb-list"></ol>
   </div>
 
@@ -281,10 +373,25 @@
   <!-- ป้ายผู้ชนะ Battle Royale (ผู้รอดคนสุดท้าย) -->
   <div id="mp-winner" class="hidden"><div id="mp-winner-text">🏆</div></div>
 
-  <!-- แถบโหมดผู้ชม (ตกรอบแล้ว ดูเพื่อนที่เหลือแข่งต่อ) -->
-  <div id="spectate-banner" class="hidden">
-    💀 ตกรอบแล้ว — กำลังชมผู้เล่นที่เหลือ · <kbd>Esc</kbd> กลับห้อง
+  <!-- ⚡ ศึกชิงคำ: โจทย์เดียวกันทุกเครื่องพร้อมกัน โลกช้าลงเพื่อให้เป็นการดวลจริง ๆ -->
+  <div id="contest" class="hidden">
+    <div class="contest-card">
+      <div class="contest-title">⚡ ศึกชิงคำ</div>
+      <div class="contest-sub">ตอบถูกก่อน = ได้พลังเต็ม · ตอบผิด/ไม่ทัน = พายุกินพลัง</div>
+      <div id="contest-word">—</div>
+      <div id="contest-options"></div>
+      <div id="contest-track"><div id="contest-bar"></div></div>
+      <div id="contest-result"></div>
+    </div>
   </div>
+
+  <!-- แถบโหมดผู้ชม (ตกรอบแล้ว ดูเพื่อนที่เหลือแข่งต่อ)
+       ต้องมีปุ่มออกจริง ๆ — มือถือไม่มี Esc ให้กด -->
+  <div id="spectate-banner" class="hidden">
+    <span>💀 ตกรอบแล้ว — กำลังชมผู้เล่นที่เหลือ</span>
+    <button id="btn-spectate-exit" type="button">กลับห้อง</button>
+  </div>
+  </div><!-- /#app -->
 
   <!-- ══ ตาข่ายกันพังตอนบูต ══
        ปัญหาจริงที่เจอบนมือถือ: หลังอัปเดตเวอร์ชัน เบราว์เซอร์อาจได้ "HTML ใหม่ + JS เก่าจากแคช"
