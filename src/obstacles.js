@@ -16,7 +16,7 @@
 
 import * as THREE from 'three';
 import { CFG } from './config.js';
-import { PALETTE } from './scene.js';
+import { PALETTE, toonMat } from './scene.js';
 
 export const OBSTACLE = { METEOR: 'meteor', JUNK: 'junk', BARRIER: 'barrier' };
 
@@ -48,11 +48,11 @@ export function createObstaclePool(scene) {
    * → วัตถุ "ป็อป" ออกมาจากพื้นหลังมืดได้ทันทีแม้อยู่ไกล
    */
   const M = {
-    rock: new THREE.MeshLambertMaterial({ color: 0xc09274, emissive: 0x8a4a1e }),
+    rock: toonMat(0xc09274, { emissive: 0x8a4a1e }),
     magma: new THREE.MeshBasicMaterial({ color: 0xffab4a }),
     trail: new THREE.MeshBasicMaterial({ color: 0xffb877, transparent: true, opacity: 0.55 }),
-    panel: new THREE.MeshLambertMaterial({ color: 0x5f74b4, emissive: 0x2f57a6 }),
-    metal: new THREE.MeshLambertMaterial({ color: 0xc6d0e6, emissive: 0x2b3350 }),
+    panel: toonMat(0x5f74b4, { emissive: 0x2f57a6 }),
+    metal: toonMat(0xc6d0e6, { emissive: 0x2b3350 }),
     solar: new THREE.MeshBasicMaterial({ color: 0x4a90e2 }),
     cable: new THREE.MeshBasicMaterial({ color: 0x8996b4 }),
     field: new THREE.MeshBasicMaterial({
@@ -61,13 +61,22 @@ export function createObstaclePool(scene) {
     fieldEdge: new THREE.MeshBasicMaterial({ color: 0xff8aa1 }),
   };
 
+  /* ── ขนาด: อุปสรรคต้อง "อ่านออกตอนยังไกล" ไม่ใช่ตอนถึงตัว ────
+   * เวลาตอบสนองที่เรามีให้คือ ~1 วินาที (CFG.pacing.obstacleLeadFloor)
+   * ถ้าผู้เล่นใช้เวลา 0.4 วิ ไป "เพ่งว่านั่นอะไร" ก็เหลือเวลาหลบจริงแค่ครึ่งเดียว
+   * ของที่ใหญ่และทรงเรียบง่ายจึงไม่ใช่เรื่องความสวย แต่คือการคืนเวลาให้ผู้เล่น
+   *
+   * ⚠️ ใหญ่ได้เฉพาะ "ส่วนที่มองเห็น" เท่านั้น — กล่องชนอยู่ใน obstacles.checkHit
+   * ซึ่งอิงค่า CFG (width/lowHeight/highY) ไม่ได้อิงขนาด mesh
+   * ถ้าดันเลยจนภาพใหญ่กว่ากล่องชนมาก ผู้เล่นจะรู้สึกว่า "เฉียดแล้วแต่ไม่โดน" = เกมโกง
+   * ตัวเลขข้างล่างจึงขยายแบบพอดี ๆ ให้ภาพยังตรงกับกล่องชน */
   const G = {
-    rock: new THREE.DodecahedronGeometry(lowHeight * 0.62, 0),
-    core: new THREE.SphereGeometry(lowHeight * 0.3, 10, 8),
+    rock: new THREE.DodecahedronGeometry(lowHeight * 0.82, 0),
+    core: new THREE.SphereGeometry(lowHeight * 0.34, 10, 8),
     trail: new THREE.ConeGeometry(lowHeight * 0.5, 1.7, 10, 1, true),
-    panel: new THREE.BoxGeometry(width * 0.85, 0.14, depth * 1.5),
-    solar: new THREE.BoxGeometry(width * 0.42, 0.06, depth * 1.2),
-    body: new THREE.BoxGeometry(0.5, 0.42, 0.5),
+    panel: new THREE.BoxGeometry(width * 0.95, 0.22, depth * 1.7),
+    solar: new THREE.BoxGeometry(width * 0.46, 0.09, depth * 1.35),
+    body: new THREE.BoxGeometry(0.62, 0.52, 0.62),
     cable: new THREE.BoxGeometry(0.05, 2.2, 0.05),
     field: new THREE.PlaneGeometry(CFG.world.laneWidth * 0.92, barrierHeight),
     fieldEdge: new THREE.BoxGeometry(CFG.world.laneWidth * 0.94, 0.1, 0.12),

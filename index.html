@@ -10,6 +10,14 @@
   <meta name="mobile-web-app-capable" content="yes">
   <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
   <title>Vocab Runner — วิ่งทะลุกำแพงคำศัพท์</title>
+
+  <!-- Kanit ExtraBold — ฟอนต์ไทยที่ใกล้ฟีลเกมวิ่งที่สุดในบรรดาฟอนต์ฟรี (เรขาคณิต หนา ทันสมัย)
+       display=swap = แสดงฟอนต์สำรองไปก่อน ไม่ต้องรอโหลด → เกมไม่มีช่วง "ข้อความหายไป"
+       ถ้าเน็ตล่ม/เปิดออฟไลน์ จะตกกลับไปใช้ Noto Sans Thai ของระบบเอง เกมยังเล่นได้ปกติ -->
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Kanit:wght@600;800&display=swap" rel="stylesheet">
+
   <link rel="stylesheet" href="./style.css">
 
   <!-- โจทย์ภาพดึงรูปจริงจาก Openverse — เปิดคอนเนกชันไว้ล่วงหน้าให้รูปมาไวขึ้น -->
@@ -39,13 +47,13 @@
            จะขยายไปทับทั้งสองกองพอดี → บนมือถืออ่านคะแนนไม่ได้เลย
            แถวเดียวที่ "ไหลตามความกว้าง" แก้ปัญหานี้ที่ต้นเหตุ -->
       <div id="hud-stats">
-        <div class="stat"><span class="stat-label">คะแนน</span><span id="hud-score">0</span></div>
-        <div id="hud-combo" class="combo hidden">×<span id="hud-combo-value">1</span></div>
-        <div class="stat"><span class="stat-label">ด่าน</span><span id="hud-gates">0</span></div>
-        <div class="stat dim"><span class="stat-label">สูงสุด</span><span id="hud-best">0</span></div>
+        <div class="stat"><span class="stat-label">คะแนน</span><span id="hud-score" class="hud-num">0</span></div>
+        <div id="hud-combo" class="combo hidden">×<span id="hud-combo-value" class="hud-num">1</span></div>
+        <div class="stat"><span class="stat-label">ด่าน</span><span id="hud-gates" class="hud-num">0</span></div>
+        <div class="stat dim"><span class="stat-label">สูงสุด</span><span id="hud-best" class="hud-num">0</span></div>
         <div id="hud-collect">
-          <div class="stat coins"><span class="stat-label">เหรียญ</span><span id="hud-coins">0</span></div>
-          <div class="stat stars"><span class="stat-label">ดาว</span><span id="hud-stars">0/5</span></div>
+          <div class="stat coins"><span class="stat-label">เหรียญ</span><span id="hud-coins" class="hud-num">0</span></div>
+          <div class="stat stars"><span class="stat-label">ดาว</span><span id="hud-stars" class="hud-num">0/5</span></div>
           <div id="hud-jets" class="jets"></div>
         </div>
         <!-- โหมดฝึก: แถบความคืบหน้าเข้ามาแทนที่ของสะสมทั้งชุดในแถวเดียวกัน

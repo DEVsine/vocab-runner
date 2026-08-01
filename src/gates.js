@@ -17,7 +17,7 @@
 
 import * as THREE from 'three';
 import { CFG } from './config.js';
-import { PALETTE } from './scene.js';
+import { PALETTE, toonMat } from './scene.js';
 
 const LANE_X = i => (i - 1) * CFG.world.laneWidth;
 
@@ -26,7 +26,7 @@ function createGate(scene) {
   group.visible = false;
 
   const trackWidth = CFG.world.laneWidth * CFG.world.laneCount + 2.2;
-  const frameMat = new THREE.MeshLambertMaterial({ color: PALETTE.frame });
+  const frameMat = toonMat(PALETTE.frame);
   const warnMat = new THREE.MeshBasicMaterial({ color: PALETTE.amber });
 
   // โครงประตูสแกน
@@ -53,7 +53,7 @@ function createGate(scene) {
 
     const turret = new THREE.Mesh(
       new THREE.BoxGeometry(0.7, 0.5, 0.7),
-      new THREE.MeshLambertMaterial({ color: 0x59657f })
+      toonMat(0x59657f)
     );
     turret.position.set(LANE_X(i), CFG.gate.turretY, 0);
     group.add(turret);

@@ -17,102 +17,127 @@
 
 import * as THREE from 'three';
 import { CFG } from './config.js';
-import { PALETTE } from './scene.js';
+import { PALETTE, toonMat } from './scene.js';
 import { characterById } from './characters.js';
 
 /** easeOutQuad — ออกตัวเร็วแล้วผ่อนเข้าที่ ให้ความรู้สึก "กระฉับกระเฉง" */
 const easeOutQuad = t => 1 - (1 - t) * (1 - t);
 
-/** สร้างนักบินอวกาศสูง ~1.65 หน่วย (เท่ากับ CFG.player.height ที่ใช้คิด hitbox) */
+/**
+ * สร้างนักบินอวกาศสูง ~1.65 หน่วย (เท่ากับ CFG.player.height ที่ใช้คิด hitbox)
+ *
+ * ── สัดส่วนแบบเกมวิ่ง: ~3.5 หัว ไม่ใช่ 7.5 หัวแบบคนจริง ──
+ * ในเกมวิ่ง ผู้เล่นเห็นตัวละคร "จากด้านหลัง สูงราว 150px" ตลอดเวลา
+ * ที่ขนาดนั้นรายละเอียดใบหน้าไม่มีใครเห็น สิ่งที่เห็นคือ "เงาทึบที่ขยับ"
+ * เพราะฉะนั้นทุกอย่างที่บอกว่านี่คือตัวละครต้องอยู่ในเส้นรอบรูป ไม่ใช่ในพื้นผิว
+ *
+ * กติกาที่ใช้ปั้น:
+ *   หัวกว้างเกือบเท่าไหล่ (0.50 vs 0.52) — หัวคือสิ่งแรกที่ตาจับได้
+ *   มือกับเท้าใหญ่เกินจริง — เพราะมันคือส่วนที่ "ขยับ" เวลาวิ่ง ถ้าเล็กจะอ่านท่าไม่ออก
+ *   ขาสั้น ลำตัวหนา — ทำให้ทรงล่างมั่นคง ดูเป็นตัวการ์ตูนไม่ใช่หุ่นไม้
+ *
+ * เทสต์ที่ใช้ตัดสิน (silhouette test): ถมสีดำทั้งตัวแล้วย่อให้สูง 100px
+ * ถ้ายังบอกได้ว่าเป็นตัวไหน = ผ่าน — ของที่ยื่นออกจากทรง (ถังออกซิเจน ครีบหมวก)
+ * มีไว้เพื่อข้อนี้ข้อเดียว ไม่ได้มีไว้ให้ดูสวยตอนซูมเข้า
+ */
 function buildAstronaut() {
   const rig = new THREE.Group();
 
   const mat = {
-    suit: new THREE.MeshLambertMaterial({ color: 0xe9eff9 }),
-    suitDim: new THREE.MeshLambertMaterial({ color: 0xbcc6da }),
-    joint: new THREE.MeshLambertMaterial({ color: 0x39445f }),
-    pack: new THREE.MeshLambertMaterial({ color: 0x808da8 }),
+    suit: toonMat(0xf2f6ff),
+    suitDim: toonMat(0xc3cde3),
+    joint: toonMat(0x3d4a68),
+    pack: toonMat(0x7d8bab),
     visor: new THREE.MeshBasicMaterial({ color: 0x0a1526 }),
     cyan: new THREE.MeshBasicMaterial({ color: PALETTE.cyan }),
     amber: new THREE.MeshBasicMaterial({ color: PALETTE.amber }),
   };
 
-  const HIP_Y = 0.70;
-  const SHOULDER_Y = 1.14;
+  const HIP_Y = 0.62;
+  const SHOULDER_Y = 1.06;
 
-  // ── ลำตัว ──
-  const torso = new THREE.Mesh(new THREE.BoxGeometry(0.46, 0.52, 0.32), mat.suit);
-  torso.position.y = 0.96;
+  // ── ลำตัว: กว้างและสั้น ──
+  const torso = new THREE.Mesh(new THREE.BoxGeometry(0.52, 0.54, 0.36), mat.suit);
+  torso.position.y = 0.87;
   rig.add(torso);
 
   // แถบสะท้อนแสงรอบตัว (แถบส้มบนชุด NASA) — ช่วยให้ตาแยกตัวละครออกจากพื้นหลังเข้ม
-  const belt = new THREE.Mesh(new THREE.BoxGeometry(0.48, 0.07, 0.34), mat.amber);
-  belt.position.y = 0.78;
+  const belt = new THREE.Mesh(new THREE.BoxGeometry(0.55, 0.09, 0.39), mat.amber);
+  belt.position.y = 0.66;
   rig.add(belt);
 
-  // ── ถังออกซิเจนด้านหลัง (เราเห็นตัวละครจากข้างหลัง มันเลยเป็นด้านที่เด่นที่สุด) ──
-  const pack = new THREE.Mesh(new THREE.BoxGeometry(0.42, 0.46, 0.22), mat.pack);
-  pack.position.set(0, 0.99, 0.26);
+  // ── ถังออกซิเจนด้านหลัง ──
+  // เราเห็นตัวละครจากข้างหลังตลอด ถังจึงเป็น "ตัวชูโรงของเส้นรอบรูป" ไม่ใช่ของประดับ
+  // ทำให้ยื่นออกไปชัด ๆ และมีบ่าเฉียง เพื่อให้เงาทึบยังบอกได้ว่าเป็นนักบินอวกาศ
+  const pack = new THREE.Mesh(new THREE.BoxGeometry(0.46, 0.5, 0.26), mat.pack);
+  pack.position.set(0, 0.92, 0.3);
   rig.add(pack);
 
-  for (const x of [-0.11, 0.11]) {
-    const light = new THREE.Mesh(new THREE.BoxGeometry(0.07, 0.07, 0.04), mat.cyan);
-    light.position.set(x, 1.14, 0.39);
+  for (const x of [-0.13, 0.13]) {
+    const light = new THREE.Mesh(new THREE.BoxGeometry(0.09, 0.09, 0.05), mat.cyan);
+    light.position.set(x, 1.08, 0.44);
     rig.add(light);
   }
-  const packStripe = new THREE.Mesh(new THREE.BoxGeometry(0.44, 0.05, 0.24), mat.amber);
-  packStripe.position.set(0, 0.86, 0.26);
+  const packStripe = new THREE.Mesh(new THREE.BoxGeometry(0.48, 0.07, 0.28), mat.amber);
+  packStripe.position.set(0, 0.77, 0.3);
   rig.add(packStripe);
 
-  // ── คอ + หมวก ──
-  const neck = new THREE.Mesh(new THREE.CylinderGeometry(0.11, 0.12, 0.08, 12), mat.joint);
-  neck.position.y = 1.255;
+  // ── คอ + หมวก (หัวโต = หัวใจของสัดส่วนแบบเกมวิ่ง) ──
+  const neck = new THREE.Mesh(new THREE.CylinderGeometry(0.13, 0.14, 0.07, 12), mat.joint);
+  neck.position.y = 1.16;
   rig.add(neck);
 
-  const helmet = new THREE.Mesh(new THREE.SphereGeometry(0.21, 20, 16), mat.suit);
-  helmet.position.y = 1.44;
+  const helmet = new THREE.Mesh(new THREE.SphereGeometry(0.25, 22, 18), mat.suit);
+  helmet.position.y = 1.4;
   rig.add(helmet);
 
   // กระจกหน้ากาก (อยู่ด้านหน้า = ฝั่งที่หันออกจากกล้อง เห็นแค่ขอบ ๆ)
-  const visor = new THREE.Mesh(new THREE.SphereGeometry(0.19, 18, 14), mat.visor);
-  visor.scale.set(1, 0.82, 0.55);
-  visor.position.set(0, 1.45, -0.085);
+  const visor = new THREE.Mesh(new THREE.SphereGeometry(0.225, 18, 14), mat.visor);
+  visor.scale.set(1, 0.84, 0.58);
+  visor.position.set(0, 1.41, -0.1);
   rig.add(visor);
 
+  // ครีบบนหมวก — ของที่ "ยื่นออกจากทรงกลม" ทำให้เงาทึบไม่ใช่แค่ลูกบอลบนกล่อง
+  const fin = new THREE.Mesh(new THREE.BoxGeometry(0.06, 0.16, 0.3), mat.amber);
+  fin.position.set(0, 1.6, 0.02);
+  rig.add(fin);
+
   // ตะเข็บหมวกเรืองแสง — ทำให้มองเห็นหัวชัดจากข้างหลังในทางเดินมืด ๆ
-  const seam = new THREE.Mesh(new THREE.TorusGeometry(0.212, 0.018, 8, 28), mat.cyan);
+  const seam = new THREE.Mesh(new THREE.TorusGeometry(0.252, 0.022, 8, 28), mat.cyan);
   seam.rotation.y = Math.PI / 2;
-  seam.position.y = 1.44;
+  seam.position.y = 1.4;
   rig.add(seam);
 
   // ── แขน: Group อยู่ที่ข้อไหล่ แล้วเลื่อน mesh ลงครึ่งความยาว ──
   function makeArm(side) {
     const pivot = new THREE.Group();
-    pivot.position.set(side * 0.29, SHOULDER_Y, 0);
+    pivot.position.set(side * 0.31, SHOULDER_Y, 0);
 
-    const arm = new THREE.Mesh(new THREE.CapsuleGeometry(0.09, 0.28, 4, 10), mat.suit);
-    arm.position.y = -0.23;
+    const arm = new THREE.Mesh(new THREE.CapsuleGeometry(0.115, 0.2, 4, 10), mat.suit);
+    arm.position.y = -0.2;
     pivot.add(arm);
 
-    const glove = new THREE.Mesh(new THREE.BoxGeometry(0.14, 0.13, 0.15), mat.joint);
-    glove.position.y = -0.45;
+    // ถุงมือใหญ่เกินจริง — ปลายแขนคือจุดที่แกว่งไกลที่สุดตอนวิ่ง
+    // ถ้ามือเล็ก ตาจะจับจังหวะขาไม่ได้เลยที่ระยะ 150px
+    const glove = new THREE.Mesh(new THREE.BoxGeometry(0.21, 0.19, 0.21), mat.joint);
+    glove.position.y = -0.4;
     pivot.add(glove);
 
     rig.add(pivot);
     return pivot;
   }
 
-  // ── ขา ──
+  // ── ขา: สั้นและหนา รองเท้าใหญ่ ──
   function makeLeg(side) {
     const pivot = new THREE.Group();
-    pivot.position.set(side * 0.135, HIP_Y, 0);
+    pivot.position.set(side * 0.145, HIP_Y, 0);
 
-    const leg = new THREE.Mesh(new THREE.CapsuleGeometry(0.105, 0.41, 4, 10), mat.suitDim);
-    leg.position.y = -0.31;
+    const leg = new THREE.Mesh(new THREE.CapsuleGeometry(0.13, 0.24, 4, 10), mat.suitDim);
+    leg.position.y = -0.24;
     pivot.add(leg);
 
-    const boot = new THREE.Mesh(new THREE.BoxGeometry(0.19, 0.12, 0.29), mat.joint);
-    boot.position.set(0, -0.58, -0.05);
+    const boot = new THREE.Mesh(new THREE.BoxGeometry(0.26, 0.17, 0.36), mat.joint);
+    boot.position.set(0, -0.53, -0.06);
     pivot.add(boot);
 
     rig.add(pivot);
@@ -140,8 +165,8 @@ function buildAstronaut() {
 
   /* ── อาวุธประจำตัวละคร (สร้างครบทุกชิ้นตั้งแต่ต้น แล้วสลับ visible ตามสกิน) ──
    * แต่ละชิ้นมี glow = ส่วนที่ "เรืองแสงตอนใส่เกราะ" แทนความหมายเดิมของเปลวไอพ่น */
-  const weaponMat = new THREE.MeshLambertMaterial({ color: 0xd9b45c });
-  const darkMetal = new THREE.MeshLambertMaterial({ color: 0x4a5060 });
+  const weaponMat = toonMat(0xd9b45c);
+  const darkMetal = toonMat(0x4a5060);
   const weapons = {};
 
   {
@@ -192,7 +217,7 @@ function buildAstronaut() {
   {
     // นินจา: ดาวกระจายยักษ์บนหลัง (กากบาท 2 แผ่น)
     const g = new THREE.Group();
-    const starMat = new THREE.MeshLambertMaterial({ color: 0x8b94a8 });
+    const starMat = toonMat(0x8b94a8);
     for (const rot of [0, Math.PI / 4]) {
       const arm = new THREE.Mesh(new THREE.BoxGeometry(0.62, 0.09, 0.05), starMat);
       arm.position.set(0, 1.05, 0.4);
@@ -270,13 +295,30 @@ export function createPlayer(scene) {
   marker.visible = false;
   group.add(marker);
 
-  // วงแหวนใต้เท้า ช่วยให้เห็นว่าตัวเองอยู่เลนไหนตอนลอยอยู่กลางอากาศ
+  /* ── เงาใต้เท้า: แผ่นทึบ + วงแหวน ────────────────────────────
+   * ⚠️ เกมแนวนี้ไม่ควรเปิด shadow map จริง — แพงบนมือถือและได้เงาที่ "นุ่มเกินไป"
+   * จนไม่ช่วยอะไร สิ่งที่ผู้เล่นต้องการจากเงามีข้อเดียว: บอกว่าตัวเองอยู่ตรงไหนบนพื้น
+   * โดยเฉพาะตอนลอยกลางอากาศที่ตัวละครไม่ได้แตะพื้นแล้ว
+   *
+   * แผ่นทึบสีเข้ม (blob shadow) ทำหน้าที่นั้นได้ครบด้วยสามเหลี่ยมไม่กี่ชิ้น
+   * และยังทำอีกอย่างที่เงาจริงทำไม่ได้: "ตรึง" ตัวละครไว้กับพื้น
+   * ทำให้ตัวละครไม่ดูเหมือนสติกเกอร์ที่ลอยทับฉากอยู่
+   */
+  const shadowBlob = new THREE.Mesh(
+    new THREE.CircleGeometry(0.44, 24),
+    new THREE.MeshBasicMaterial({ color: 0x000000, transparent: true, opacity: 0.38, depthWrite: false })
+  );
+  shadowBlob.rotation.x = -Math.PI / 2;
+  shadowBlob.position.y = 0.04;
+  group.add(shadowBlob);
+
+  // วงแหวนสีเลนซ้อนบนเงา ช่วยให้เห็นว่าตัวเองอยู่เลนไหนตอนลอยอยู่กลางอากาศ
   const shadowRing = new THREE.Mesh(
-    new THREE.RingGeometry(0.3, 0.52, 22),
-    new THREE.MeshBasicMaterial({ color: PALETTE.cyan, transparent: true, opacity: 0.3 })
+    new THREE.RingGeometry(0.42, 0.56, 24),
+    new THREE.MeshBasicMaterial({ color: PALETTE.cyan, transparent: true, opacity: 0.45, depthWrite: false })
   );
   shadowRing.rotation.x = -Math.PI / 2;
-  shadowRing.position.y = 0.06;
+  shadowRing.position.y = 0.05;
   group.add(shadowRing);
 
   group.position.set(0, 0, CFG.world.playerZ);
@@ -520,8 +562,13 @@ export function createPlayer(scene) {
     // ลูกศร "คุณ" เด้งเบา ๆ ให้ตาจับได้ (เฉพาะโหมดแข่งที่มาร์กเกอร์ถูกเปิด)
     if (marker.visible) marker.position.y = Math.sin(state.runT * 4) * 0.09;
 
-    shadowRing.material.opacity = 0.3 * (1 - Math.min(1, y / CFG.player.jumpHeight) * 0.75);
-    shadowRing.scale.setScalar(1 - Math.min(1, y / CFG.player.jumpHeight) * 0.3);
+    // ยิ่งลอยสูง เงายิ่งจางและเล็กลง — นี่คือสิ่งเดียวที่บอกผู้เล่นว่า "ตอนนี้ลอยสูงแค่ไหน"
+    // (มุมกล้องจากด้านหลังทำให้แยกความสูงจากตัวละครอย่างเดียวแทบไม่ได้เลย)
+    const lift = Math.min(1, y / CFG.player.jumpHeight);
+    shadowBlob.material.opacity = 0.38 * (1 - lift * 0.72);
+    shadowBlob.scale.setScalar(1 - lift * 0.34);
+    shadowRing.material.opacity = 0.45 * (1 - lift * 0.75);
+    shadowRing.scale.setScalar(1 - lift * 0.3);
 
     // เสียง "ตุบ" ตอนเท้าแตะพื้น — จับจังหวะเปลี่ยนสถานะ ลอย→ยืน
     // ครอบคลุมทุกทาง: จบการกระโดด, จบบูสต์ไอพ่น, ร่วงจากหลังคายาน, ร่อนลงจากโบนัส

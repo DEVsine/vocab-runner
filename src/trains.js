@@ -18,7 +18,7 @@
 
 import * as THREE from 'three';
 import { CFG } from './config.js';
-import { PALETTE } from './scene.js';
+import { PALETTE, toonMat } from './scene.js';
 
 export const TRAIN = { RIDE: 'ride', ONCOMING: 'oncoming' };
 
@@ -29,12 +29,12 @@ function buildTram() {
   const g = new THREE.Group();
 
   const mat = {
-    hull: new THREE.MeshLambertMaterial({ color: 0x7e8db0, emissive: 0x232c47 }),
-    roof: new THREE.MeshLambertMaterial({ color: 0xaeb9d6, emissive: 0x2c3550 }),
+    hull: toonMat(0x7e8db0, { emissive: 0x232c47 }),
+    roof: toonMat(0xaeb9d6, { emissive: 0x2c3550 }),
     stripe: new THREE.MeshBasicMaterial({ color: PALETTE.amber }),
     window: new THREE.MeshBasicMaterial({ color: 0x9fdcff }),
     head: new THREE.MeshBasicMaterial({ color: 0xfff6c8 }),
-    warnHull: new THREE.MeshLambertMaterial({ color: 0xa64d5e, emissive: 0x5c1020 }),
+    warnHull: toonMat(0xa64d5e, { emissive: 0x5c1020 }),
   };
 
   // ── ตัวถัง ──
@@ -51,7 +51,7 @@ function buildTram() {
   // ล้อ/แม่เหล็กลอยใต้ท้อง
   const skirt = new THREE.Mesh(
     new THREE.BoxGeometry(width * 0.82, 0.5, length * 0.92),
-    new THREE.MeshLambertMaterial({ color: 0x39445f })
+    toonMat(0x39445f)
   );
   skirt.position.y = 0.25;
   g.add(skirt);

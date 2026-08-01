@@ -30,6 +30,36 @@ export const PALETTE = {
   amber: 0xfb923c,
 };
 
+/**
+ * ── Toon shading: ตัวแปรเดียวที่เปลี่ยน "ความรู้สึกว่าเป็นเกม" มากที่สุด ──
+ *
+ * เกมแนว Subway ไม่ได้ดูดีเพราะโพลีเยอะหรือเทกซ์เจอร์ละเอียด แต่เพราะแสงบนตัววัตถุ
+ * ถูกบีบให้เหลือ "ไม่กี่ขั้น" — เงาไม่ไล่เฉดนุ่ม ๆ แต่ตัดเป็นแถบชัด ๆ
+ * ผลคือรูปทรงอ่านออกทันทีแม้ตัวละครสูงแค่ 150px บนจอมือถือ
+ * ส่วน Lambert/PBR ที่ไล่เฉดต่อเนื่องจะกลายเป็น "ก้อนเทา ๆ" ที่ระยะนั้น
+ *
+ * gradientMap = เทกซ์เจอร์ 3×1 พิกเซล บอกว่าแสงระดับไหนควรได้ความสว่างเท่าไหร่
+ * ต้องเป็น NearestFilter เท่านั้น ไม่งั้นเบราว์เซอร์จะไล่สีระหว่างพิกเซลจนกลับไปนุ่มเหมือนเดิม
+ *
+ * ⚠️ ต้องใช้ RGBAFormat (4 ไบต์/พิกเซล) — THREE.RGBFormat ถูกถอดออกจาก three ตั้งแต่ r137
+ *    ตัวอย่างเก่า ๆ บนเน็ตยังใช้ RGBFormat อยู่ ซึ่งจะพังเงียบ ๆ เป็นเทกซ์เจอร์ดำล้วน
+ */
+const TOON_STEPS = new THREE.DataTexture(
+  new Uint8Array([
+    76, 76, 76, 255,      // ด้านเงา — ไม่ดำสนิท เพื่อให้ยังเห็นรูปทรง
+    150, 150, 150, 255,   // ครึ่งเงา
+    255, 255, 255, 255,   // ด้านรับแสง
+  ]),
+  3, 1, THREE.RGBAFormat
+);
+TOON_STEPS.magFilter = TOON_STEPS.minFilter = THREE.NearestFilter;
+TOON_STEPS.needsUpdate = true;
+
+/** วัสดุการ์ตูนมาตรฐานของเกม — ใช้ตัวนี้แทน MeshLambertMaterial ทุกที่ */
+export function toonMat(color, extra = {}) {
+  return new THREE.MeshToonMaterial({ color, gradientMap: TOON_STEPS, ...extra });
+}
+
 export function createScene(canvas) {
   const renderer = new THREE.WebGLRenderer({ canvas, antialias: true });
   renderer.setPixelRatio(Math.min(window.devicePixelRatio, 2));  // เกิน 2 คือเปลืองเปล่า ๆ
@@ -55,19 +85,29 @@ export function createScene(canvas) {
     lookAtY: CFG.camera.lookAtY, lookAtZ: CFG.camera.lookAtZ, portrait: false,
   };
 
-  // แสงในยาน: โทนเย็นจากเพดาน + ไฟส่องจากด้านหน้าให้เห็นรูปทรงชุดอวกาศ
-  // (ตั้งชื่อไว้เพราะแต่ละธีมย้อมสีแสงต่างกัน — กลางแจ้งอุ่น/ในยานเย็น)
-  const hemi = new THREE.HemisphereLight(0xbfe6ff, 0x0d1424, 1.5);
+  /* ── แสง: น้อยดวงแต่ "มีทิศทาง" ────────────────────────────
+   * ⚠️ กับดักของ toon shading: แถบเงาเกิดจาก N·L ของไฟ *มีทิศทาง* เท่านั้น
+   * ถ้า HemisphereLight (ไฟรอบทิศ ไม่มีทิศทาง) แรงกว่าไฟหลัก ทุกอย่างจะสว่างเท่ากันหมด
+   * แล้ว gradientMap จะไม่มีผลอะไรเลย — ได้ MeshToonMaterial ที่ดูเหมือน MeshBasicMaterial
+   *
+   * เดิมตั้ง hemi 1.5 / key 0.8 (ไฟรอบทิศแรงเป็นสองเท่าของไฟหลัก) ซึ่งเหมาะกับ Lambert
+   * แต่ฆ่า toon ทิ้งพอดี — ตอนนี้กลับด้านให้ไฟหลักเป็นพระเอก แล้วใช้ hemi
+   * แค่ "ยกพื้นเงา" ไม่ให้ดำสนิท (ลุคการ์ตูนสดใสต้องไม่มีดำสนิท) */
+  const hemi = new THREE.HemisphereLight(0xbfe6ff, 0x0d1424, 0.55);
   scene.add(hemi);
-  const key = new THREE.DirectionalLight(0xffffff, 0.8);
-  key.position.set(2.5, 8, 6);
+  // ⚠️ ไฟหลักต้องมาจาก "ด้านข้าง" ไม่ใช่ด้านหลังกล้อง
+  // ไฟที่ส่องจากทิศเดียวกับที่เรามอง จะทำให้ทุกพื้นผิวที่เห็นได้รับแสงเท่ากันหมด
+  // → toon จะเหลือแถบเดียว = แบนราบ ไม่ต่างจากไม่ใส่ toon เลย
+  // ต้องมีทั้งด้านสว่างและด้านเงาอยู่ในเฟรมเดียวกัน รูปทรงถึงจะ "นูน" ออกมา
+  const key = new THREE.DirectionalLight(0xffffff, 1.5);
+  key.position.set(7, 6, 3);
   scene.add(key);
   // ไฟจากทางกล้อง — จำเป็นเพราะเราเห็น "ด้านหลัง" ของตัวละครตลอดเวลา
-  // ถ้าไม่มี ชุดอวกาศสีขาวจะกลายเป็นเงาเทา ๆ อ่านรูปทรงไม่ออก
-  const fill = new THREE.DirectionalLight(0xdcefff, 0.55);
-  fill.position.set(0, 3.5, 12);
+  // แต่ต้องเบา ๆ พอให้เห็นสี ไม่ใช่แรงจนลบเงาที่ไฟหลักเพิ่งสร้างไว้
+  const fill = new THREE.DirectionalLight(0xdcefff, 0.22);
+  fill.position.set(-2, 3.5, 12);
   scene.add(fill);
-  const rim = new THREE.DirectionalLight(0x38bdf8, 0.4);
+  const rim = new THREE.DirectionalLight(0x38bdf8, 0.45);
   rim.position.set(-4, 3, -8);
   scene.add(rim);
 

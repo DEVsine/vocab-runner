@@ -14,7 +14,7 @@
 
 import * as THREE from 'three';
 import { CFG } from './config.js';
-import { PALETTE } from './scene.js';
+import { PALETTE, toonMat } from './scene.js';
 
 export const PICKUP = { COIN: 'coin', JET: 'jet', STAR: 'star' };
 
@@ -23,7 +23,7 @@ const LANE_X = i => (i - 1) * CFG.world.laneWidth;
 export function createPickupPool(scene) {
   /* ── เหรียญ ─────────────────────────────────────────────── */
   const coinGeo = new THREE.TorusGeometry(0.26, 0.085, 8, 20);
-  const coinMat = new THREE.MeshLambertMaterial({ color: 0xfbbf24, emissive: 0x6b4708 });
+  const coinMat = toonMat(0xfbbf24, { emissive: 0x6b4708 });
   const coins = [];
   for (let i = 0; i < CFG.coins.poolSize; i++) {
     const mesh = new THREE.Mesh(coinGeo, coinMat);
@@ -40,7 +40,7 @@ export function createPickupPool(scene) {
     for (const x of [-0.16, 0.16]) {
       const tank = new THREE.Mesh(
         new THREE.CapsuleGeometry(0.13, 0.34, 4, 10),
-        new THREE.MeshLambertMaterial({ color: 0xe8eef8, emissive: 0x1b2a3a })
+        toonMat(0xe8eef8, { emissive: 0x1b2a3a })
       );
       tank.position.x = x;
       g.add(tank);

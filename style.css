@@ -24,7 +24,7 @@
   --lime: #a3e635;
   --gold: #fbbf24;
   --danger: #fb7185;
-  --font: "Noto Sans Thai", "IBM Plex Sans Thai", -apple-system, BlinkMacSystemFont,
+  --font: "Kanit", "Noto Sans Thai", "IBM Plex Sans Thai", -apple-system, BlinkMacSystemFont,
           "Segoe UI", "Helvetica Neue", sans-serif;
 
   /* ระยะปลอดภัยจากรอยบาก/แถบโฮมของ iPhone — อ้างถึงได้จากทุกที่ในไฟล์
@@ -104,10 +104,27 @@ button { touch-action: manipulation; -webkit-tap-highlight-color: transparent; }
 
 .stat { display: flex; flex-direction: column; line-height: 1.1; }
 .stat-label { font-size: 9px; letter-spacing: .1em; color: var(--dim); text-transform: uppercase; white-space: nowrap; }
-#hud-score, #hud-gates, #hud-best { font-size: 20px; font-weight: 800; font-variant-numeric: tabular-nums; }
-.stat.dim #hud-best { font-size: 15px; color: var(--dim); }
-.stat.coins #hud-coins { font-size: 17px; color: var(--gold); }
-.stat.stars #hud-stars { font-size: 16px; color: #fff3b0; }
+
+/* ── ตัวเลขแบบมีขอบ: 80% ของ "ความเป็นเกม" ในสายตาคน ──────────
+   ตัวเลขบางบนพื้นหลัง 3D ที่มีทั้งสว่างและมืดจะอ่านยากเป็นบางจังหวะเสมอ
+   ขอบทึบทำให้ตัวเลขอ่านออกบนพื้นหลังทุกสี — และนั่นคือเหตุผลที่เกมทุกเกมทำแบบนี้
+   มันเริ่มจากปัญหาการอ่าน ไม่ได้เริ่มจากความสวย แต่ผลพลอยได้คือความรู้สึก "เป็นเกม"
+
+   ⚠️ paint-order: stroke fill คือกุญแจ — ค่าปริยายวาด fill ก่อนแล้ว stroke ทับ
+   ขอบจะกินเข้าไปในตัวอักษรครึ่งหนึ่ง ตัวเลขจะบวมและอ่านยากกว่าเดิม
+   สลับลำดับให้วาดขอบก่อนแล้ว fill ทับ ขอบจะอยู่ "นอก" ตัวอักษรทั้งเส้น */
+.hud-num {
+  font-weight: 800;
+  font-variant-numeric: tabular-nums;
+  -webkit-text-stroke: 4px #0a1024;
+  paint-order: stroke fill;
+  text-shadow: 0 3px 0 rgba(0, 0, 0, .35);
+  letter-spacing: .01em;
+}
+#hud-score, #hud-gates, #hud-best { font-size: 22px; }
+.stat.dim #hud-best { font-size: 16px; color: var(--dim); -webkit-text-stroke-width: 3px; }
+.stat.coins #hud-coins { font-size: 19px; color: var(--gold); }
+.stat.stars #hud-stars { font-size: 17px; color: #fff3b0; }
 .stat.stars.ready #hud-stars { color: var(--lime); text-shadow: 0 0 14px rgba(163,230,53,.6); }
 
 .combo {
