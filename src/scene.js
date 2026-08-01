@@ -646,9 +646,25 @@ export function createScene(canvas) {
     }
     for (const [id, bd] of Object.entries(backdrops)) bd.visible = id === t.id;
 
-    // แสงบรรยากาศ: ในยานโทนเย็น / กลางแจ้งอุ่นตามท้องฟ้าของธีม
+    /* ── ความสว่างเป็นของ "ธีม" ไม่ใช่ของเกม ──────────────────
+     * ธีมไม่ได้ต่างกันแค่สี แต่ต่างกันที่ "เวลาและสถานที่" ด้วย:
+     * สถานีอวกาศคือกลางคืนในอุโมงค์โลหะ / แดนขนมหวานคือกลางวันจัดจ้าน
+     * ถ้าบังคับให้ทุกธีมสว่างเท่ากัน อวกาศจะเสียความน่ากลัวและขนมหวานจะดูหม่น
+     * — ทั้งคู่แย่ลงพร้อมกันจากการตัดสินใจครั้งเดียว
+     *
+     * หมอกก็ต้องมาเป็นชุดเดียวกัน: ฉากกลางแจ้งที่สว่างแต่หมอกใกล้เท่าอุโมงค์
+     * จะดูเหมือนวันที่มีหมอกควัน ไม่ใช่วันแดดจัด */
+    const L = w.light ?? {};
     hemi.color.setHex(w.sky ?? 0xbfe6ff);
     hemi.groundColor.setHex(w.ground ?? 0x0d1424);
+    hemi.intensity = L.hemi ?? 0.55;
+    key.intensity = L.key ?? 1.5;
+    key.color.setHex(L.keyColor ?? 0xffffff);
+    fill.intensity = L.fill ?? 0.22;
+    rim.intensity = L.rim ?? 0.45;
+    rim.color.setHex(L.rimColor ?? 0x38bdf8);
+    scene.fog.near = L.fogNear ?? CFG.world.fogNear;
+    scene.fog.far = L.fogFar ?? CFG.world.fogFar;
 
     // ด่านโบนัสประจำธีม — ย้อมท้องฟ้า/เนบิวลา/ฝุ่น/ก้อนหินให้เข้าเรื่องราว
     const b = t.bonus;

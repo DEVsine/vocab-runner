@@ -163,96 +163,375 @@ function buildAstronaut() {
     thrusters.push(flame);
   }
 
-  /* ── อาวุธประจำตัวละคร (สร้างครบทุกชิ้นตั้งแต่ต้น แล้วสลับ visible ตามสกิน) ──
-   * แต่ละชิ้นมี glow = ส่วนที่ "เรืองแสงตอนใส่เกราะ" แทนความหมายเดิมของเปลวไอพ่น */
-  const weaponMat = toonMat(0xd9b45c);
-  const darkMetal = toonMat(0x4a5060);
+  /* ══ อาวุธประจำตัวละคร ══════════════════════════════════════
+   *
+   * ── สามสถานะ ไม่ใช่สองสถานะ ──
+   * เดิมอาวุธโผล่ค้างอยู่ตลอดเวลาไม่ว่าจะมีเกราะหรือไม่ ซึ่งทำให้มันกลายเป็น
+   * "เครื่องประดับ" — ตาชินแล้วเลิกมองภายในสิบวินาที และที่แย่กว่านั้นคือ
+   * มันโกหกผู้เล่น: เห็นดาบอยู่ในมือแต่ชนแล้วตาย เพราะจริง ๆ ยังไม่ได้ใส่เกราะ
+   *
+   *   มือเปล่า      (ไม่มีเกราะ)          → ไม่มีอะไรเลย
+   *   พกไว้         (เก็บเกราะมาแล้ว)      → ฝัก/สายรัด/ด้ามคาดเอว — เห็นว่า "มีของ"
+   *   ชักออกมาถือ   (กดใส่เกราะแล้ว)       → อาวุธอยู่ในมือ + เรืองแสง
+   *
+   * ทีนี้อาวุธไม่ใช่เครื่องประดับอีกต่อไป แต่เป็น **มาตรวัดสถานะที่อ่านได้จากตัวละคร**
+   * ผู้เล่นรู้ว่าตัวเองรอดตายได้อีกครั้งไหมโดยไม่ต้องละสายตาไปดู HUD เลย
+   *
+   * ── ของที่ถืออยู่ต้องผูกกับ "มือ" ไม่ใช่ลำตัว ──
+   * ถ้าแปะไว้กับ rig ดาบจะลอยนิ่งอยู่ข้างตัวขณะที่แขนแกว่งไปมา = ดูเป็นสติกเกอร์
+   * เราจึงแขวนมันไว้ใต้ pivot ของแขน ให้มันแกว่งไปพร้อมกันโดยไม่ต้องเขียนโค้ดอนิเมชันเพิ่มเลย
+   */
+  const weaponMat = toonMat(0xd9b45c);          // ทองเหลือง
+  const darkMetal = toonMat(0x46506b);
+  const steel = toonMat(0xd9e0f0);
+  const wrapMat = toonMat(0x232a3d);
+  const leather = toonMat(0x6b4a2e);
+  const lacquer = toonMat(0x1b2030);
   const weapons = {};
 
-  {
-    // สปาตัน: โล่กลมที่แขนซ้าย + หอกพาดหลัง
+  /** จุดแขวนของที่ "ถืออยู่ในมือ" — อยู่ใต้ pivot ของแขน จึงแกว่งตามแขนเอง */
+  function handMount(pivot) {
     const g = new THREE.Group();
-    const shield = new THREE.Mesh(new THREE.CylinderGeometry(0.26, 0.26, 0.05, 20), weaponMat);
-    shield.rotation.z = Math.PI / 2;
-    shield.position.set(-0.42, 1.0, -0.02);
-    g.add(shield);
-    const shieldGlow = new THREE.Mesh(
-      new THREE.TorusGeometry(0.27, 0.025, 8, 24),
-      new THREE.MeshBasicMaterial({ color: 0xffd166 })
-    );
-    shieldGlow.rotation.y = Math.PI / 2;
-    shieldGlow.position.copy(shield.position);
-    g.add(shieldGlow);
-    const spear = new THREE.Mesh(new THREE.CylinderGeometry(0.03, 0.03, 1.7, 8), darkMetal);
-    spear.position.set(0.18, 1.05, 0.34);
-    spear.rotation.z = 0.3;
-    g.add(spear);
-    const tip = new THREE.Mesh(new THREE.ConeGeometry(0.07, 0.24, 8), weaponMat);
-    tip.position.set(0.44, 1.9, 0.34);
-    tip.rotation.z = 0.3;
-    g.add(tip);
-    weapons.spartan = { group: g, glow: shieldGlow };
-  }
-  {
-    // ซามูไร: คาตานะพาดหลัง (ใบดาบเรืองแดงตอนใส่เกราะ)
-    const g = new THREE.Group();
-    const sheath = new THREE.Mesh(new THREE.BoxGeometry(0.07, 1.05, 0.1), darkMetal);
-    sheath.position.set(-0.2, 1.05, 0.36);
-    sheath.rotation.z = -0.5;
-    g.add(sheath);
-    const blade = new THREE.Mesh(
-      new THREE.BoxGeometry(0.045, 0.98, 0.06),
-      new THREE.MeshBasicMaterial({ color: 0xf87171 })
-    );
-    blade.position.copy(sheath.position);
-    blade.rotation.copy(sheath.rotation);
-    blade.position.z += 0.001;
-    g.add(blade);
-    const hilt = new THREE.Mesh(new THREE.CylinderGeometry(0.035, 0.035, 0.3, 8), weaponMat);
-    hilt.position.set(-0.51, 1.62, 0.36);
-    hilt.rotation.z = -0.5;
-    g.add(hilt);
-    weapons.samurai = { group: g, glow: blade };
-  }
-  {
-    // นินจา: ดาวกระจายยักษ์บนหลัง (กากบาท 2 แผ่น)
-    const g = new THREE.Group();
-    const starMat = toonMat(0x8b94a8);
-    for (const rot of [0, Math.PI / 4]) {
-      const arm = new THREE.Mesh(new THREE.BoxGeometry(0.62, 0.09, 0.05), starMat);
-      arm.position.set(0, 1.05, 0.4);
-      arm.rotation.z = rot;
-      g.add(arm);
-    }
-    const core = new THREE.Mesh(
-      new THREE.CylinderGeometry(0.09, 0.09, 0.07, 12),
-      new THREE.MeshBasicMaterial({ color: 0xa3e635 })
-    );
-    core.rotation.x = Math.PI / 2;
-    core.position.set(0, 1.05, 0.4);
-    g.add(core);
-    weapons.ninja = { group: g, glow: core };
-  }
-  {
-    // ลอร์ดมืด: ด้ามดาบที่เอว + "ใบดาบแสงแดง" โผล่เฉพาะตอนใส่เกราะ
-    const g = new THREE.Group();
-    const hilt = new THREE.Mesh(new THREE.CylinderGeometry(0.04, 0.045, 0.26, 10), darkMetal);
-    hilt.position.set(0.3, 0.78, 0.12);
-    hilt.rotation.z = 0.4;
-    g.add(hilt);
-    const blade = new THREE.Mesh(
-      new THREE.CylinderGeometry(0.028, 0.028, 1.15, 8),
-      new THREE.MeshBasicMaterial({ color: 0xff2d4d, transparent: true, opacity: 0.95 })
-    );
-    blade.position.set(0.58, 1.4, 0.12);
-    blade.rotation.z = 0.4;
-    g.add(blade);
-    weapons.darklord = { group: g, glow: blade, glowOnly: true };  // ใบดาบซ่อนจนกว่าจะใส่เกราะ
+    g.position.y = -0.42;          // ระดับถุงมือ
+    pivot.add(g);
+    return g;
   }
 
+  /* ── สปาตัน: โล่กลม + หอก + หงอนหมวก ─────────────────────── */
+  {
+    const restG = new THREE.Group();   // สายรัดหลัง — เห็นเมื่อ "มีของ"
+    const stowG = new THREE.Group();   // โล่+หอกพาดหลัง
+    const holdL = handMount(armL);
+    const holdR = handMount(armR);
+    const crest = new THREE.Group();   // หงอนบนหมวก — เอกลักษณ์ของสปาตันในเงาทึบ
+
+    const strap = new THREE.Mesh(new THREE.BoxGeometry(0.42, 0.07, 0.08), leather);
+    strap.position.set(0, 1.02, 0.44);
+    strap.rotation.z = 0.5;
+    restG.add(strap);
+
+    /** โล่กลมมีขอบยก + ปุ่มกลาง + ซี่กากบาท — "สมประกอบ" คือมีชั้นความลึก ไม่ใช่แผ่นเรียบ */
+    function buildShield() {
+      const g = new THREE.Group();
+      const disc = new THREE.Mesh(new THREE.CylinderGeometry(0.29, 0.29, 0.055, 24), weaponMat);
+      disc.rotation.z = Math.PI / 2;
+      g.add(disc);
+      const rim = new THREE.Mesh(new THREE.TorusGeometry(0.29, 0.038, 8, 28), darkMetal);
+      rim.rotation.y = Math.PI / 2;
+      g.add(rim);
+      for (let i = 0; i < 4; i++) {
+        const rib = new THREE.Mesh(new THREE.BoxGeometry(0.026, 0.52, 0.05), darkMetal);
+        rib.rotation.x = (i * Math.PI) / 4;
+        rib.position.x = -0.036;
+        g.add(rib);
+      }
+      const boss = new THREE.Mesh(new THREE.SphereGeometry(0.082, 14, 10), darkMetal);
+      boss.position.x = -0.05;
+      g.add(boss);
+      const glow = new THREE.Mesh(
+        new THREE.TorusGeometry(0.305, 0.024, 8, 28),
+        new THREE.MeshBasicMaterial({ color: 0xffd166 })
+      );
+      glow.rotation.y = Math.PI / 2;
+      g.add(glow);
+      return { g, glow };
+    }
+
+    /** หอก: ด้ามหนัง + ปลอกรัด 3 วง + ใบทรงใบไม้ + ส้นถ่วงน้ำหนัก */
+    function buildSpear() {
+      const g = new THREE.Group();
+      // ⚠️ ยาว 1.3 ไม่ใช่ 1.8 — หอกยาวเท่าของจริงจะสูงกว่าตัวละครทั้งตัว
+      // แล้วเงาทึบจะกลายเป็น "เสา" ที่กลบทุกอย่างอื่นในเส้นรอบรูป
+      const shaft = new THREE.Mesh(new THREE.CylinderGeometry(0.028, 0.033, 1.3, 8), leather);
+      g.add(shaft);
+      for (const y of [-0.38, 0, 0.38]) {
+        const band = new THREE.Mesh(new THREE.CylinderGeometry(0.037, 0.037, 0.065, 8), darkMetal);
+        band.position.y = y;
+        g.add(band);
+      }
+      const collar = new THREE.Mesh(new THREE.CylinderGeometry(0.048, 0.032, 0.13, 8), darkMetal);
+      collar.position.y = 0.71;
+      g.add(collar);
+      const head = new THREE.Mesh(new THREE.ConeGeometry(0.088, 0.34, 4), steel);
+      head.position.y = 0.94;
+      head.rotation.y = Math.PI / 4;
+      g.add(head);
+      const butt = new THREE.Mesh(new THREE.ConeGeometry(0.046, 0.15, 6), darkMetal);
+      butt.rotation.x = Math.PI;
+      butt.position.y = -0.72;
+      g.add(butt);
+      return g;
+    }
+
+    // ── พกไว้: โล่แนบหลัง + หอกพาดเฉียง ──
+    // ⚠️ buildShield หมุนจานให้ "แกนอยู่ตามแนว X" ไว้แล้ว (หน้าโล่หันซ้าย-ขวา)
+    // ถ้าหมุนกลุ่มอีก PI/2 รอบ Z แกนจะกลายเป็นแนว Y = โล่นอนราบเหมือนโต๊ะ
+    // ต้องหมุนรอบ Y แทน เพื่อให้หน้าโล่หันไปด้านหน้า-หลัง แล้วแนบกับแผ่นหลังพอดี
+    const shieldStow = buildShield();
+    shieldStow.g.rotation.y = Math.PI / 2;
+    shieldStow.g.position.set(0, 1.0, 0.5);
+    shieldStow.glow.visible = false;
+    stowG.add(shieldStow.g);
+    const spearStow = buildSpear();
+    spearStow.position.set(0.26, 1.12, 0.34);
+    spearStow.rotation.z = 0.3;
+    stowG.add(spearStow);
+
+    // ── ถือ: โล่ที่แขนซ้าย หันหน้าออก / หอกในมือขวาชี้เฉียงขึ้น ──
+    const shieldHold = buildShield();
+    shieldHold.g.position.set(-0.16, -0.02, -0.06);
+    shieldHold.g.rotation.y = 0.18;
+    holdL.add(shieldHold.g);
+
+    const spearHold = buildSpear();
+    spearHold.position.set(0.04, 0.28, 0.02);
+    spearHold.rotation.set(-0.22, 0, -0.14);
+    holdR.add(spearHold);
+
+    // หงอนหมวก: 7 แผ่นเรียงเป็นสัน สูงกลาง เตี้ยปลาย
+    const plume = toonMat(0xd6453f);
+    for (let i = 0; i < 7; i++) {
+      const t = i / 6;
+      const h = 0.09 + Math.sin(t * Math.PI) * 0.15;
+      const seg = new THREE.Mesh(new THREE.BoxGeometry(0.058, h, 0.075), plume);
+      seg.position.set(0, 1.6 + h / 2, 0.2 - t * 0.42);
+      crest.add(seg);
+    }
+
+    weapons.spartan = {
+      rest: [restG], stow: [stowG], hold: [holdL, holdR, crest],
+      glow: shieldHold.glow, mounts: [restG, stowG, crest],
+    };
+  }
+
+  /* ── ซามูไร: คาตานะ + ฝักดาบ ─────────────────────────────── */
+  {
+    const restG = new THREE.Group();
+    const stowG = new THREE.Group();
+    const holdR = handMount(armR);
+
+    /** ดาบครบชิ้น: ด้ามพัน + ทสึบะ (การ์ด) + ใบดาบมีคมสว่าง + ปลายแหลม */
+    function buildKatana() {
+      const g = new THREE.Group();
+      const tsuka = new THREE.Mesh(new THREE.BoxGeometry(0.058, 0.32, 0.078), wrapMat);
+      tsuka.position.y = -0.17;
+      g.add(tsuka);
+      for (let i = 0; i < 4; i++) {
+        const band = new THREE.Mesh(new THREE.BoxGeometry(0.066, 0.028, 0.086), weaponMat);
+        band.position.y = -0.05 - i * 0.075;
+        g.add(band);
+      }
+      const kashira = new THREE.Mesh(new THREE.BoxGeometry(0.07, 0.04, 0.09), darkMetal);
+      kashira.position.y = -0.34;
+      g.add(kashira);
+      const tsuba = new THREE.Mesh(new THREE.CylinderGeometry(0.092, 0.092, 0.024, 4), darkMetal);
+      tsuba.rotation.y = Math.PI / 4;
+      g.add(tsuba);
+      const blade = new THREE.Mesh(new THREE.BoxGeometry(0.042, 0.94, 0.095), steel);
+      blade.position.y = 0.49;
+      g.add(blade);
+      // คมดาบ: แถบสว่างบาง ๆ ด้านเดียว — นี่คือสิ่งที่ทำให้ "แผ่นสี่เหลี่ยม" อ่านเป็น "ดาบ"
+      const edge = new THREE.Mesh(
+        new THREE.BoxGeometry(0.045, 0.94, 0.03),
+        new THREE.MeshBasicMaterial({ color: 0xfff6dd })
+      );
+      edge.position.set(0, 0.49, -0.036);
+      g.add(edge);
+      const kissaki = new THREE.Mesh(new THREE.ConeGeometry(0.062, 0.17, 4), steel);
+      kissaki.position.y = 1.03;
+      kissaki.rotation.y = Math.PI / 4;
+      g.add(kissaki);
+      return { g, edge };
+    }
+
+    // ฝักดาบคาดหลัง — อยู่ทั้งตอนพกและตอนชักออก (ฝักเปล่า) เหมือนของจริง
+    const saya = new THREE.Mesh(new THREE.BoxGeometry(0.082, 1.02, 0.115), lacquer);
+    saya.position.set(-0.16, 1.02, 0.42);
+    saya.rotation.z = -0.46;
+    restG.add(saya);
+    for (const t of [-0.3, 0.1]) {
+      const cord = new THREE.Mesh(new THREE.BoxGeometry(0.095, 0.045, 0.128), weaponMat);
+      cord.position.set(-0.16 + t * 0.46 * Math.sin(-0.46), 1.02 + t, 0.42);
+      cord.rotation.z = -0.46;
+      restG.add(cord);
+    }
+
+    const katanaStow = buildKatana();
+    katanaStow.g.position.set(-0.16, 1.02, 0.42);
+    katanaStow.g.rotation.z = -0.46;
+    katanaStow.g.scale.set(1, 0.98, 1);
+    stowG.add(katanaStow.g);
+
+    const katanaHold = buildKatana();
+    katanaHold.g.position.set(0.04, 0.42, -0.04);
+    katanaHold.g.rotation.set(-0.35, 0, -0.22);
+    holdR.add(katanaHold.g);
+
+    weapons.samurai = {
+      rest: [restG], stow: [stowG], hold: [holdR],
+      glow: katanaHold.edge, mounts: [restG, stowG],
+    };
+  }
+
+  /* ── นินจา: ดาวกระจาย + ผ้าพันคอ ─────────────────────────── */
+  {
+    const alwaysG = new THREE.Group();   // ผ้าพันคอ/สายคาด = เสื้อผ้าประจำตัว ไม่ใช่ของที่เก็บมา
+    const restG = new THREE.Group();
+    const stowG = new THREE.Group();
+    const holdR = handMount(armR);
+
+    /** ดาว 4 แฉกปลายเรียว + ดุมกลาง — ไม่ใช่กากบาทแบน ๆ */
+    function buildShuriken(scale = 1) {
+      const g = new THREE.Group();
+      for (let i = 0; i < 4; i++) {
+        const holder = new THREE.Group();
+        const pt = new THREE.Mesh(new THREE.ConeGeometry(0.08, 0.28, 4), steel);
+        pt.position.y = 0.16;
+        holder.add(pt);
+        holder.rotation.z = (i * Math.PI) / 2;
+        g.add(holder);
+      }
+      const hub = new THREE.Mesh(new THREE.CylinderGeometry(0.09, 0.09, 0.04, 12), darkMetal);
+      hub.rotation.x = Math.PI / 2;
+      g.add(hub);
+      const glow = new THREE.Mesh(
+        new THREE.TorusGeometry(0.052, 0.02, 8, 16),
+        new THREE.MeshBasicMaterial({ color: 0xa3e635 })
+      );
+      g.add(glow);
+      g.scale.setScalar(scale);
+      return { g, glow };
+    }
+
+    // ผ้าพันคอ — ของที่ "สะบัดอยู่หลังตัว" ทำให้เงาทึบของนินจาแยกออกจากตัวอื่นทันที
+    // ⚠️ สีต้องตัดกับตัวละคร ไม่ใช่กลมกลืน — นินจาตัวดำบนทางเดินมืด
+    // ผ้าสีน้ำเงินเข้มจะหายไปทั้งผืน (ลองมาแล้ว มองไม่เห็นเลย)
+    // ผ้าแดงคือสิ่งเดียวในตัวนินจาที่ตาจับได้จากระยะไกล และเป็นเอกลักษณ์อยู่แล้ว
+    const scarfMat = toonMat(0xd63b3b);
+    const scarfSegs = [];
+    for (let i = 0; i < 5; i++) {
+      const seg = new THREE.Mesh(new THREE.BoxGeometry(0.22 - i * 0.025, 0.05, 0.3), scarfMat);
+      seg.position.set(0, 1.18 - i * 0.05, 0.44 + i * 0.26);
+      alwaysG.add(seg);
+      scarfSegs.push(seg);
+    }
+    // ปมผ้าที่คอ — จุดเริ่มของผ้า ทำให้มันดูผูกอยู่จริงไม่ใช่ลอยตามหลัง
+    const knot = new THREE.Mesh(new THREE.BoxGeometry(0.3, 0.11, 0.3), scarfMat);
+    knot.position.set(0, 1.19, 0.2);
+    alwaysG.add(knot);
+    // สายคาดอกใส่ดาว
+    const sash = new THREE.Mesh(new THREE.BoxGeometry(0.46, 0.08, 0.4), wrapMat);
+    sash.position.set(0, 0.98, 0.16);
+    sash.rotation.z = -0.42;
+    alwaysG.add(sash);
+
+    // พกไว้: ดาวเล็ก 2 ดวงเสียบที่สายคาด
+    for (const x of [-0.2, 0.2]) {
+      const s = buildShuriken(0.52);
+      s.g.position.set(x, 0.98 - x * 0.42, 0.4);
+      s.glow.visible = false;
+      stowG.add(s.g);
+    }
+
+    // ถือ: ดาวใหญ่ในมือขวา หมุนตลอดเวลา (ตั้งค่าใน update)
+    const spin = buildShuriken(1.35);
+    spin.g.position.set(0.06, -0.02, -0.14);
+    holdR.add(spin.g);
+
+    weapons.ninja = {
+      always: [alwaysG], rest: [restG], stow: [stowG], hold: [holdR],
+      glow: spin.glow, spin: spin.g, scarf: scarfSegs, mounts: [alwaysG, restG, stowG],
+    };
+  }
+
+  /* ── ลอร์ดมืด: ไลต์เซเบอร์ที่ "จุดติด" ตอนใส่เกราะ ────────── */
+  {
+    const restG = new THREE.Group();
+    const stowG = new THREE.Group();
+    const holdR = handMount(armR);
+
+    /** ด้ามดาบครบชิ้น: ปลอกปล่อยแสง + ร่องจับ + แผ่นสวิตช์ + ท้ายด้าม */
+    function buildHilt() {
+      const g = new THREE.Group();
+      const grip = new THREE.Mesh(new THREE.CylinderGeometry(0.043, 0.043, 0.22, 12), darkMetal);
+      g.add(grip);
+      for (let i = 0; i < 4; i++) {
+        const rib = new THREE.Mesh(new THREE.CylinderGeometry(0.048, 0.048, 0.016, 12), toonMat(0x9aa3b8));
+        rib.position.y = -0.07 + i * 0.045;
+        g.add(rib);
+      }
+      const emitter = new THREE.Mesh(new THREE.CylinderGeometry(0.052, 0.04, 0.085, 12), toonMat(0xbcc4d6));
+      emitter.position.y = 0.15;
+      g.add(emitter);
+      const plate = new THREE.Mesh(
+        new THREE.BoxGeometry(0.032, 0.055, 0.09),
+        new THREE.MeshBasicMaterial({ color: 0xff2d4d })
+      );
+      plate.position.set(0, 0.03, -0.046);
+      g.add(plate);
+      const pommel = new THREE.Mesh(new THREE.CylinderGeometry(0.048, 0.032, 0.055, 12), toonMat(0x9aa3b8));
+      pommel.position.y = -0.135;
+      g.add(pommel);
+      return g;
+    }
+
+    /** ใบดาบ = แกนขาวสว่าง + ปลอกแดงโปร่ง — สองชั้นคือสิ่งที่ทำให้มัน "เรืองแสง"
+     *  ทรงกระบอกสีแดงชั้นเดียวจะดูเหมือนแท่งพลาสติกแดง ไม่ใช่ลำแสง */
+    function buildBlade() {
+      const g = new THREE.Group();
+      const core = new THREE.Mesh(
+        new THREE.CylinderGeometry(0.019, 0.016, 1.18, 10),
+        new THREE.MeshBasicMaterial({ color: 0xfff0f2 })
+      );
+      core.position.y = 0.78;
+      g.add(core);
+      const halo = new THREE.Mesh(
+        new THREE.CylinderGeometry(0.044, 0.036, 1.18, 14),
+        new THREE.MeshBasicMaterial({ color: 0xff2d4d, transparent: true, opacity: 0.5, depthWrite: false })
+      );
+      halo.position.y = 0.78;
+      g.add(halo);
+      const cap = new THREE.Mesh(
+        new THREE.SphereGeometry(0.044, 12, 8),
+        new THREE.MeshBasicMaterial({ color: 0xff2d4d, transparent: true, opacity: 0.5, depthWrite: false })
+      );
+      cap.position.y = 1.37;
+      g.add(cap);
+      return g;
+    }
+
+    // สายคาดเอว + ห่วงแขวน (เห็นเสมอเมื่อมีของ)
+    const beltG = new THREE.Group();     // เข็มขัด = เสื้อผ้าประจำตัว
+    const belt = new THREE.Mesh(new THREE.BoxGeometry(0.58, 0.09, 0.42), lacquer);
+    belt.position.y = 0.63;
+    beltG.add(belt);
+    const clip = new THREE.Mesh(new THREE.BoxGeometry(0.06, 0.09, 0.05), toonMat(0x9aa3b8));
+    clip.position.set(0.3, 0.63, 0.06);
+    restG.add(clip);
+
+    // พกไว้: ด้ามดาบห้อยเอว ยังไม่จุดไฟ
+    const hiltStow = buildHilt();
+    hiltStow.position.set(0.32, 0.52, 0.08);
+    hiltStow.rotation.z = 0.22;
+    stowG.add(hiltStow);
+
+    // ถือ: ด้ามในมือ + ใบดาบพุ่งออก
+    const hiltHold = buildHilt();
+    hiltHold.position.set(0.02, 0.02, -0.06);
+    hiltHold.rotation.set(-0.25, 0, -0.1);
+    holdR.add(hiltHold);
+    const blade = buildBlade();
+    hiltHold.add(blade);
+
+    weapons.darklord = {
+      always: [beltG], rest: [restG], stow: [stowG], hold: [holdR],
+      glow: blade, mounts: [beltG, restG, stowG],
+    };
+  }
+
+  // กลุ่มที่แขวนกับลำตัว (ไม่ใช่กับแขน) ต้องเอาเข้า rig เอง
   for (const w of Object.values(weapons)) {
-    w.group.visible = false;
-    rig.add(w.group);
+    for (const m of w.mounts) rig.add(m);
   }
 
   return { rig, armL, armR, legL, legR, torso, helmet, thrusters, mat, weapons };
@@ -554,9 +833,17 @@ export function createPlayer(scene) {
 
     // อาวุธประจำตัวละคร: เรืองแสงเต้นตุบ ๆ ตอนใส่เกราะ (ลอร์ดมืด = ใบดาบโผล่เฉพาะตอนใส่)
     const weapon = a.weapons[state.skin];
-    if (weapon) {
-      if (weapon.glowOnly) weapon.glow.visible = state.armed;
-      weapon.glow.scale.setScalar(state.armed ? 1 + Math.sin(state.runT * 10) * 0.14 : 1);
+    if (weapon && state.armed) {
+      // เต้นเป็นจังหวะตอนใส่เกราะ = "พร้อมใช้งาน" ที่มองเห็นได้จากหางตา
+      weapon.glow.scale.setScalar(1 + Math.sin(state.runT * 10) * 0.14);
+      if (weapon.spin) weapon.spin.rotation.z += dt * 9;   // ดาวกระจายหมุนตลอด
+    }
+    // ผ้าพันคอนินจาสะบัดตามจังหวะวิ่ง (เร็วขึ้นตามความเร็วขา)
+    if (weapon?.scarf) {
+      weapon.scarf.forEach((seg, i) => {
+        seg.rotation.x = Math.sin(state.runT * 7 - i * 0.7) * 0.3;
+        seg.position.y = 1.18 - i * 0.05 + Math.sin(state.runT * 7 - i * 0.7) * 0.04;
+      });
     }
 
     // ลูกศร "คุณ" เด้งเบา ๆ ให้ตาจับได้ (เฉพาะโหมดแข่งที่มาร์กเกอร์ถูกเปิด)
@@ -597,6 +884,8 @@ export function createPlayer(scene) {
     state.baseY = 0;
     state.platformY = 0;
     state.armed = false;
+    state.stock = 0;
+    refreshGear();               // เริ่มรอบใหม่ = มือเปล่าเสมอ
     state.wasAirborne = false;
     state.justMounted = false;
     state.showcase = false;
@@ -641,6 +930,30 @@ export function createPlayer(scene) {
   }
 
   /** สวมสกินตัวละครจากร้านค้า — เปลี่ยนสีชุด + สลับอาวุธที่ติดตัว */
+  /**
+   * ตัดสินว่าอาวุธชิ้นไหนควรโผล่ตอนนี้ — เรียกทุกครั้งที่ "สกิน / จำนวนเกราะ / ใส่หรือยัง" เปลี่ยน
+   *
+   * ⚠️ ต้องเป็นฟังก์ชันเดียวที่ตัดสินเรื่องนี้ทั้งหมด
+   * ถ้าปล่อยให้ applySkin กับ setGear ต่างคนต่างสั่ง .visible ตามที่ตัวเองรู้
+   * จะเกิดสถานะที่ขัดกันเอง (เปลี่ยนสกินตอนใส่เกราะอยู่ → ดาบเล่มเก่าค้างในมือ)
+   * ซึ่งเป็นบั๊กประเภทที่หาไม่เจอ เพราะมันขึ้นกับ "ลำดับการเรียก" ไม่ใช่ค่าใด ๆ
+   */
+  function refreshGear() {
+    for (const [key, w] of Object.entries(a.weapons)) {
+      const mine = key === state.skin;
+      const armed = mine && state.armed;
+      const carrying = mine && (state.stock > 0 || state.armed);
+
+      // ⚠️ "เสื้อผ้า" กับ "อาวุธ" ต้องแยกกัน
+      // ผ้าพันคอนินจา/เข็มขัดลอร์ดมืดคือตัวตนของตัวละคร ไม่ใช่ของที่เก็บมาได้
+      // ถ้าเอาไปผูกกับเกราะด้วย ผู้เล่นที่ยังไม่เก็บเกราะจะเห็นตัวละครที่ "ไม่ใช่ตัวที่ซื้อมา"
+      for (const g of (w.always ?? [])) g.visible = mine;
+      for (const g of w.rest) g.visible = carrying;
+      for (const g of w.stow) g.visible = carrying && !state.armed;
+      for (const g of w.hold) g.visible = armed;
+    }
+  }
+
   function applySkin(id) {
     const c = characterById(id);
     state.skin = c.id;
@@ -648,10 +961,7 @@ export function createPlayer(scene) {
     a.mat.suitDim.color.setHex(c.suitDim);
     a.mat.joint.color.setHex(c.joint);
     a.mat.amber.color.setHex(c.accent);   // เข็มขัด/แถบถัง = สี accent ประจำตัว
-    for (const [key, w] of Object.entries(a.weapons)) {
-      w.group.visible = key === c.id;
-      if (w.glowOnly) w.glow.visible = false;
-    }
+    refreshGear();
   }
 
   return {
@@ -667,7 +977,17 @@ export function createPlayer(scene) {
     setShowcase(on) { state.showcase = on; },
     setSelfMarker(on) { marker.visible = on; },
     onPlatform() { return state.baseY > 0.4; },
-    setArmed(on) { state.armed = on; },
+    /**
+     * บอกตัวละครว่าตอนนี้ "มีเกราะในคลังกี่ชิ้น" และ "ใส่อยู่หรือเปล่า"
+     * @param {number} stock เกราะที่เก็บมาแล้วแต่ยังไม่ได้ใส่
+     * @param {boolean} armed ใส่อยู่ไหม
+     */
+    setGear(stock, armed) {
+      state.stock = Math.max(0, stock | 0);
+      state.armed = !!armed;
+      refreshGear();
+    },
+    setArmed(on) { state.armed = !!on; refreshGear(); },
     isFlying() { return state.flying || state.flyBlend > 0.02; },
 
     /**

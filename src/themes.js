@@ -17,6 +17,8 @@ export const THEMES = {
     world: {
       bg: 0x04060f, floor: 0x222a44, hull: 0x2c3654, hullDark: 0x1a2138,
       frame: 0x93a0bd, lamp: 0x8fc4dd, neonA: 0x22d3ee, neonB: 0xf472b6, accent: 0xfb923c,
+      // อุโมงค์โลหะกลางอวกาศ = กลางคืน ไฟจากหลอดนีออนเท่านั้น หมอกใกล้เพื่อบีบพื้นที่ให้อึดอัด
+      light: { hemi: 0.5, key: 1.35, fill: 0.2, rim: 0.5, rimColor: 0x38bdf8, fogNear: 40, fogFar: 130 },
     },
     obstacles: {
       lowName: 'อุกกาบาต', highName: 'ขยะอวกาศ', wallName: 'ม่านพลังงาน',
@@ -39,6 +41,8 @@ export const THEMES = {
       bg: 0x081420, floor: 0x7a4e28, hull: 0x1d4a52, hullDark: 0x0d2b32,
       frame: 0x7fae9e, lamp: 0x9fe8d8, neonA: 0x2dd4bf, neonB: 0x60a5fa, accent: 0xf4b860,
       laneLine: 0x4a2e16, sky: 0xa8c4e0, ground: 0x1a2430,
+      // ดาดฟ้าเรือกลางทะเลใต้แสงจันทร์ — มืดแต่ฟ้ากว้าง หมอกไกลกว่าอุโมงค์
+      light: { hemi: 0.72, key: 1.25, keyColor: 0xdce9ff, fill: 0.22, rim: 0.5, rimColor: 0x7dd3fc, fogNear: 55, fogFar: 165 },
     },
     obstacles: {
       lowName: 'หีบสมบัติ', highName: 'สมอเรือ', wallName: 'กำแพงคลื่นยักษ์',
@@ -61,6 +65,8 @@ export const THEMES = {
       bg: 0x241030, floor: 0xa85f8f, hull: 0x5e2d5c, hullDark: 0x38173a,
       frame: 0xe6a9d8, lamp: 0xffd9f2, neonA: 0xff8fd8, neonB: 0xa78bfa, accent: 0xfff28a,
       laneLine: 0xffe1f5, sky: 0xffc4e8, ground: 0x4a2447,
+      // แดนขนมหวานกลางวันจัดจ้าน — สว่างที่สุดในเกม เงาแทบไม่มี
+      light: { hemi: 1.15, key: 1.7, keyColor: 0xfff4fb, fill: 0.34, rim: 0.35, rimColor: 0xff9ed2, fogNear: 62, fogFar: 168 },
     },
     obstacles: {
       lowName: 'ลูกกวาดยักษ์', highName: 'อมยิ้มห้อย', wallName: 'กำแพงเยลลี่',
@@ -83,6 +89,8 @@ export const THEMES = {
       bg: 0x1a2410, floor: 0x6e5230, hull: 0x54432a, hullDark: 0x33291a,
       frame: 0xc9b18a, lamp: 0xffeebb, neonA: 0x86efac, neonB: 0xfbbf24, accent: 0xf87171,
       laneLine: 0xa8895a, sky: 0xffe8b8, ground: 0x2a3a1a,
+      // ทุ่งยามเย็นแดดทอง — สว่าง อุ่น มองไกลได้สุดในเกม
+      light: { hemi: 1.05, key: 1.75, keyColor: 0xfff0cc, fill: 0.3, rim: 0.32, rimColor: 0xffd28a, fogNear: 66, fogFar: 172 },
     },
     obstacles: {
       lowName: 'กองฟาง', highName: 'ป้ายฟาร์ม', wallName: 'รั้วคอกม้า',
@@ -105,6 +113,8 @@ export const THEMES = {
       bg: 0x241608, floor: 0xa8834e, hull: 0x6e5230, hullDark: 0x42311c,
       frame: 0xd9b98a, lamp: 0xffdf9e, neonA: 0xfbbf24, neonB: 0xfb7185, accent: 0x38bdf8,
       laneLine: 0xd9b98a, sky: 0xffd9a0, ground: 0x4a3418,
+      // ทะเลทรายกลางแดด — แรงและแข็ง เงาคมชัดที่สุด
+      light: { hemi: 1.0, key: 1.9, keyColor: 0xfff2d6, fill: 0.26, rim: 0.3, rimColor: 0xffc98a, fogNear: 68, fogFar: 174 },
     },
     obstacles: {
       lowName: 'หินผา', highName: 'กิ่งกระบองเพชร', wallName: 'พายุทราย',

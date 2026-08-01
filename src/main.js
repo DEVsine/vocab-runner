@@ -389,7 +389,7 @@ function startRun() {
   hud.show();
   hud.setScore(0, 0, 1);
   hud.setCoins(0);
-  hud.setJets(0, false);
+  syncGear();
   hud.setStars(0, CFG.stars.needed);
   hud.setBonusTimer(null);
   hud.hideBonusBanner();
@@ -643,8 +643,7 @@ function onAttacked(from, ammo = 'break') {
     sfx.horn();
   } else if (run.jetArmed) {
     run.jetArmed = false;
-    player.setArmed(false);
-    hud.setJets(run.jets, false);
+    syncGear();
     sfx.laser();
   } else {
     spawnAttackBarrier();
@@ -1441,21 +1440,19 @@ function equipJet() {
   if (run.jets <= 0) return;
   run.jets -= 1;
   run.jetArmed = true;
-  player.setArmed(true);
   sfx.jetEquip();
-  hud.setJets(run.jets, true);
+  syncGear();
   hud.toast(`${armorEmoji()} ใส่${armorName()}แล้ว — กันตายได้ 1 ครั้ง`, 1600);
 }
 
 /** ไอพ่นที่ใส่อยู่ช่วยชีวิตจากการ "ชน" (สิ่งกีดขวาง/ยาน) — พุ่งข้ามแล้วเปลวดับ */
 function rescueWithJet(message) {
   run.jetArmed = false;
-  player.setArmed(false);
   run.combo = 1;
   run.invuln = CFG.powerup.invulnMs / 1000;
   player.boost();
   sfx.jetUse();
-  hud.setJets(run.jets, false);
+  syncGear();
   hud.setScore(run.score, run.gates, run.combo);
   hud.toast(message, 2000);
 }
@@ -1464,7 +1461,6 @@ function rescueWithJet(message) {
 function saveWithJet(gate) {
   const q = gate.question;
   run.jetArmed = false;
-  player.setArmed(false);
   run.combo = 1;
   run.invuln = CFG.powerup.invulnMs / 1000;
 
@@ -1476,7 +1472,7 @@ function saveWithJet(gate) {
   sfx.jetUse();
   speak(q.word.en);
 
-  hud.setJets(run.jets, false);
+  syncGear();
   hud.setScore(run.score, run.gates, run.combo);
   hud.toast(`${armorEmoji()} ${armorName()}ช่วยไว้! คำที่ถูกคือ "${q.word.en}" = ${q.word.th}`, 2200);
 }
@@ -1623,6 +1619,19 @@ function checkHazards() {
   }
 }
 
+/**
+ * ซิงก์ "สถานะเกราะ" ไปยังทั้ง HUD และตัวละครในฉากพร้อมกันจากที่เดียว
+ *
+ * ⚠️ เดิมสองอย่างนี้ถูกสั่งแยกกันคนละบรรทัด (hud.setJets / player.setArmed)
+ * ซึ่งแปลว่าทุกครั้งที่เพิ่มทางที่เกราะเปลี่ยนได้ ต้องจำให้ครบทั้งคู่
+ * พอมีทางที่เกราะเปลี่ยนได้ 6 ทาง (เก็บ/ใส่/โดนปลด/ช่วยชีวิต 3 แบบ) โอกาสลืมคือ 100%
+ * และอาการที่ได้คือ "ตัวละครยังถือดาบอยู่ทั้งที่เกราะหมดแล้ว" = UI โกหกผู้เล่น
+ */
+function syncGear() {
+  hud.setJets(run.jets, run.jetArmed);
+  player.setGear(run.jets, run.jetArmed);
+}
+
 /** ชื่อ/อีโมจิของ "เกราะกันตาย" ตามตัวละครที่ใส่ (astro=ไอพ่น, ตัวอื่น=อาวุธประจำตัว) */
 function armorName() { return characterById(wallet.selected()).weapon; }
 function armorEmoji() { return characterById(wallet.selected()).weaponEmoji; }
@@ -1692,7 +1701,7 @@ function collectPickups() {
   }
 
   hud.setCoins(run.coins);
-  hud.setJets(run.jets, run.jetArmed);
+  syncGear();
   hud.setScore(run.score, run.gates, run.combo);
 
   // เข้าด่านโบนัสหลังประมวลผลของที่เก็บได้ทั้งหมดในเฟรมนี้เสร็จก่อน
