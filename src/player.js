@@ -20,6 +20,10 @@ import { CFG } from './config.js';
 import { PALETTE, toonMat } from './scene.js';
 import { characterById } from './characters.js';
 
+/** ความสูงลำตัว — ต้องเป็นค่าเดียวกันทั้งตอนสร้างโมเดลและตอนอนิเมต
+ *  (เคยแยกกันเป็น 0.87 กับ 0.96 → ลำตัวกระโดดขึ้น 9 ซม. ในเฟรมแรกของทุกรอบ) */
+const TORSO_Y = 0.87;
+
 /** easeOutQuad — ออกตัวเร็วแล้วผ่อนเข้าที่ ให้ความรู้สึก "กระฉับกระเฉง" */
 const easeOutQuad = t => 1 - (1 - t) * (1 - t);
 
@@ -53,34 +57,64 @@ function buildAstronaut() {
     amber: new THREE.MeshBasicMaterial({ color: PALETTE.amber }),
   };
 
-  const HIP_Y = 0.62;
+const HIP_Y = 0.62;
   const SHOULDER_Y = 1.06;
 
-  // ── ลำตัว: กว้างและสั้น ──
-  const torso = new THREE.Mesh(new THREE.BoxGeometry(0.52, 0.54, 0.36), mat.suit);
-  torso.position.y = 0.87;
+  /* ── ลำตัว: ทรงเหลี่ยมสอบ ไม่ใช่กล่อง ──────────────────────
+   * กล่องสี่เหลี่ยมมี 4 ด้านที่กว้างเท่ากันตลอดความสูง → ตาอ่านว่า "กล่อง" ทันที
+   * ร่างคนมีบ่ากว้างแล้วสอบลงที่เอว — แค่ใส่ความสอบเข้าไปอย่างเดียว
+   * ทรงเดียวกันก็เลิกเป็นกล่องแล้ว
+   *
+   * ใช้ Cylinder 8 เหลี่ยมแล้วบีบแกน Z ให้แบน: ได้ทรงสอบที่ยังมีเหลี่ยมคม
+   * (เหลี่ยมสำคัญ — ทรงกลมเรียบจะสะท้อนแสงต่อเนื่องจนไม่มีขอบให้ toon ตัดแถบ)
+   */
+  const torso = new THREE.Mesh(new THREE.CylinderGeometry(0.3, 0.235, 0.56, 8), mat.suit);
+  torso.scale.set(1, 1, 0.66);
+  torso.rotation.y = Math.PI / 8;          // หมุนให้เหลี่ยมหันเข้าหากล้อง ไม่ใช่มุมแหลม
+  torso.position.y = TORSO_Y;
   rig.add(torso);
+
+  /* แผ่นอกเฉียง — ทำให้ด้านหน้าลำตัวไม่ใช่ระนาบเดียวเรียบ ๆ
+   * ⚠️ ต้องใช้สีเดียวกับลำตัว (mat.suit) ไม่ใช่ suitDim
+   * ตัวละครบางตัวตั้ง suit เป็นดำและ suitDim เป็นเทาอ่อน (นินจา) — ใช้ suitDim ตรงนี้
+   * จะได้ "แผ่นเทาแปะกลางอกดำ" ซึ่งอ่านเป็นคราบสี ไม่ใช่รูปทรง
+   * รูปทรงต้องถูกอ่านจากเงาและขอบ ไม่ใช่จากการเปลี่ยนสี */
+  const chest = new THREE.Mesh(new THREE.CylinderGeometry(0.285, 0.3, 0.17, 8), mat.suit);
+  chest.scale.set(1, 1, 0.68);
+  chest.rotation.y = Math.PI / 8;
+  chest.position.y = 1.06;
+  rig.add(chest);
 
   // แถบสะท้อนแสงรอบตัว (แถบส้มบนชุด NASA) — ช่วยให้ตาแยกตัวละครออกจากพื้นหลังเข้ม
   const belt = new THREE.Mesh(new THREE.BoxGeometry(0.55, 0.09, 0.39), mat.amber);
   belt.position.y = 0.66;
   rig.add(belt);
 
-  // ── ถังออกซิเจนด้านหลัง ──
-  // เราเห็นตัวละครจากข้างหลังตลอด ถังจึงเป็น "ตัวชูโรงของเส้นรอบรูป" ไม่ใช่ของประดับ
-  // ทำให้ยื่นออกไปชัด ๆ และมีบ่าเฉียง เพื่อให้เงาทึบยังบอกได้ว่าเป็นนักบินอวกาศ
+  /* ── ถังออกซิเจนด้านหลัง — เฉพาะนักบินอวกาศเท่านั้น ──────────
+   *
+   * ⚠️ นี่คือสาเหตุที่แท้จริงที่ตัวละครทุกตัว "ดูเหมือนกันหมด"
+   * ถังถูกแปะไว้กับโครงร่างกลาง ไม่ใช่กับชุดนักบินอวกาศ — ผลคือนินจาแบกถังออกซิเจน
+   * ซามูไรแบกถังออกซิเจน ลอร์ดมืดก็แบกถังออกซิเจน
+   * และเพราะเราเห็นตัวละคร "จากด้านหลัง" ตลอดเวลา ถังสีเทากล่องนี้จึงกลายเป็น
+   * สิ่งที่ครองเส้นรอบรูปของทุกตัว จนของประจำตัวจริง ๆ ถูกกลบหมด
+   *
+   * บทเรียน: ของที่เป็นของ "ตัวละครหนึ่งตัว" ห้ามอยู่ในโครงร่างกลางเด็ดขาด
+   * ไม่ว่ามันจะดูเข้ากันดีแค่ไหนตอนที่ยังมีตัวละครเดียว
+   */
+  const astroKit = new THREE.Group();
   const pack = new THREE.Mesh(new THREE.BoxGeometry(0.46, 0.5, 0.26), mat.pack);
   pack.position.set(0, 0.92, 0.3);
-  rig.add(pack);
+  astroKit.add(pack);
 
   for (const x of [-0.13, 0.13]) {
     const light = new THREE.Mesh(new THREE.BoxGeometry(0.09, 0.09, 0.05), mat.cyan);
     light.position.set(x, 1.08, 0.44);
-    rig.add(light);
+    astroKit.add(light);
   }
   const packStripe = new THREE.Mesh(new THREE.BoxGeometry(0.48, 0.07, 0.28), mat.amber);
   packStripe.position.set(0, 0.77, 0.3);
-  rig.add(packStripe);
+  astroKit.add(packStripe);
+  rig.add(astroKit);
 
   // ── คอ + หมวก (หัวโต = หัวใจของสัดส่วนแบบเกมวิ่ง) ──
   const neck = new THREE.Mesh(new THREE.CylinderGeometry(0.13, 0.14, 0.07, 12), mat.joint);
@@ -100,7 +134,7 @@ function buildAstronaut() {
   // ครีบบนหมวก — ของที่ "ยื่นออกจากทรงกลม" ทำให้เงาทึบไม่ใช่แค่ลูกบอลบนกล่อง
   const fin = new THREE.Mesh(new THREE.BoxGeometry(0.06, 0.16, 0.3), mat.amber);
   fin.position.set(0, 1.6, 0.02);
-  rig.add(fin);
+  astroKit.add(fin);
 
   // ตะเข็บหมวกเรืองแสง — ทำให้มองเห็นหัวชัดจากข้างหลังในทางเดินมืด ๆ
   const seam = new THREE.Mesh(new THREE.TorusGeometry(0.252, 0.022, 8, 28), mat.cyan);
@@ -108,39 +142,71 @@ function buildAstronaut() {
   seam.position.y = 1.4;
   rig.add(seam);
 
-  // ── แขน: Group อยู่ที่ข้อไหล่ แล้วเลื่อน mesh ลงครึ่งความยาว ──
+  /* ── แขน: มีข้อศอกจริง ──────────────────────────────────────
+   * แคปซูลท่อนเดียวจากไหล่ถึงมือคือ "ไม้" ไม่ใช่แขน — มันงอไม่ได้
+   * และท่าวิ่งของคนคือท่าที่ **ศอกงอค้างไว้ตลอด** แล้วเหวี่ยงจากไหล่
+   * ไม่มีข้อศอก = ไม่มีทางทำท่าวิ่งให้ดูเป็นคนได้เลยไม่ว่าจะจูนมุมยังไง
+   *
+   * โครง: ไหล่(pivot) → ต้นแขน → ศอก(elbow) → ปลายแขน → มือ
+   * ท่อนสอบลง (radiusTop > radiusBottom) ทำให้แขนไม่ใช่ท่อขนาดเดียวตลอด
+   */
   function makeArm(side) {
     const pivot = new THREE.Group();
     pivot.position.set(side * 0.31, SHOULDER_Y, 0);
 
-    const arm = new THREE.Mesh(new THREE.CapsuleGeometry(0.115, 0.2, 4, 10), mat.suit);
-    arm.position.y = -0.2;
-    pivot.add(arm);
+    // บ่านูน — หัวไหล่ต้องไม่ใช่หน้าตัดท่อที่ตัดตรง
+    const pauldron = new THREE.Mesh(
+      new THREE.SphereGeometry(0.155, 12, 10, 0, Math.PI * 2, 0, Math.PI * 0.62), mat.suit
+    );
+    pauldron.position.y = 0.01;
+    pivot.add(pauldron);
+
+    const upper = new THREE.Mesh(new THREE.CylinderGeometry(0.112, 0.092, 0.27, 7), mat.suit);
+    upper.position.y = -0.15;
+    pivot.add(upper);
+
+    const elbow = new THREE.Group();
+    elbow.position.y = -0.29;
+    pivot.add(elbow);
+
+    const fore = new THREE.Mesh(new THREE.CylinderGeometry(0.095, 0.08, 0.25, 7), mat.suitDim);
+    fore.position.y = -0.13;
+    elbow.add(fore);
 
     // ถุงมือใหญ่เกินจริง — ปลายแขนคือจุดที่แกว่งไกลที่สุดตอนวิ่ง
     // ถ้ามือเล็ก ตาจะจับจังหวะขาไม่ได้เลยที่ระยะ 150px
-    const glove = new THREE.Mesh(new THREE.BoxGeometry(0.21, 0.19, 0.21), mat.joint);
-    glove.position.y = -0.4;
-    pivot.add(glove);
+    const glove = new THREE.Mesh(new THREE.BoxGeometry(0.2, 0.18, 0.2), mat.joint);
+    glove.position.y = -0.3;
+    elbow.add(glove);
 
     rig.add(pivot);
+    pivot.userData.elbow = elbow;
     return pivot;
   }
 
-  // ── ขา: สั้นและหนา รองเท้าใหญ่ ──
+  // ── ขา: มีหัวเข่า ท่อนสอบ รองเท้าใหญ่ ──
   function makeLeg(side) {
     const pivot = new THREE.Group();
     pivot.position.set(side * 0.145, HIP_Y, 0);
 
-    const leg = new THREE.Mesh(new THREE.CapsuleGeometry(0.13, 0.24, 4, 10), mat.suitDim);
-    leg.position.y = -0.24;
-    pivot.add(leg);
+    const thigh = new THREE.Mesh(new THREE.CylinderGeometry(0.135, 0.112, 0.29, 7), mat.suitDim);
+    thigh.position.y = -0.145;
+    pivot.add(thigh);
 
-    const boot = new THREE.Mesh(new THREE.BoxGeometry(0.26, 0.17, 0.36), mat.joint);
-    boot.position.set(0, -0.53, -0.06);
-    pivot.add(boot);
+    const knee = new THREE.Group();
+    knee.position.y = -0.29;
+    pivot.add(knee);
+
+    const shin = new THREE.Mesh(new THREE.CylinderGeometry(0.108, 0.088, 0.26, 7), mat.suitDim);
+    shin.position.y = -0.13;
+    knee.add(shin);
+
+    const boot = new THREE.Mesh(new THREE.BoxGeometry(0.25, 0.17, 0.36), mat.joint);
+    boot.position.set(0, -0.255, -0.06);
+    knee.add(boot);
 
     rig.add(pivot);
+    pivot.userData.knee = knee;
     return pivot;
   }
 
@@ -189,11 +255,12 @@ function buildAstronaut() {
   const lacquer = toonMat(0x1b2030);
   const weapons = {};
 
-  /** จุดแขวนของที่ "ถืออยู่ในมือ" — อยู่ใต้ pivot ของแขน จึงแกว่งตามแขนเอง */
+  /** จุดแขวนของที่ "ถืออยู่ในมือ" — ต้องอยู่ใต้ *ข้อศอก* ไม่ใช่ใต้ไหล่
+   *  ไม่งั้นดาบจะไม่งอตามศอก แล้วมันจะทะลุออกจากปลายแขนตอนวิ่ง */
   function handMount(pivot) {
     const g = new THREE.Group();
-    g.position.y = -0.42;          // ระดับถุงมือ
-    pivot.add(g);
+    g.position.y = -0.32;          // ระดับถุงมือ (วัดจากข้อศอก)
+    pivot.userData.elbow.add(g);
     return g;
   }
 
@@ -376,6 +443,20 @@ function buildAstronaut() {
   /* ── นินจา: ดาวกระจาย + ผ้าพันคอ ─────────────────────────── */
   {
     const alwaysG = new THREE.Group();   // ผ้าพันคอ/สายคาด = เสื้อผ้าประจำตัว ไม่ใช่ของที่เก็บมา
+
+    /* ฮู้ด: ครึ่งทรงกลมครอบหัวไปทางท้ายทอย + ชายผ้าที่คอ
+     * นี่คือชิ้นที่ทำให้ "ทรงกลม" กลายเป็น "หัวนินจา" — เพราะมันเปลี่ยนเส้นรอบรูป
+     * ของหัวจากวงกลมสมมาตรเป็นทรงที่มีหน้ามีหลัง ซึ่งบอกทิศทางที่ตัวละครหันไปด้วย */
+    const hoodMat = toonMat(0x14181f);
+    const hood = new THREE.Mesh(
+      new THREE.SphereGeometry(0.272, 18, 14, 0, Math.PI * 2, 0, Math.PI * 0.62), hoodMat
+    );
+    hood.position.y = 1.4;
+    hood.rotation.x = -0.32;              // เอียงไปทางท้ายทอย เปิดหน้าไว้
+    alwaysG.add(hood);
+    const hoodTail = new THREE.Mesh(new THREE.BoxGeometry(0.34, 0.2, 0.16), hoodMat);
+    hoodTail.position.set(0, 1.3, 0.24);
+    alwaysG.add(hoodTail);
     const restG = new THREE.Group();
     const stowG = new THREE.Group();
     const holdR = handMount(armR);
@@ -502,6 +583,22 @@ function buildAstronaut() {
 
     // สายคาดเอว + ห่วงแขวน (เห็นเสมอเมื่อมีของ)
     const beltG = new THREE.Group();     // เข็มขัด = เสื้อผ้าประจำตัว
+
+    /* ผ้าคลุมหลัง: 4 แผ่นสอบลง ไล่จากบ่าถึงน่อง
+     * เคปคือวิธีที่ถูกที่สุดในการทำให้เส้นรอบรูป "ใหญ่และมีน้ำหนัก" โดยไม่ต้องเพิ่มโพลี
+     * และเพราะเรามองจากด้านหลังตลอด มันจึงเป็นสิ่งแรกที่ตาเห็นเสมอ */
+    const capeMat = toonMat(0x14161d);
+    const capeSegs = [];
+    for (let i = 0; i < 4; i++) {
+      const t = i / 3;
+      const seg = new THREE.Mesh(new THREE.BoxGeometry(0.56 - t * 0.16, 0.3, 0.05), capeMat);
+      seg.position.set(0, 1.12 - i * 0.28, 0.3 + t * 0.1);
+      beltG.add(seg);
+      capeSegs.push(seg);
+    }
+    const collar = new THREE.Mesh(new THREE.BoxGeometry(0.5, 0.12, 0.3), capeMat);
+    collar.position.set(0, 1.2, 0.2);
+    beltG.add(collar);
     const belt = new THREE.Mesh(new THREE.BoxGeometry(0.58, 0.09, 0.42), lacquer);
     belt.position.y = 0.63;
     beltG.add(belt);
@@ -525,7 +622,7 @@ function buildAstronaut() {
 
     weapons.darklord = {
       always: [beltG], rest: [restG], stow: [stowG], hold: [holdR],
-      glow: blade, mounts: [beltG, restG, stowG],
+      glow: blade, cape: capeSegs, mounts: [beltG, restG, stowG],
     };
   }
 
@@ -534,7 +631,7 @@ function buildAstronaut() {
     for (const m of w.mounts) rig.add(m);
   }
 
-  return { rig, armL, armR, legL, legR, torso, helmet, thrusters, mat, weapons };
+  return { rig, armL, armR, legL, legR, torso, helmet, thrusters, mat, weapons, astroKit };
 }
 
 export function createPlayer(scene) {
@@ -713,7 +810,7 @@ export function createPlayer(scene) {
       for (const part of [a.legL, a.legR]) part.rotation.x = THREE.MathUtils.lerp(part.rotation.x, 0, dt * 8);
       a.armL.rotation.x = THREE.MathUtils.lerp(a.armL.rotation.x, -0.12, dt * 8);
       a.armR.rotation.x = THREE.MathUtils.lerp(a.armR.rotation.x, -0.12, dt * 8);
-      a.torso.position.y = 0.96 + Math.sin(state.runT * 1.6) * 0.015;   // หายใจเบา ๆ
+      a.torso.position.y = TORSO_Y + Math.sin(state.runT * 1.6) * 0.015;   // หายใจเบา ๆ
       a.helmet.rotation.y = Math.sin(state.runT * 0.9) * 0.16;
       for (const flame of a.thrusters) flame.visible = false;
       return;
@@ -781,28 +878,63 @@ export function createPlayer(scene) {
     group.position.x = state.x;
     group.position.y = state.baseY + y;
 
-    /* ── ท่าทาง ─────────────────────────────────────────── */
+    /* ── ท่าทาง ───────────────────────────────────────────────
+     * ── ท่าวิ่งของคนจริง vs ท่าที่โค้ดง่าย ๆ ให้มา ──
+     * โค้ดง่าย ๆ คือ "แกว่งแขนขาสลับข้างรอบจุดกึ่งกลาง" ซึ่งได้ท่า *เดิน* ไม่ใช่ *วิ่ง*
+     * ท่าวิ่งจริงต่างกันที่ 3 อย่าง และต้องมีครบทั้งสามถึงจะอ่านออกว่าวิ่ง:
+     *   1) ตัวเอนไปข้างหน้า — คนวิ่งคือคนที่กำลังจะล้มแล้วเอาขาไปรับทัน
+     *   2) แขนอยู่ "หลังลำตัว" เป็นหลัก แล้วเหวี่ยงกลับ ไม่ใช่แกว่งหน้า-หลังเท่ากัน
+     *   3) ศอกงอค้างไว้ตลอด ไม่เคยเหยียดตรง
+     * ข้อ 2 กับ 3 คือที่มาของคำว่า "เอนมือไปข้างหลัง" — และทั้งคู่ทำไม่ได้เลย
+     * ถ้าแขนเป็นท่อนเดียวไม่มีข้อศอก
+     */
     const cadence = state.runT * 12;
     const swing = Math.sin(cadence);
+    const elbowL = a.armL.userData.elbow;
+    const elbowR = a.armR.userData.elbow;
+    const kneeL = a.legL.userData.knee;
+    const kneeR = a.legR.userData.knee;
+
+    let leanTarget = 0;
 
     if (airborne) {
-      // ลอยอยู่: เก็บขา กางแขนไปข้างหลังเล็กน้อย
-      a.legL.rotation.x = THREE.MathUtils.lerp(a.legL.rotation.x, 0.85, dt * 14);
-      a.legR.rotation.x = THREE.MathUtils.lerp(a.legR.rotation.x, 0.35, dt * 14);
-      a.armL.rotation.x = THREE.MathUtils.lerp(a.armL.rotation.x, -0.9, dt * 14);
-      a.armR.rotation.x = THREE.MathUtils.lerp(a.armR.rotation.x, -0.9, dt * 14);
+      // ลอยอยู่: เก็บขา ศอกงอ แขนกางไปข้างหลัง
+      a.legL.rotation.x = THREE.MathUtils.lerp(a.legL.rotation.x, 0.9, dt * 14);
+      a.legR.rotation.x = THREE.MathUtils.lerp(a.legR.rotation.x, 0.3, dt * 14);
+      kneeL.rotation.x = THREE.MathUtils.lerp(kneeL.rotation.x, 1.15, dt * 14);
+      kneeR.rotation.x = THREE.MathUtils.lerp(kneeR.rotation.x, 0.4, dt * 14);
+      a.armL.rotation.x = THREE.MathUtils.lerp(a.armL.rotation.x, -1.05, dt * 14);
+      a.armR.rotation.x = THREE.MathUtils.lerp(a.armR.rotation.x, -1.05, dt * 14);
+      elbowL.rotation.x = THREE.MathUtils.lerp(elbowL.rotation.x, 0.7, dt * 14);
+      elbowR.rotation.x = THREE.MathUtils.lerp(elbowR.rotation.x, 0.7, dt * 14);
+      leanTarget = -0.1;
     } else if (slideK > 0.05) {
       // สไลด์: ขาเหยียดไปข้างหน้า แขนแนบตัว
-      a.legL.rotation.x = THREE.MathUtils.lerp(a.legL.rotation.x, 1.1, dt * 16);
-      a.legR.rotation.x = THREE.MathUtils.lerp(a.legR.rotation.x, 0.9, dt * 16);
-      a.armL.rotation.x = THREE.MathUtils.lerp(a.armL.rotation.x, 0.3, dt * 16);
-      a.armR.rotation.x = THREE.MathUtils.lerp(a.armR.rotation.x, 0.3, dt * 16);
+      a.legL.rotation.x = THREE.MathUtils.lerp(a.legL.rotation.x, 1.15, dt * 16);
+      a.legR.rotation.x = THREE.MathUtils.lerp(a.legR.rotation.x, 0.95, dt * 16);
+      kneeL.rotation.x = THREE.MathUtils.lerp(kneeL.rotation.x, 0.15, dt * 16);
+      kneeR.rotation.x = THREE.MathUtils.lerp(kneeR.rotation.x, 0.35, dt * 16);
+      a.armL.rotation.x = THREE.MathUtils.lerp(a.armL.rotation.x, 0.35, dt * 16);
+      a.armR.rotation.x = THREE.MathUtils.lerp(a.armR.rotation.x, 0.35, dt * 16);
+      elbowL.rotation.x = THREE.MathUtils.lerp(elbowL.rotation.x, 0.5, dt * 16);
+      elbowR.rotation.x = THREE.MathUtils.lerp(elbowR.rotation.x, 0.5, dt * 16);
     } else {
-      // วิ่ง: แขนขาสลับข้างกัน (นี่คือสิ่งที่ทำให้อ่านออกว่า "กำลังวิ่ง")
-      a.legL.rotation.x = swing * 0.78;
-      a.legR.rotation.x = -swing * 0.78;
-      a.armL.rotation.x = -swing * 0.62;
-      a.armR.rotation.x = swing * 0.62;
+      // ── สปรินต์ ──
+      const ARM_BACK = 0.5;      // ออฟเซ็ตลบ = แขนค้างอยู่หลังลำตัว แล้วค่อยเหวี่ยง
+      const ELBOW = 1.0;         // ศอกงอค้าง ไม่เคยเหยียดตรง
+
+      a.legL.rotation.x = swing * 0.95;
+      a.legR.rotation.x = -swing * 0.95;
+      // งอเข่าเฉพาะ "ขาที่กำลังยกกลับ" — ขาที่ยันพื้นต้องเหยียด ไม่งั้นดูย่อตัวตลอดเวลา
+      kneeL.rotation.x = Math.max(0, -swing) * 1.25;
+      kneeR.rotation.x = Math.max(0, swing) * 1.25;
+
+      a.armL.rotation.x = -swing * 0.5 - ARM_BACK;
+      a.armR.rotation.x = swing * 0.5 - ARM_BACK;
+      elbowL.rotation.x = ELBOW + swing * 0.35;
+      elbowR.rotation.x = ELBOW - swing * 0.35;
+
+      leanTarget = -0.17;
 
       // เสียงฝีเท้าตรงจังหวะที่ขาแตะพื้นจริง ๆ (ทุกครึ่งรอบของ sin)
       // เสียงที่ไม่ตรงกับภาพจะรู้สึก "ผิด" ทันทีแม้อธิบายไม่ถูกว่าผิดตรงไหน
@@ -814,14 +946,20 @@ export function createPlayer(scene) {
     }
 
     // เอนหลังตอนสไลด์ (หมุนบวก = หัวไปทาง +z คือเอนเข้าหากล้อง)
-    a.rig.rotation.x = slideK * 1.0;
+    // รวมกับ "เอนไปข้างหน้าตอนวิ่ง" (ค่าลบ) — ค่อย ๆ เกลี่ยเข้าหากันไม่ให้กระตุก
+    state.lean = THREE.MathUtils.lerp(state.lean ?? 0, leanTarget, dt * 8);
+    a.rig.rotation.x = slideK * 1.0 + state.lean;
     a.rig.position.y = -slideK * 0.06;
 
     // เอียงตัวตามทิศที่เลื่อนเลน + เด้งขึ้นลงตอนวิ่ง = ดูมีชีวิต
     const laneVel = state.laneT < 1 ? (state.laneTo - state.laneFrom) : 0;
     a.rig.rotation.z = THREE.MathUtils.lerp(a.rig.rotation.z, -laneVel * 0.09, dt * 12);
-    a.torso.position.y = 0.96 + (airborne || slideK > 0.05 ? 0 : Math.abs(Math.cos(cadence)) * 0.035);
+    const grounded = !airborne && slideK <= 0.05;
+    a.torso.position.y = TORSO_Y + (grounded ? Math.abs(Math.cos(cadence)) * 0.04 : 0);
+    // ไหล่บิดสวนสะโพก — รายละเอียดเล็กที่ทำให้ท่าวิ่งเลิกดูเหมือนหุ่นชักใย
+    a.torso.rotation.y = Math.PI / 8 + (grounded ? swing * 0.11 : 0);
     a.helmet.rotation.y = Math.sin(state.runT * 2.2) * 0.12;
+    a.helmet.rotation.x = grounded ? -0.06 + Math.abs(swing) * 0.05 : 0;   // ก้มหน้าเล็กน้อยตอนวิ่ง
 
     // เปลวไอพ่น: ตอนลอย = เปลวเต็ม (ทุกตัวละครใช้ไอพ่นบิน)
     // ส่วนสถานะ "ใส่เกราะ" ตอนวิ่ง: astro โชว์เปลวเลีย ๆ, ตัวอื่นโชว์อาวุธเรืองแสงแทน
@@ -837,6 +975,12 @@ export function createPlayer(scene) {
       // เต้นเป็นจังหวะตอนใส่เกราะ = "พร้อมใช้งาน" ที่มองเห็นได้จากหางตา
       weapon.glow.scale.setScalar(1 + Math.sin(state.runT * 10) * 0.14);
       if (weapon.spin) weapon.spin.rotation.z += dt * 9;   // ดาวกระจายหมุนตลอด
+    }
+    // ผ้าคลุมหลังของลอร์ดมืด — สะบัดช้ากว่าผ้าพันคอเพราะหนักกว่า
+    if (weapon?.cape) {
+      weapon.cape.forEach((seg, i) => {
+        seg.rotation.x = 0.12 + Math.sin(state.runT * 4.5 - i * 0.5) * 0.11;
+      });
     }
     // ผ้าพันคอนินจาสะบัดตามจังหวะวิ่ง (เร็วขึ้นตามความเร็วขา)
     if (weapon?.scarf) {
@@ -961,6 +1105,7 @@ export function createPlayer(scene) {
     a.mat.suitDim.color.setHex(c.suitDim);
     a.mat.joint.color.setHex(c.joint);
     a.mat.amber.color.setHex(c.accent);   // เข็มขัด/แถบถัง = สี accent ประจำตัว
+    a.astroKit.visible = c.id === 'astro';   // ถังออกซิเจนเป็นของนักบินอวกาศคนเดียว
     refreshGear();
   }
 
