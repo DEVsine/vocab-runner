@@ -357,26 +357,48 @@ const HIP_Y = 0.62;
     holdR.add(spearHold);
 
     // หงอนหมวก: 7 แผ่นเรียงเป็นสัน สูงกลาง เตี้ยปลาย
+    // ⚠️ หงอนต้อง "หนา" ไม่ใช่แค่ "สูง"
+    // เรามองตัวละครจากด้านหลังตรง ๆ ตลอด แผ่นบางจะหันสันเข้าหาเราพอดี
+    // แล้วหงอนที่ตั้งใจให้เป็นเอกลักษณ์จะกลายเป็น "เส้นขีดเดียว" เหนือหัว
     const plume = toonMat(0xd6453f);
-    for (let i = 0; i < 7; i++) {
-      const t = i / 6;
-      const h = 0.09 + Math.sin(t * Math.PI) * 0.15;
-      const seg = new THREE.Mesh(new THREE.BoxGeometry(0.058, h, 0.075), plume);
-      seg.position.set(0, 1.6 + h / 2, 0.2 - t * 0.42);
+    for (let i = 0; i < 8; i++) {
+      const t = i / 7;
+      const h = 0.11 + Math.sin(t * Math.PI) * 0.2;
+      const seg = new THREE.Mesh(new THREE.BoxGeometry(0.115, h, 0.08), plume);
+      seg.position.set(0, 1.58 + h / 2, 0.22 - t * 0.5);
       crest.add(seg);
     }
+    // ฐานหงอน — ทำให้หงอนดู "ติดอยู่กับหมวก" ไม่ใช่ลอยอยู่เหนือหัว
+    const crestBase = new THREE.Mesh(new THREE.BoxGeometry(0.17, 0.09, 0.54), weaponMat);
+    crestBase.position.set(0, 1.56, -0.02);
+    crest.add(crestBase);
 
     weapons.spartan = {
-      rest: [restG], stow: [stowG], hold: [holdL, holdR, crest],
+      // หงอนอยู่ในกลุ่ม always — มันคือ "หมวกของสปาตัน" ไม่ใช่ของที่เก็บมาได้
+      // เส้นรอบรูปของตัวละครต้องบอกว่าเป็นใครตั้งแต่ก่อนเก็บของชิ้นแรก
+      always: [crest], rest: [restG], stow: [stowG], hold: [holdL, holdR],
       glow: shieldHold.glow, mounts: [restG, stowG, crest],
     };
   }
 
   /* ── ซามูไร: คาตานะ + ฝักดาบ ─────────────────────────────── */
   {
+    const alwaysG = new THREE.Group();   // หมวกคาบูโตะ = ตัวตน ไม่ใช่ของที่เก็บมา
     const restG = new THREE.Group();
     const stowG = new THREE.Group();
     const holdR = handMount(armR);
+
+    // เขาหมวกรูปตัว V กางออกด้านหน้า — ทรงเหลี่ยมแหลมอ่านว่า "ก้าวร้าว" ทันที
+    for (const side of [-1, 1]) {
+      const horn = new THREE.Mesh(new THREE.ConeGeometry(0.045, 0.34, 4), weaponMat);
+      horn.position.set(side * 0.14, 1.62, -0.04);
+      horn.rotation.set(0.25, 0, side * 0.5);
+      alwaysG.add(horn);
+    }
+    // ชายเกราะคอบานออก (ชิโกโระ) — เพิ่มมวลให้บ่าและตัดเส้นคอที่เรียวเกินไป
+    const neckGuard = new THREE.Mesh(new THREE.CylinderGeometry(0.2, 0.34, 0.16, 8), lacquer);
+    neckGuard.position.set(0, 1.22, 0.04);
+    alwaysG.add(neckGuard);
 
     /** ดาบครบชิ้น: ด้ามพัน + ทสึบะ (การ์ด) + ใบดาบมีคมสว่าง + ปลายแหลม */
     function buildKatana() {
@@ -436,8 +458,8 @@ const HIP_Y = 0.62;
     holdR.add(katanaHold.g);
 
     weapons.samurai = {
-      rest: [restG], stow: [stowG], hold: [holdR],
-      glow: katanaHold.edge, mounts: [restG, stowG],
+      always: [alwaysG], rest: [restG], stow: [stowG], hold: [holdR],
+      glow: katanaHold.edge, mounts: [alwaysG, restG, stowG],
     };
   }
 
@@ -632,7 +654,7 @@ const HIP_Y = 0.62;
     for (const m of w.mounts) rig.add(m);
   }
 
-  return { rig, armL, armR, legL, legR, torso, helmet, thrusters, mat, weapons, astroKit };
+  return { rig, armL, armR, legL, legR, torso, chest, helmet, thrusters, mat, weapons, astroKit };
 }
 
 export function createPlayer(scene) {
@@ -1141,6 +1163,38 @@ export function createPlayer(scene) {
     a.rig.visible = !activeModel;
   }
 
+  /**
+   * ปั้นสัดส่วนร่างกายใหม่ตาม "ภาษาของรูปทรง" ของตัวละครนั้น (ดู characters.js)
+   *
+   * ⚠️ ความสอบของลำตัวเปลี่ยนด้วย scale ไม่ได้ — scale ย่อทั้งท่อนเท่ากันหมด
+   * แต่ทรงสามเหลี่ยมเกิดจาก "บนกว้าง ล่างแคบ" ซึ่งเป็นค่าคนละตัวในเรขาคณิต
+   * จึงต้องสร้าง geometry ใหม่ (ถูกมาก เพราะเกิดตอนสลับตัวละครเท่านั้น ไม่ใช่ทุกเฟรม)
+   * และต้อง dispose ของเก่าทุกครั้ง ไม่งั้นหน่วยความจำ GPU รั่วทีละนิดทุกครั้งที่สลับตัว
+   */
+  function applyBuild(b = {}) {
+    const h = b.h ?? 1;
+    const sh = b.shoulder ?? 1;
+    const limb = b.limb ?? 1;
+    const [tt, tb] = b.torso ?? [1, 1];
+    const [hx, hy, hz] = b.head ?? [1, 1, 1];
+
+    a.rig.scale.setScalar(h);
+
+    a.torso.geometry.dispose();
+    a.torso.geometry = new THREE.CylinderGeometry(0.3 * tt, 0.235 * tb, 0.56, 8);
+    a.chest.geometry.dispose();
+    a.chest.geometry = new THREE.CylinderGeometry(0.285 * tt, 0.3 * tt, 0.17, 8);
+
+    a.armL.position.x = -0.31 * sh;
+    a.armR.position.x = 0.31 * sh;
+    a.armL.scale.set(limb, 1, limb);
+    a.armR.scale.set(limb, 1, limb);
+    a.legL.scale.set(limb, 1, limb);
+    a.legR.scale.set(limb, 1, limb);
+
+    a.helmet.scale.set(hx, hy, hz);
+  }
+
   function applySkin(id) {
     const c = characterById(id);
     state.skin = c.id;
@@ -1150,6 +1204,7 @@ export function createPlayer(scene) {
     a.mat.joint.color.setHex(c.joint);
     a.mat.amber.color.setHex(c.accent);   // เข็มขัด/แถบถัง = สี accent ประจำตัว
     a.astroKit.visible = c.id === 'astro';   // ถังออกซิเจนเป็นของนักบินอวกาศคนเดียว
+    applyBuild(c.build);
     refreshGear();
   }
 
