@@ -19,6 +19,7 @@ import * as THREE from 'three';
 import { CFG } from './config.js';
 import { PALETTE, toonMat } from './scene.js';
 import { characterById } from './characters.js';
+import { loadCharacter } from './models.js';
 
 /** ความสูงลำตัว — ต้องเป็นค่าเดียวกันทั้งตอนสร้างโมเดลและตอนอนิเมต
  *  (เคยแยกกันเป็น 0.87 กับ 0.96 → ลำตัวกระโดดขึ้น 9 ซม. ในเฟรมแรกของทุกรอบ) */
@@ -955,6 +956,13 @@ export function createPlayer(scene) {
     const laneVel = state.laneT < 1 ? (state.laneTo - state.laneFrom) : 0;
     a.rig.rotation.z = THREE.MathUtils.lerp(a.rig.rotation.z, -laneVel * 0.09, dt * 12);
     const grounded = !airborne && slideK <= 0.05;
+
+    // โมเดล glTF: เดินอนิเมชันของมันเอง แล้วเลือกท่าจากสถานะเดียวกับที่ตัวปั้นเองใช้
+    // (ท่าทางด้านล่างยังคำนวณต่อไปแม้ตอนใช้โมเดล — เปลืองน้อยมาก และทำให้สลับกลับได้ทันที)
+    if (activeModel) {
+      activeModel.update(dt);
+      activeModel.play(airborne ? 'jump' : slideK > 0.05 ? 'slide' : 'run');
+    }
     a.torso.position.y = TORSO_Y + (grounded ? Math.abs(Math.cos(cadence)) * 0.04 : 0);
     // ไหล่บิดสวนสะโพก — รายละเอียดเล็กที่ทำให้ท่าวิ่งเลิกดูเหมือนหุ่นชักใย
     a.torso.rotation.y = Math.PI / 8 + (grounded ? swing * 0.11 : 0);
@@ -1098,9 +1106,45 @@ export function createPlayer(scene) {
     }
   }
 
+  /* ══ โหมดโมเดล glTF ═════════════════════════════════════════
+   * ถ้ามีไฟล์ assets/models/<id>.glb → ใช้โมเดลนั้นแทนตัวที่ปั้นด้วยโค้ด
+   * ถ้าไม่มี → ทุกอย่างทำงานเหมือนเดิมทุกประการ (ดูเหตุผลใน models.js)
+   *
+   * ⚠️ โหลดแบบ async แต่ผู้เล่นเปลี่ยนสกินได้ทันที → ต้องเช็กว่า "ตอนโหลดเสร็จ
+   * ยังเป็นสกินเดิมอยู่ไหม" ก่อนเอาเข้าฉาก ไม่งั้นกดสลับตัวเร็ว ๆ จะได้ตัวละครซ้อนกันสองตัว
+   */
+  const modelHolder = new THREE.Group();
+  group.add(modelHolder);
+  const modelCache = new Map();
+  let activeModel = null;
+
+  function useModel(id) {
+    const c = characterById(id);
+    if (!c.model) { setModel(null); return; }
+
+    if (modelCache.has(id)) { setModel(modelCache.get(id)); return; }
+    modelCache.set(id, null);            // กันโหลดซ้ำระหว่างที่ยังโหลดไม่เสร็จ
+    loadCharacter(id, c.model).then((m) => {
+      modelCache.set(id, m);
+      if (state.skin === id) setModel(m);
+    });
+  }
+
+  function setModel(m) {
+    if (activeModel?.group) activeModel.group.visible = false;
+    activeModel = m || null;
+    if (activeModel) {
+      if (activeModel.group.parent !== modelHolder) modelHolder.add(activeModel.group);
+      activeModel.group.visible = true;
+    }
+    // โมเดลจริงมาแล้วก็ซ่อนตัวที่ปั้นด้วยโค้ดทั้งชุด (รวมอาวุธที่วางตำแหน่งไว้สำหรับโครงเดิม)
+    a.rig.visible = !activeModel;
+  }
+
   function applySkin(id) {
     const c = characterById(id);
     state.skin = c.id;
+    useModel(c.id);
     a.mat.suit.color.setHex(c.suit);
     a.mat.suitDim.color.setHex(c.suitDim);
     a.mat.joint.color.setHex(c.joint);
