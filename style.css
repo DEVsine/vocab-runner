@@ -1027,3 +1027,63 @@ td.en { font-weight: 700; }
   }
   #shop-grid { grid-template-columns: repeat(3, 1fr); }
 }
+
+/* ── 🏆 แท่นรับรางวัล 3 อันดับ ──────────────────────────────────
+   เรียง 2-1-3 ใน DOM เพื่อให้ที่ 1 อยู่กลางตามธรรมเนียม — ไม่ใช้ order ของ flex
+   เพราะ screen reader กับการไล่ tab จะอ่านสลับกับที่ตาเห็น */
+#mp-winner { flex-direction: column; gap: 4vh; }
+
+#podium {
+  display: flex; align-items: flex-end; justify-content: center;
+  gap: 8px; width: min(520px, 94vw);
+}
+.pod-slot {
+  flex: 1 1 0; min-width: 0;
+  display: flex; flex-direction: column; align-items: center; gap: 2px;
+  animation: pod-rise .5s cubic-bezier(.2, 1.5, .4, 1) backwards;
+}
+.pod-slot.empty { visibility: hidden; }
+/* อันดับรอง ๆ ขึ้นก่อน แล้วที่ 1 ขึ้นทีหลัง = สายตาไปจบที่ผู้ชนะ */
+.pod-slot[data-rank="3"] { animation-delay: .05s; }
+.pod-slot[data-rank="2"] { animation-delay: .25s; }
+.pod-slot[data-rank="1"] { animation-delay: .5s; }
+@keyframes pod-rise {
+  from { opacity: 0; transform: translateY(40px) scale(.85); }
+  to   { opacity: 1; transform: translateY(0) scale(1); }
+}
+
+.pod-medal { font-size: clamp(22px, 6vw, 34px); line-height: 1; }
+.pod-char {
+  font-size: clamp(30px, 9vw, 52px); line-height: 1.1;
+  filter: drop-shadow(0 0 16px hsl(var(--hue, 200), 85%, 60%));
+}
+.pod-name {
+  max-width: 100%; overflow: hidden; text-overflow: ellipsis; white-space: nowrap;
+  font-size: clamp(12px, 3.4vw, 16px); font-weight: 800;
+  color: hsl(var(--hue, 200), 85%, 72%);
+}
+.pod-score {
+  font-size: clamp(15px, 4.4vw, 22px); font-weight: 900;
+  font-variant-numeric: tabular-nums; color: var(--ink);
+  -webkit-text-stroke: 3px #0a1024; paint-order: stroke fill;
+}
+.pod-block {
+  width: 100%; margin-top: 4px;
+  display: flex; align-items: flex-start; justify-content: center;
+  padding-top: 6px;
+  border-radius: 10px 10px 0 0;
+  background: linear-gradient(180deg, hsl(var(--hue,200),60%,38%), hsl(var(--hue,200),55%,22%));
+  box-shadow: inset 0 2px 0 hsl(var(--hue,200),70%,58%);
+  font-weight: 900; color: rgba(255,255,255,.6);
+}
+.pod-slot[data-rank="1"] .pod-block { height: clamp(72px, 17vw, 104px); }
+.pod-slot[data-rank="2"] .pod-block { height: clamp(52px, 12vw, 74px); }
+.pod-slot[data-rank="3"] .pod-block { height: clamp(38px, 9vw, 56px); }
+
+/* ── 👁️ โหมดสิง ─────────────────────────────────────────────── */
+#mp-lb-list li.watched { background: rgba(167,139,250,.24); box-shadow: inset 0 0 0 1px rgba(167,139,250,.7); }
+/* ธงกดได้เฉพาะตอนเป็นผู้ชม — ปกติต้องไม่บังการปัดนิ้ว */
+#lane-flags.guessable { pointer-events: auto; }
+#lane-flags.guessable .flag { cursor: pointer; }
+#lane-flags.guessable .flag:active { transform: translateY(2px) scale(.98); }
+#spectate-banner { display: flex; align-items: center; gap: 10px; flex-wrap: wrap; justify-content: center; max-width: 94vw; }

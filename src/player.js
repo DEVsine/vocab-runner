@@ -137,6 +137,32 @@ const HIP_Y = 0.62;
   fin.position.set(0, 1.6, 0.02);
   astroKit.add(fin);
 
+  /* ── หน้าตา ─────────────────────────────────────────────────
+   * ในเกมเราเห็นตัวละครจากด้านหลังตลอด หน้าจึงไม่มีผลต่อการเล่นเลย
+   * แต่ในล็อบบี้/ร้านค้า/แท่นรับรางวัล ตัวละครหันหน้าเข้ากล้อง — และตรงนั้น
+   * "ไม่มีหน้า" คือสิ่งที่ทำให้มันดูเป็นหุ่นพลาสติกแทนที่จะเป็นตัวละคร
+   * ต้นทุนแค่ 4 กล่อง แต่เป็น 4 กล่องที่อยู่ในเฟรมตอนผู้เล่นกำลังเลือกจะซื้อพอดี
+   *
+   * ⚠️ หันไป −Z (ด้านหน้าตัวละคร) — ทิศเดียวกับที่วิ่งไป ไม่ใช่ทิศที่กล้องอยู่
+   */
+  const face = new THREE.Group();
+  const eyeWhite = new THREE.MeshBasicMaterial({ color: 0xf7fbff });
+  const eyeDark = new THREE.MeshBasicMaterial({ color: 0x141a26 });
+  for (const side of [-1, 1]) {
+    const eye = new THREE.Mesh(new THREE.BoxGeometry(0.075, 0.1, 0.03), eyeWhite);
+    eye.position.set(side * 0.095, 1.4, -0.235);
+    face.add(eye);
+    const pupil = new THREE.Mesh(new THREE.BoxGeometry(0.04, 0.055, 0.02), eyeDark);
+    pupil.position.set(side * 0.095, 1.39, -0.25);
+    face.add(pupil);
+    // คิ้วเอียงเข้าหากัน = หน้าดุ (ตัวละครนักสู้ทุกตัวในเกมใช้คิ้วแบบนี้)
+    const brow = new THREE.Mesh(new THREE.BoxGeometry(0.09, 0.028, 0.03), mat.joint);
+    brow.position.set(side * 0.1, 1.475, -0.235);
+    brow.rotation.z = side * 0.34;
+    face.add(brow);
+  }
+  rig.add(face);
+
   // ตะเข็บหมวกเรืองแสง — ทำให้มองเห็นหัวชัดจากข้างหลังในทางเดินมืด ๆ
   const seam = new THREE.Mesh(new THREE.TorusGeometry(0.252, 0.022, 8, 28), mat.cyan);
   seam.rotation.y = Math.PI / 2;
@@ -654,7 +680,7 @@ const HIP_Y = 0.62;
     for (const m of w.mounts) rig.add(m);
   }
 
-  return { rig, armL, armR, legL, legR, torso, chest, helmet, thrusters, mat, weapons, astroKit };
+  return { rig, armL, armR, legL, legR, torso, chest, helmet, face, thrusters, mat, weapons, astroKit };
 }
 
 export function createPlayer(scene) {
@@ -1204,6 +1230,7 @@ export function createPlayer(scene) {
     a.mat.joint.color.setHex(c.joint);
     a.mat.amber.color.setHex(c.accent);   // เข็มขัด/แถบถัง = สี accent ประจำตัว
     a.astroKit.visible = c.id === 'astro';   // ถังออกซิเจนเป็นของนักบินอวกาศคนเดียว
+    a.face.visible = c.id !== 'astro';       // นักบินอวกาศมีกระจกหน้ากากแทนหน้า
     applyBuild(c.build);
     refreshGear();
   }

@@ -20,6 +20,7 @@ import { CFG } from './config.js';
 import { fetchImage, cachedImage } from './images.js';
 import { playerHue } from './net.js';
 import { ammoById } from './weapons.js';
+import { characterById } from './characters.js';
 import { stormPhase } from './storm.js';
 
 const $ = id => document.getElementById(id);
@@ -74,6 +75,8 @@ export function createHUD(handlers = {}) {
     mpWinner: $('mp-winner'),
     mpWinnerText: $('mp-winner-text'),
     spectate: $('spectate-banner'),
+    spectateText: $('spectate-text'),
+    podium: $('podium'),
     spectateExit: $('btn-spectate-exit'),
     pause: $('btn-hud-pause'),
     bonusTitle: document.querySelector('#bonus-banner .bonus-title'),
@@ -123,6 +126,15 @@ export function createHUD(handlers = {}) {
   el.pause.addEventListener('click', (e) => { e.stopPropagation(); handlers.onPause?.(); });
   el.actBonus.addEventListener('click', (e) => { e.stopPropagation(); handlers.onForceBonus?.(); });
   el.spectateExit.addEventListener('click', (e) => { e.stopPropagation(); handlers.onLeaveSpectate?.(); });
+
+  /* ── ผู้ชมแตะธงเพื่อลองตอบเอง ─────────────────────────────
+   * ธงปกติ pointer-events:none (ห้ามบังการปัดนิ้ว) — เปิดเฉพาะตอนเป็นผู้ชม
+   * ผ่านคลาส .guessable ที่ setSpectateTarget เป็นคนใส่/ถอด */
+  el.laneFlags.addEventListener('click', (e) => {
+    const flag = e.target.closest('.flag');
+    if (!flag || !el.laneFlags.classList.contains('guessable')) return;
+    handlers.onFlagPick?.(Number(flag.dataset.lane));
+  });
 
   /* ── แตะชื่อในตารางคะแนน = เล็งเป้า ──────────────────────── */
   el.mpLbList.addEventListener('click', (e) => {
@@ -215,6 +227,7 @@ export function createHUD(handlers = {}) {
       flags.forEach((f, i) => {
         f.word.textContent = options[i].en;
         f.trans.textContent = '';
+        f.trans.dataset.th = options[i].th || '';   // เก็บไว้เผยตอนเฉลย (ผู้ชมใช้)
         f.node.classList.remove('correct', 'wrong', 'revealed');
       });
     },
@@ -505,7 +518,7 @@ export function createHUD(handlers = {}) {
      * จุดสีหน้าชื่อ = สีเดียวกับโกสต์ของคนนั้นในฉาก (จับคู่กันได้ด้วยตาเดียว)
      * แถบใต้ชื่อ = ออกซิเจนของคนนั้น — เห็นได้ทันทีว่าใครกำลังจะร่วง (= เป้าที่คุ้มที่สุด)
      */
-    setLeaderboard(players, selfId, targetId = null) {
+    setLeaderboard(players, selfId, targetId = null, watchId = null) {
       const rows = [...players].sort((a, b) => (b.score - a.score) || (b.gates - a.gates));
       el.mpLbList.innerHTML = rows.map((p, i) => {
         const oxy = Math.max(0, Math.min(1, p.oxy ?? 1));
@@ -513,6 +526,7 @@ export function createHUD(handlers = {}) {
           p.id === selfId ? 'me' : '',
           p.finished ? 'dead' : '',
           p.id === targetId ? 'targeted' : '',
+          p.id === watchId ? 'watched' : '',
         ].filter(Boolean).join(' ');
         return `
         <li class="${cls}" data-id="${escapeHtml(p.id)}">
@@ -523,7 +537,7 @@ export function createHUD(handlers = {}) {
             <span class="lb-oxy"><i style="transform:scaleX(${oxy.toFixed(2)})"></i></span>
           </span>
           <span class="lb-score">${p.score}</span>
-          <span class="lb-flag">${p.finished ? '💀' : (p.id === targetId ? '🎯' : '🏃')}</span>
+          <span class="lb-flag">${p.finished ? '💀' : p.id === watchId ? '👁️' : p.id === targetId ? '🎯' : '🏃'}</span>
         </li>`;
       }).join('');
     },
@@ -532,6 +546,55 @@ export function createHUD(handlers = {}) {
     setBonusFlavor(title, sub) {
       el.bonusTitle.textContent = title;
       el.bonusSub.textContent = sub;
+    },
+
+    /** ป้ายบอกว่ากำลังสิงใครอยู่ + เปิดให้ธงกดได้ */
+    setSpectateTarget(name) {
+      el.spectateText.textContent = name
+        ? `👁️ กำลังสิง ${name} — แตะธงเพื่อลองตอบ`
+        : '💀 ตกรอบแล้ว — แตะชื่อในตารางเพื่อสิง';
+      el.laneFlags.classList.toggle('guessable', !!name);
+    },
+
+    /** ผลการเดาของผู้ชม — เขียว = ถูก, แดง = ที่เลือกผิด (เฉลยยังโชว์เขียวเสมอ) */
+    setSpectateGuess(res) {
+      if (!res) {
+        flags.forEach(f => f.node.classList.remove('correct', 'wrong', 'revealed'));
+        return;
+      }
+      flags.forEach((f, i) => {
+        f.node.classList.toggle('correct', i === res.correct);
+        f.node.classList.toggle('wrong', i === res.picked && i !== res.correct);
+      });
+      this.revealMeanings(flags.map(f => ({ th: f.trans.dataset.th || '' })));
+    },
+
+    /**
+     * แท่นรับรางวัล 3 อันดับ — เรียง 2-1-3 ในโค้ดเพื่อให้ที่ 1 อยู่กลาง
+     * @param {Array<{name,score,skin,id}>} top3
+     */
+    showPodium(top3) {
+      const slots = [...el.podium.querySelectorAll('.pod-slot')];
+      if (!top3 || !top3.length) {
+        el.podium.classList.add('hidden');
+        slots.forEach(sl => { sl.innerHTML = ''; });
+        return;
+      }
+      const MEDAL = { 1: '🥇', 2: '🥈', 3: '🥉' };
+      slots.forEach((sl) => {
+        const rank = Number(sl.dataset.rank);
+        const p = top3[rank - 1];
+        if (!p) { sl.classList.add('empty'); sl.innerHTML = ''; return; }
+        sl.classList.remove('empty');
+        sl.style.setProperty('--hue', playerHue(p.id));
+        sl.innerHTML = `
+          <div class="pod-medal">${MEDAL[rank]}</div>
+          <div class="pod-char">${characterById(p.skin).emoji}</div>
+          <div class="pod-name">${escapeHtml(p.name)}</div>
+          <div class="pod-score">${p.score}</div>
+          <div class="pod-block"><span>${rank}</span></div>`;
+      });
+      el.podium.classList.remove('hidden');
     },
 
     showSpectate(on) {

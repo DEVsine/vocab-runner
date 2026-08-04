@@ -61,6 +61,7 @@ const hud = createHUD({
   onCycleAmmo: () => cycleAmmo(),
   onSelectTarget: (id) => selectTarget(id),
   onContestPick: (i) => contestPick(i),
+  onFlagPick: (i) => spectateGuess(i),
   onPause: () => pauseGame(),
   onLeaveSpectate: () => toLobby(),
   onForceBonus: () => forceBonusNow(),
@@ -85,6 +86,9 @@ let mpBroadcastAt = 0;         // เวลาล่าสุดที่ส่�
 let countdownTimer = null;
 let winnerTimer = null;
 let mpTarget = null;           // id ของคู่แข่งที่เราเล็งไว้ (แตะชื่อในตารางคะแนน)
+let mpWatch = null;            // id ของคนที่เรากำลัง "สิง" อยู่ (เฉพาะตอนเป็นผู้ชม)
+let mpLastSentQuestion = null; // โจทย์ล่าสุดที่ส่งให้ผู้ชมแล้ว (กันส่งซ้ำทุกเฟรม)
+let watchQuestion = null;      // โจทย์ที่รับมาจากคนที่เราสิงอยู่
 
 /* ── หน้าจอ/เมนู ─────────────────────────────────────────── */
 
@@ -467,7 +471,11 @@ function setupNet() {
     if (state === 'lobby') ui.mpRenderPlayers(players, net.selfId());
     // เป้าที่เล็งไว้ตายไปแล้ว/ออกจากห้องแล้ว → ปลดเป้าเอง ไม่ให้ค้างชี้ไปที่ผี
     if (mpTarget && !players.some(p => p.id === mpTarget && !p.finished)) mpTarget = null;
-    hud.setLeaderboard(players, net.selfId(), mpTarget);
+    if (mpWatch && !players.some(p => p.id === mpWatch && !p.finished)) {
+      mpWatch = null; watchQuestion = null; net.watch(null);
+      hud.setSpectateTarget(null); hud.setQuestionVisible(false);
+    }
+    hud.setLeaderboard(players, net.selfId(), mpTarget, mpWatch);
     // อัปเดตโกสต์ของเพื่อนทันทีที่ได้ตำแหน่งใหม่ (รวมตอนเป็นผู้ชมหลังตกรอบด้วย)
     if (mpActive && (state === 'running' || state === 'dying' || state === 'dead' || state === 'spectate')) {
       ghosts.sync(players, net.selfId());
@@ -481,6 +489,7 @@ function setupNet() {
   net.on('contest', (msg) => onContestStart(msg));
   net.on('contestResult', (msg) => onContestResult(msg));
   net.on('final', (msg) => enterFinalRound(msg));
+  net.on('watchQ', (msg) => onWatchQuestion(msg));
   net.on('status', (msg) => ui.mpSetStatus(msg));
   net.on('error', (msg) => ui.mpSetStatus(msg, 'fail'));
 
@@ -506,6 +515,7 @@ function setupNet() {
     clearTimeout(winnerTimer);
     hud.countdown(null);
     hud.showWinner(null);
+    hud.showPodium(null);
     hud.showLeaderboard(false);
     hud.setFinalBanner(false);
     hud.showContest(null);
@@ -606,13 +616,83 @@ function onAttackAck(ack) {
   }
 }
 
-/** แตะชื่อในตารางคะแนน = เล็งเป้า (แตะซ้ำ = ปลดเป้า) */
+/**
+ * แตะชื่อในตารางคะแนน — ความหมายเปลี่ยนตามสถานะ
+ *   ยังวิ่งอยู่  → เล็งเป้าอาวุธ
+ *   เป็นผู้ชม   → "สิง" คนนั้น (ดูโจทย์เดียวกับเขา)
+ */
 function selectTarget(id) {
   if (!mpActive || id === net.selfId()) return;
+
+  if (state === 'spectate') { watchPlayer(id); return; }
+
   mpTarget = mpTarget === id ? null : id;
   sfx.select();
-  hud.setLeaderboard(mpRoster, net.selfId(), mpTarget);
+  hud.setLeaderboard(mpRoster, net.selfId(), mpTarget, mpWatch);
   if (run?.br) hud.setWeapon(run.ammo, run.ammoCharge / CFG.br.weapon.correctPerAmmo, run.selectedAmmo, mpTarget);
+}
+
+/* ══ โหมดสิง: ตกรอบแล้วยังเรียนต่อได้ ═══════════════════════
+ * ⚠️ นี่ไม่ใช่ฟีเจอร์ "ดูเพลิน ๆ" แต่เป็นการแก้กับดักเดียวกับกล่องคำที่พลาด:
+ * คนที่ตกรอบเร็วที่สุดคือคนที่รู้ศัพท์น้อยที่สุด ถ้าปล่อยให้เขานั่งดูเฉย ๆ
+ * เขาจะได้ฝึกน้อยที่สุดทั้งที่ต้องการมากที่สุด
+ * การเห็น "โจทย์เดียวกับที่คนเก่งกำลังตอบ" ทำให้เวลาที่เหลือของแมตช์
+ * กลายเป็นเวลาเรียน ไม่ใช่เวลารอ
+ */
+function watchPlayer(id) {
+  const p = mpRoster.find(x => x.id === id);
+  if (!p || p.finished) return;
+
+  mpWatch = mpWatch === id ? null : id;
+  watchQuestion = null;
+  net.watch(mpWatch);
+  sfx.select();
+
+  hud.setLeaderboard(mpRoster, net.selfId(), null, mpWatch);
+  if (mpWatch) {
+    hud.setQuestionVisible(true);
+    hud.clearQuestion();
+    hud.setSpectateTarget(p.name);
+    hud.toast(`👁️ กำลังสิง ${p.name} — ลองตอบตามดูสิ`, 2600);
+  } else {
+    hud.setQuestionVisible(false);
+    hud.setSpectateTarget(null);
+  }
+}
+
+/** โจทย์ของคนที่เราสิงอยู่มาถึง — วาดให้เหมือนที่เขาเห็นเป๊ะ */
+function onWatchQuestion(msg) {
+  if (state !== 'spectate' || !mpWatch || msg.from !== mpWatch) return;
+  const q = msg.q;
+  if (!q) return;
+
+  watchQuestion = q;
+  hud.setQuestion({
+    mode: q.mode,
+    word: { th: q.th, en: q.en, emoji: q.emoji },
+    options: q.opts.map((en, i) => ({ en, th: q.trans?.[i] || '' })),
+    correctIndex: q.correctIndex,
+  });
+  hud.setSpectateGuess(null);
+}
+
+/**
+ * ผู้ชมลองตอบเอง — ไม่มีผลต่อแมตช์เลย แต่ได้รู้ทันทีว่าถูกหรือผิด
+ * (และคำที่ตอบผิดถูกหย่อนลงกล่องฝึกเหมือนตอนเล่นจริง)
+ */
+function spectateGuess(index) {
+  if (state !== 'spectate' || !watchQuestion) return;
+  const correct = index === watchQuestion.correctIndex;
+  hud.setSpectateGuess({ picked: index, correct: watchQuestion.correctIndex });
+  if (correct) {
+    sfx.correct(1);
+  } else {
+    sfx.laser();
+    srs.record(deck.id, watchQuestion.en, false);
+    addMissed(deck.id, [watchQuestion.en]);
+  }
+  speak(watchQuestion.en);
+  watchQuestion = null;      // ตอบได้ครั้งเดียวต่อข้อ
 }
 
 /**
@@ -892,13 +972,24 @@ function onRoundWinner(w) {
       : (w.id ? `🏆 ${w.name} คือผู้รอดคนสุดท้าย!` : 'รอบนี้ไม่มีผู้รอด — เสมอกัน!');
   }
   hud.showWinner(text);
+
+  /* ── แท่นรับรางวัล 3 อันดับ ────────────────────────────────
+   * ⚠️ จัดอันดับจาก "คะแนน" ไม่ใช่ "ใครตายทีหลัง"
+   * เพราะคะแนนมาจากการตอบถูก ส่วนการรอดนานมาจากการหลบเก่ง
+   * เกมนี้วัดคำศัพท์ อันดับจึงต้องสะท้อนคำศัพท์
+   * (ผู้ชนะรอบยังเป็นผู้รอดคนสุดท้ายเหมือนเดิม — นี่คือคนละเรื่องกัน) */
+  const ranking = [...mpRoster]
+    .sort((a, b) => (b.score - a.score) || (b.gates - a.gates))
+    .slice(0, 3);
+  hud.showPodium(ranking);
   sfx.bonusStart();   // แตรฉลองที่มีอยู่แล้ว ใช้ซ้ำได้พอดี
 
   clearTimeout(winnerTimer);
   winnerTimer = setTimeout(() => {
     hud.showWinner(null);
+    hud.showPodium(null);
     toLobby();
-  }, 3200);
+  }, 5200);   // นานขึ้นจาก 3.2 วิ — ต้องมีเวลาให้อ่านแท่นรับรางวัลจริง ๆ
 }
 
 function openMultiplayer() {
@@ -983,6 +1074,9 @@ function runCountdown(done) {
 
 /** กลับเข้าล็อบบี้หลังจบรอบ (ยังอยู่ในห้อง) — หัวห้องกดเริ่มรอบใหม่ได้ */
 function toLobby() {
+  mpWatch = null; watchQuestion = null; mpLastSentQuestion = null;
+  net.watch(null);
+  hud.setSpectateTarget(null);
   const wasEliminated = mpFinished;   // จำไว้ก่อน เพราะบรรทัดล่างจะล้างธงทิ้ง
   stopSpeaking();
   stopAmbience();
@@ -1034,6 +1128,7 @@ function exitMultiplayer() {
   clearTimeout(winnerTimer);
   hud.countdown(null);
   hud.showWinner(null);
+  hud.showPodium(null);
   hud.showLeaderboard(false);
   hud.setFinalBanner(false);
   hud.showContest(null);
@@ -1042,6 +1137,9 @@ function exitMultiplayer() {
 }
 
 function leaveToMenu() {
+  mpWatch = null; watchQuestion = null; mpLastSentQuestion = null;
+  net.watch(null);
+  hud.setSpectateTarget(null);
   exitMultiplayer();
   toMenu();
 }
@@ -1741,12 +1839,29 @@ function broadcastMpState() {
   const now = performance.now();
   if (now - mpBroadcastAt < 150) return;
   mpBroadcastAt = now;
-  net.sendState({
+  const payload = {
     score: run.score, gates: run.gates, coins: run.coins,
     alive: true, finished: false,
     lane: player.nearestLane(), py: +player.group.position.y.toFixed(2),
     oxy: +run.oxy.toFixed(2), ammo: run.ammo, zone: run.zone.id,
-  });
+    skin: wallet.selected(),
+  };
+
+  // ── โจทย์สำหรับ "ผู้ชมที่สิงเราอยู่" ──
+  // ส่งเฉพาะตอนโจทย์เปลี่ยนจริง ๆ ไม่ใช่ทุก 150ms — host เก็บค่าล่าสุดไว้ให้เอง
+  // (ประหยัดแบนด์วิดท์ราว 95% เพราะโจทย์เปลี่ยนทุก ~5 วิ แต่สถานะส่งทุก 0.15 วิ)
+  const q = run.activeQuestion;
+  if (q && q !== mpLastSentQuestion) {
+    mpLastSentQuestion = q;
+    payload.q = {
+      mode: q.mode,
+      th: q.word.th, en: q.word.en, emoji: q.word.emoji || '',
+      opts: q.options.map(o => o.en),
+      trans: q.options.map(o => o.th || ''),
+      correctIndex: q.correctIndex,
+    };
+  }
+  net.sendState(payload);
 }
 
 function update(dt) {
@@ -1871,6 +1986,10 @@ function update(dt) {
         hud.clearQuestion();
         hud.setQuestionVisible(false);
         hud.showSpectate(true);
+        // เลือกให้อัตโนมัติ: สิงคนที่นำอยู่ — ผู้เล่นที่เพิ่งตายไม่ควรต้องมานั่งหาว่าจะดูใคร
+        const lead = [...mpRoster].filter(p => !p.finished && p.id !== net.selfId())
+          .sort((a, b) => b.score - a.score)[0];
+        if (lead) watchPlayer(lead.id);
         startAmbience();
       } else {
         state = 'dead';
@@ -2007,6 +2126,7 @@ if (location.hostname === 'localhost' || location.hostname === '127.0.0.1') {
     getRun: () => run,
     getPlayer: () => player,
     world,
+    hud,
     CFG,
     getPickups: () => pickups,
     getTrains: () => trains,

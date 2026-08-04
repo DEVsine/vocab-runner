@@ -117,7 +117,7 @@ export function createNet() {
     return {
       id, name, host, uid,
       score: 0, gates: 0, coins: 0, alive: false, finished: false,
-      lane: 1, py: 0, oxy: 1, ammo: 0, zone: 'mid',
+      lane: 1, py: 0, oxy: 1, ammo: 0, zone: 'mid', skin: 'astro',
     };
   }
 
@@ -353,6 +353,24 @@ export function createNet() {
     else { try { conns.get(fromId)?.send(ack); } catch { /* ปิดอยู่ */ } }
   }
 
+  /* ── โหมดสิง: ผู้ชมขอดูโจทย์ของคนที่ยังวิ่งอยู่ ────────────────
+   * ⚠️ โจทย์ต้องส่งแบบ "เจาะจงถึงผู้ชมคนนั้น" เท่านั้น ห้ามใส่ไปใน roster เด็ดขาด
+   * เพราะ roster ถูกกระจายให้ทุกคนรวมถึงคนที่ยังเล่นอยู่ — และในรอบชิงที่ทุกคน
+   * วิ่งบนแทร็กเดียวกัน โจทย์ของคนอื่นก็คือโจทย์ของเราเอง
+   * ถ้าส่งคำตอบที่ถูกไปกับ roster เท่ากับแจกเฉลยให้คู่แข่งที่วิ่งตามหลังอยู่
+   */
+  const watching = new Map();      // ผู้ชม id -> id ของคนที่สิงอยู่
+
+  function relayQuestion(fromId, q) {
+    if (!q) return;
+    const msg = { t: 'watchQ', from: fromId, q };
+    for (const [watcher, target] of watching) {
+      if (target !== fromId) continue;
+      if (watcher === selfId) cb.watchQ?.(msg);
+      else { try { conns.get(watcher)?.send(msg); } catch { /* ปิดอยู่ */ } }
+    }
+  }
+
   let trailingTimer = null;
 
   /**
@@ -379,7 +397,7 @@ export function createNet() {
     }
     lastBroadcast = now;
     // แนบเลขทีมไปกับ roster — ล็อบบี้/ตารางคะแนนใช้แสดงป้ายทีมโดยไม่ต้องมีข้อความแยก
-    const players = [...roster.values()].map(({ lastSeen, ...p }) => ({ ...p, team: teams[p.id] }));
+    const players = [...roster.values()].map(({ lastSeen, q, ...p }) => ({ ...p, team: teams[p.id] }));
     sendAll({ t: 'roster', players });
     cb.roster(players);          // host ก็ต้องเห็น roster ของตัวเองด้วย
   }
@@ -416,8 +434,11 @@ export function createNet() {
         id: conn.peer, name: prev.name, host: false, uid: prev.uid,
         lastSeen: performance.now(),
       });
+      if (data.s?.q) relayQuestion(conn.peer, data.s.q);
       broadcastRoster();
       checkWinner();     // สถานะใหม่อาจเป็น "ผมตายแล้ว" → เช็กว่าเหลือคนสุดท้ายหรือยัง
+    } else if (data.t === 'watch') {
+      watching.set(conn.peer, data.target || null);
     } else if (data.t === 'atk') {
       routeAttack(conn.peer, roster.get(conn.peer)?.name || 'คู่แข่ง', data.target, data.ammo);
     } else if (data.t === 'contestAnswer') {
@@ -469,6 +490,7 @@ export function createNet() {
       case 'winner': cb.winner(data); break;
       case 'atkTo': cb.attack(data.from || 'คู่แข่ง', data.ammo); break;
       case 'atkAck': cb.attackAck?.(data); break;
+      case 'watchQ': cb.watchQ?.(data); break;
       case 'storm': cb.storm(data); break;
       case 'contest': cb.contest(data); break;
       case 'contestResult': cb.contestResult(data); break;
@@ -617,6 +639,7 @@ export function createNet() {
         ...cur, ...s, id: selfId, name: selfName, host: true, uid: selfUid,
         lastSeen: performance.now(),
       });
+      if (s.q) relayQuestion(selfId, s.q);
       broadcastRoster();
       checkWinner();     // host ตายเองก็ต้องเช็กเหมือนกัน (host เป็นแค่ผู้เล่นคนหนึ่งในรอบ)
     } else if (hostConn && hostConn.open) {
@@ -629,6 +652,14 @@ export function createNet() {
     if (isHost) routeAttack(selfId, selfName, targetId, ammo);
     else if (hostConn && hostConn.open) {
       try { hostConn.send({ t: 'atk', target: targetId, ammo }); } catch { /* ปิดอยู่ */ }
+    }
+  }
+
+  /** บอก host ว่าเรากำลังสิงใครอยู่ (null = เลิกสิง) */
+  function watch(targetId) {
+    if (isHost) { watching.set(selfId, targetId); return; }
+    if (hostConn && hostConn.open) {
+      try { hostConn.send({ t: 'watch', target: targetId }); } catch { /* ปิดอยู่ */ }
     }
   }
 
@@ -649,6 +680,7 @@ export function createNet() {
     participants.clear();
     raceMode = 'solo';
     teams = {};
+    watching.clear();
     conns.clear();
     roster.clear();
     hostConn = null;
@@ -666,7 +698,7 @@ export function createNet() {
   }
 
   return {
-    on, host, join, startRace, sendState, sendAttack, sendContestAnswer, leave,
+    on, host, join, startRace, sendState, sendAttack, sendContestAnswer, watch, leave,
     /** ตัวเกมเป็นคนรู้จัก deck — host เรียกฟังก์ชันนี้เพื่อขอโจทย์ศึกชิงคำ */
     setQuestionSource: (fn) => { questionSource = fn; },
     amHost: () => isHost,

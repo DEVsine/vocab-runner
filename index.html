@@ -378,8 +378,16 @@
   <!-- นับถอยหลังก่อนออกตัว -->
   <div id="mp-countdown" class="hidden"><span id="mp-countdown-num">3</span></div>
 
-  <!-- ป้ายผู้ชนะ Battle Royale (ผู้รอดคนสุดท้าย) -->
-  <div id="mp-winner" class="hidden"><div id="mp-winner-text">🏆</div></div>
+  <!-- ป้ายผู้ชนะ + แท่นรับรางวัล 3 อันดับ -->
+  <div id="mp-winner" class="hidden">
+    <div id="mp-winner-text">🏆</div>
+    <!-- เรียง 2-1-3 ในโค้ด เพื่อให้ที่ 1 อยู่ "ตรงกลาง" ตามธรรมเนียมแท่นรับรางวัล -->
+    <div id="podium">
+      <div class="pod-slot" data-rank="2"></div>
+      <div class="pod-slot" data-rank="1"></div>
+      <div class="pod-slot" data-rank="3"></div>
+    </div>
+  </div>
 
   <!-- ⚡ ศึกชิงคำ: โจทย์เดียวกันทุกเครื่องพร้อมกัน โลกช้าลงเพื่อให้เป็นการดวลจริง ๆ -->
   <div id="contest" class="hidden">
@@ -396,7 +404,7 @@
   <!-- แถบโหมดผู้ชม (ตกรอบแล้ว ดูเพื่อนที่เหลือแข่งต่อ)
        ต้องมีปุ่มออกจริง ๆ — มือถือไม่มี Esc ให้กด -->
   <div id="spectate-banner" class="hidden">
-    <span>💀 ตกรอบแล้ว — กำลังชมผู้เล่นที่เหลือ</span>
+    <span id="spectate-text">💀 ตกรอบแล้ว — แตะชื่อในตารางเพื่อสิง</span>
     <button id="btn-spectate-exit" type="button">กลับห้อง</button>
   </div>
   </div><!-- /#app -->
