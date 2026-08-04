@@ -914,9 +914,13 @@ function buildAstronaut() {
     const knot = new THREE.Mesh(new THREE.BoxGeometry(0.3, 0.11, 0.3), scarfMat);
     knot.position.set(0, 1.07, 0.2);
     alwaysG.add(knot);
-    // ผ้าคาดเอวหนา ๆ (โอบิ) — ในภาพอ้างอิงนี่คือสีน้ำตาลก้อนเดียวที่ตัดกับชุดดำทั้งตัว
-    const obi = new THREE.Mesh(new THREE.BoxGeometry(0.5, 0.11, 0.36), toonMat(0x6b4a2e));
-    obi.position.set(0, 0.64, 0);
+    /* ผ้าคาดเอวหนา (โอบิ) — ในภาพอ้างอิงนี่คือสีน้ำตาลก้อนเดียวที่ตัดกับชุดดำทั้งตัว
+     * ⚠️ ต้อง *ใหญ่กว่า* เข็มขัดสีเน้นของโครงกลางทุกด้าน ไม่ใช่เล็กกว่า
+     * รอบแรกทำไว้ 0.5 × 0.36 ซึ่งเล็กกว่าเข็มขัด 0.55 × 0.39 → จมอยู่ข้างในทั้งชิ้น
+     * มองไม่เห็นเลยแม้แต่นิดเดียว และไม่มีอะไรฟ้องว่าผิด เพราะโค้ดทำงานถูกทุกบรรทัด
+     * ตอนนี้กลับกัน: โอบิเป็นฐาน แล้วเข็มขัดสีเน้นกลายเป็นเชือกคาดพาดทับ */
+    const obi = new THREE.Mesh(new THREE.BoxGeometry(0.6, 0.17, 0.44), toonMat(0x6b4a2e));
+    obi.position.set(0, 0.635, 0);
     alwaysG.add(obi);
     // สายคาดอกใส่ดาว
     const sash = new THREE.Mesh(new THREE.BoxGeometry(0.46, 0.08, 0.4), wrapMat);

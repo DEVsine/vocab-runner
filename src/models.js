@@ -29,18 +29,42 @@ const CLIP_PATTERNS = {
 
 let loaderPromise = null;
 
+/* ⚠️ GLTFLoader ไม่ได้มาไฟล์เดียว — มันอิมพอร์ตต่อไปยัง
+ *    `../utils/BufferGeometryUtils.js` ด้วย (ตั้งแต่ three r150 เป็นต้นมา)
+ *
+ * เส้นทางนั้นเป็น **เส้นทางสัมพัทธ์กับตัวไฟล์ GLTFLoader เอง** ไม่ใช่กับเกมของเรา
+ * แปลว่าถ้าเอา GLTFLoader.js ไปวางโดด ๆ ที่ vendor/ มันจะไปหา
+ * `<โฟลเดอร์เกม>/utils/BufferGeometryUtils.js` ซึ่งไม่มี → พังทันทีที่โหลดตัวละครตัวแรก
+ *
+ * ทางแก้ที่ถูก: **เก็บโครงโฟลเดอร์เดิมของ three ไว้** แล้วชี้เข้าไปในโครงนั้น
+ *   vendor/jsm/loaders/GLTFLoader.js
+ *   vendor/jsm/utils/BufferGeometryUtils.js
+ * เส้นทาง `../utils/...` ที่อยู่ในไฟล์จะชี้ถูกเองโดยไม่ต้องแก้ไฟล์ที่ดาวน์โหลดมาเลย
+ *
+ * บทเรียนทั่วไป: ไลบรารีที่อิมพอร์ตกันเองด้วยเส้นทางสัมพัทธ์ ห้ามหยิบมาแค่ไฟล์เดียว
+ * ต้องยกโครงโฟลเดอร์มาทั้งชุด ไม่งั้นจะเจอ error ที่ชี้ไปยังไฟล์ที่เราไม่เคยเห็น
+ */
+const LOADER_PATHS = [
+  '../vendor/jsm/loaders/GLTFLoader.js',   // แนะนำ — โครงเดิมของ three ครบ
+  '../vendor/GLTFLoader.js',               // สำรอง — เผื่อวางแบบไฟล์เดียวไว้แล้ว
+];
+
 /**
  * โหลด GLTFLoader แบบ "ขอไปที" — เรียกครั้งแรกเมื่อจะใช้จริงเท่านั้น
  * ถ้าไฟล์ยังไม่ได้วางใน vendor/ จะคืน null แทนการโยน error
  */
 function getLoader() {
   if (loaderPromise) return loaderPromise;
-  loaderPromise = import('../vendor/GLTFLoader.js')
-    .then(m => new m.GLTFLoader())
-    .catch(() => {
-      console.info('[models] ยังไม่มี vendor/GLTFLoader.js — ใช้ตัวละครที่ปั้นด้วยโค้ดต่อไป');
-      return null;
-    });
+  loaderPromise = (async () => {
+    for (const path of LOADER_PATHS) {
+      try {
+        const m = await import(path);
+        return new m.GLTFLoader();
+      } catch { /* ลองเส้นทางถัดไป */ }
+    }
+    console.info('[models] ยังไม่มี vendor/jsm/loaders/GLTFLoader.js — ใช้ตัวละครที่ปั้นด้วยโค้ดต่อไป');
+    return null;
+  })();
   return loaderPromise;
 }
 
