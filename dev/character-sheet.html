@@ -1,0 +1,98 @@
+<!doctype html>
+<!-- เครื่องมือดูตัวละครแบบสตูดิโอ — ไฟล์ชั่วคราวสำหรับตรวจงาน ไม่ได้อยู่ในเกม -->
+<html lang="th">
+<head>
+<meta charset="utf-8">
+<title>character shoot</title>
+<style>
+  body { margin:0; background:#eef2f7; }
+  canvas { display:block; }
+</style>
+<script type="importmap">
+{ "imports": { "three": "../vendor/three.module.js" } }
+</script>
+</head>
+<body>
+<canvas id="c"></canvas>
+<script type="module">
+import * as THREE from 'three';
+import { createPlayer } from '../src/player.js';
+import { CHARACTER_ORDER } from '../src/characters.js';
+import { CFG } from '../src/config.js';
+
+const W = Math.min(1100, window.innerWidth), H = 560;
+const renderer = new THREE.WebGLRenderer({ canvas: document.getElementById('c'), antialias: true });
+renderer.setPixelRatio(2);
+renderer.setSize(W, H);      // ต้องให้มันตั้ง CSS size ด้วย ไม่งั้น canvas จะกางเท่า backing store (×dpr)
+renderer.outputColorSpace = THREE.SRGBColorSpace;
+
+const scene = new THREE.Scene();
+scene.background = new THREE.Color(0xdfe6ef);
+
+// ไฟสตูดิโอ: หลัก + เติม + ขอบ — เลียนไฟที่เกมใช้แต่สว่างกว่าเพื่อให้เห็นรายละเอียด
+scene.add(new THREE.HemisphereLight(0xffffff, 0x9aa8bb, 0.55));
+const key = new THREE.DirectionalLight(0xffffff, 1.5); key.position.set(7, 6, 3); scene.add(key);
+const fill = new THREE.DirectionalLight(0xdcefff, 0.22); fill.position.set(-2, 3.5, 12); scene.add(fill);
+const rim = new THREE.DirectionalLight(0x9fd8ff, 0.45); rim.position.set(-4, 3, -8); scene.add(rim);
+
+const camera = new THREE.PerspectiveCamera(30, W / H, 0.1, 100);
+
+/* สร้างผู้เล่น 5 ตัว วางเรียงกัน แต่ละตัวคนละสกิน
+ * ⚠️ ท่าโชว์ (showcase) เขียนทับ group.position ทุกเฟรม — เลื่อนตัว group ตรง ๆ ไม่ได้
+ * จึงต้องห่อไว้ในกลุ่มแม่แล้วเลื่อนกลุ่มแม่แทน */
+const players = CHARACTER_ORDER.map((id, i) => {
+  const p = createPlayer(scene);
+  const holder = new THREE.Group();
+  holder.position.x = (i - 2) * 1.35;
+  scene.add(holder);
+  holder.add(p.group);
+  p.applySkin(id);
+  p.setShowcase(true);
+  return p;
+});
+
+window.__players = players;
+const params = new URLSearchParams(location.search);
+const spin = parseFloat(params.get('spin') || '0');   // หมุนกลุ่มแม่เพิ่ม (เรเดียน)
+for (const p of players) p.group.parent.rotation.y = spin;
+
+// ?only=ninja — โชว์ตัวเดียวกลางจอ ไว้ตรวจรายละเอียดใบหน้า
+const only = params.get('only');
+if (only) {
+  const keep = CHARACTER_ORDER.indexOf(only);
+  players.forEach((p, i) => { p.group.parent.visible = i === keep; p.group.parent.position.x = 0; });
+}
+const gear = params.get('gear');            // '', 'stow', 'armed'
+const back = params.get('back') === '1';    // มองจากด้านหลัง (มุมที่เห็นตอนเล่นจริง)
+const run = params.get('run') === '1';      // ท่าวิ่งแทนท่ายืนโชว์
+
+for (const p of players) {
+  if (gear === 'stow') p.setGear(1, false);
+  else if (gear === 'armed') p.setGear(1, true);
+  if (run) p.setShowcase(false);
+}
+
+const pz = CFG.world.playerZ;
+const dist = parseFloat(params.get('dist') || (only ? '2.6' : '6.6'));
+const aimY = parseFloat(params.get('aimY') || (only ? '1.25' : '0.95'));
+camera.position.set(0, aimY + 0.2, pz + (back ? -dist : dist));
+camera.lookAt(0, aimY, pz);
+
+/* ⚠️ อย่าพึ่ง requestAnimationFrame ในการ "เดินเวลา"
+ * แท็บที่ไม่ได้อยู่หน้าจอจริงถูกเบรก rAF เหลือไม่กี่เฟรม → ท่าโชว์ที่ค่อย ๆ หมุนเข้าที่
+ * จะค้างอยู่ที่ 0.2 เรเดียนตอนถ่ายภาพ แล้วเราจะสรุปผิดว่า "ตัวละครหันหลังให้กล้อง"
+ * เดินเวลาเองเป็นก้อนก่อน แล้วค่อยเรนเดอร์ = ได้ภาพเดิมทุกครั้งไม่ว่าเครื่องจะเร็วแค่ไหน */
+const warm = Math.round(parseFloat(params.get('t') || '3') * 60);
+for (let i = 0; i < warm; i++) for (const p of players) p.update(1 / 60, null);
+renderer.render(scene, camera);
+
+function frame() {
+  for (const p of players) p.update(1 / 60, null);
+  renderer.render(scene, camera);
+  requestAnimationFrame(frame);
+}
+requestAnimationFrame(frame);
+window.__ready = true;
+</script>
+</body>
+</html>

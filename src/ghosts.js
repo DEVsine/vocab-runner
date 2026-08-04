@@ -62,17 +62,21 @@ function buildGhostBody() {
   const bodyMat = new THREE.MeshLambertMaterial({ transparent: true, opacity: 0.55 });
   const trimMat = new THREE.MeshBasicMaterial({ transparent: true, opacity: 0.85 });
 
-  const body = new THREE.Mesh(new THREE.CapsuleGeometry(0.24, 0.62, 4, 12), bodyMat);
-  body.position.y = 0.78;
+  /* ⚠️ สัดส่วนต้องตรงกับตัวผู้เล่น (ดู HEAD_Y / HEAD_R ใน player.js)
+   * โกสต์จะเรียบกว่าตัวเราได้ แต่ "ทรงร่าง" ต้องเป็นพวกเดียวกัน
+   * ถ้าตัวเราหัวโต 2.6 หัวแต่โกสต์หัวเล็ก 3.3 หัว ตาจะอ่านว่าเป็นคนละเกม
+   * ไม่ใช่ "เพื่อนร่วมห้อง" — และนั่นคือสิ่งที่ทำลายความรู้สึกว่ากำลังแข่งกับใครอยู่จริง */
+  const body = new THREE.Mesh(new THREE.CapsuleGeometry(0.25, 0.5, 4, 12), bodyMat);
+  body.position.y = 0.74;
   g.add(body);
 
-  const helmet = new THREE.Mesh(new THREE.SphereGeometry(0.2, 14, 12), bodyMat);
-  helmet.position.y = 1.42;
+  const helmet = new THREE.Mesh(new THREE.SphereGeometry(0.29, 16, 14), bodyMat);
+  helmet.position.y = 1.34;
   g.add(helmet);
 
-  const seam = new THREE.Mesh(new THREE.TorusGeometry(0.205, 0.02, 6, 20), trimMat);
-  seam.rotation.y = Math.PI / 2;
-  seam.position.y = 1.42;
+  const seam = new THREE.Mesh(new THREE.TorusGeometry(0.295, 0.022, 6, 20, Math.PI), trimMat);
+  seam.rotation.x = Math.PI / 2;      // ครึ่งหลังเท่านั้น — ฝั่งที่กล้องเกมมองเห็น
+  seam.position.y = 1.34;
   g.add(seam);
 
   const ring = new THREE.Mesh(
