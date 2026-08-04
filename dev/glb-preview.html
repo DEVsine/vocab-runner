@@ -1,0 +1,88 @@
+<!doctype html>
+<!-- ดูไฟล์ .glb ดิบ ๆ เรียงกัน ก่อนตัดสินใจว่าจะเอาตัวไหนไปเป็นตัวละครไหน
+     ใช้: glb-preview.html?files=_try/Knight.glb,_try/Mage.glb -->
+<html lang="th">
+<head>
+<meta charset="utf-8">
+<title>glb preview</title>
+<style>
+  body { margin:0; background:#eef2f7; font:14px/1.5 system-ui, sans-serif; }
+  canvas { display:block; width:100%; max-width:1200px; height:auto; aspect-ratio:1200/520; }
+  #names { max-width:1200px; display:flex; }
+  #names span { flex:1; text-align:center; color:#334; font-weight:600; }
+</style>
+<script type="importmap">
+{ "imports": { "three": "../vendor/three.module.js" } }
+</script>
+</head>
+<body>
+<canvas id="c"></canvas>
+<div id="names"></div>
+<script type="module">
+import * as THREE from 'three';
+import { GLTFLoader } from '../vendor/jsm/loaders/GLTFLoader.js';
+
+const W = 1200, H = 520;
+const renderer = new THREE.WebGLRenderer({ canvas: document.getElementById('c'), antialias: true });
+renderer.setPixelRatio(2);
+renderer.setSize(W, H, false);
+renderer.outputColorSpace = THREE.SRGBColorSpace;
+
+const scene = new THREE.Scene();
+scene.background = new THREE.Color(0xdfe6ef);
+scene.add(new THREE.HemisphereLight(0xffffff, 0x9aa8bb, 0.55));
+const key = new THREE.DirectionalLight(0xffffff, 1.5); key.position.set(7, 6, 3); scene.add(key);
+const fill = new THREE.DirectionalLight(0xdcefff, 0.22); fill.position.set(-2, 3.5, 12); scene.add(fill);
+
+const params = new URLSearchParams(location.search);
+const files = (params.get('files') || '').split(',').filter(Boolean);
+const back = params.get('back') === '1';
+
+const camera = new THREE.PerspectiveCamera(30, W / H, 0.1, 100);
+camera.position.set(0, 1.1, back ? -6.5 : 6.5);
+camera.lookAt(0, 0.9, 0);
+
+const loader = new GLTFLoader();
+const mixers = [];
+
+document.getElementById('names').innerHTML =
+  files.map(f => `<span>${f.split('/').pop().replace('.glb', '')}</span>`).join('');
+
+for (const [i, file] of files.entries()) {
+  const gltf = await loader.loadAsync('./' + file);
+  const root = gltf.scene;
+  // ซ่อนของที่เสียบมือ (ดูเหตุผลใน models.js) แล้วค่อยวัดขนาด
+  root.traverse((o) => {
+    if (!o.isMesh || o.isSkinnedMesh) return;
+    for (let n = o.parent; n; n = n.parent) {
+      if (/slot|socket|attach/i.test(n.name || '')) { o.visible = false; break; }
+    }
+  });
+  const holder = new THREE.Group();
+  root.rotation.y = Math.PI;
+  holder.add(root);
+  const box = new THREE.Box3().setFromObject(holder);
+  const size = new THREE.Vector3(); box.getSize(size);
+  holder.scale.setScalar(1.65 / size.y);
+  const box2 = new THREE.Box3().setFromObject(holder);
+  holder.position.set((i - (files.length - 1) / 2) * 1.4, -box2.min.y, 0);
+  scene.add(holder);
+
+  if (gltf.animations.length) {
+    const mixer = new THREE.AnimationMixer(root);
+    const idle = gltf.animations.find(a => /^idle$/i.test(a.name))
+      || gltf.animations.find(a => /idle/i.test(a.name)) || gltf.animations[0];
+    mixer.clipAction(idle).play();
+    mixers.push(mixer);
+  }
+}
+
+for (let i = 0; i < 60; i++) for (const m of mixers) m.update(1 / 60);
+setInterval(() => {
+  for (const m of mixers) m.update(1 / 60);
+  renderer.render(scene, camera);
+}, 1000 / 30);
+renderer.render(scene, camera);
+</script>
+</body>
+</html>

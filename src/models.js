@@ -172,15 +172,20 @@ function mapClips(clips) {
  *
  * ทางที่ถูก: **เลือกย้อมเฉพาะช่วงสี (hue) ที่เป็นเนื้อผ้า**
  * ทั้งตัวใช้เทกซ์เจอร์แผ่นเดียว แต่ของแต่ละอย่างอยู่คนละช่วงสีชัดเจนอยู่แล้ว
- *   ผิวหนัง ~24° · หนัง ~15° · ผ้าเขียว ~148° · โลหะ = แทบไม่มีสี (delta ต่ำ)
- * จึงคัดเฉพาะช่วงเขียวมาแทนที่ แล้ว **คูณด้วยความสว่างเดิม** เพื่อเก็บเงากับไฮไลต์ไว้
+ *   ผิวหนัง ~24° · หนัง ~15° · ผ้าเขียว ~148° · เกราะเหล็กของ KayKit ~195° (อมฟ้า)
+ * จึงคัดเฉพาะช่วงที่ต้องการมาแทนที่ แล้ว **คูณด้วยความสว่างเดิม** เพื่อเก็บเงากับไฮไลต์ไว้
  * (ถ้าทาสีทับตรง ๆ จะได้เงาแบนหมด เสียมิติที่ศิลปินปั้นมาให้ฟรี ๆ)
+ *
+ * ⚠️ อย่าเดาว่า "เกราะเหล็ก = สีเทา" — พอวัดจริงพบว่า KayKit ทำเกราะเป็น *สีอมฟ้า*
+ * ซึ่งโชคดีมาก เพราะแยกออกจากผิวหนังได้ด้วย hue ล้วน ๆ
+ * ถ้าเดาแล้วเขียนกฎ "จับสีเทา" ไว้ ผลลัพธ์คือ "ย้อมแล้วไม่มีอะไรเปลี่ยน" โดยไม่มี error ให้เห็น
+ * **วัดสีจริงจากไฟล์ก่อนเสมอ** (สคริปต์นับสีอยู่ท้าย assets/models/README.md)
  *
  * ⚠️ CanvasTexture ตั้ง flipY = true มาเป็นค่าเริ่มต้น แต่เทกซ์เจอร์จาก glTF เป็น false
  * ถ้าไม่คัดลอกค่ามา ลายทั้งตัวจะกลับหัว — ซึ่งบน atlas แบบไล่เฉดจะไม่เห็นเป็น "กลับหัว"
  * แต่เห็นเป็น "สีเพี้ยนทั้งตัว" แทน แล้วหาสาเหตุยากมาก
  */
-function recolorMap(map, rule) {
+function recolorMap(map, rules) {
   const img = map.image;
   if (!img?.width) return map;
   const cv = document.createElement('canvas');
@@ -191,31 +196,47 @@ function recolorMap(map, rule) {
   const data = cx.getImageData(0, 0, cv.width, cv.height);
   const px = data.data;
 
-  const [h0, h1] = rule.hue ?? [95, 185];
-  const to = rule.to ?? 0x1a1d24;
-  const tr = ((to >> 16) & 255) / 255;
-  const tg = ((to >> 8) & 255) / 255;
-  const tb = (to & 255) / 255;
-  const gain = rule.gain ?? 0.9;
-  const lift = rule.lift ?? 0.35;
+  /* แปลงกฎเป็นรูปแบบเดียวไว้ก่อน — จะได้ไม่ต้องแตกเงื่อนไขในลูปที่วนล้านรอบ
+   * grey:true = จับพิกเซลที่ "แทบไม่มีสี" แทนการจับช่วงสี
+   *             (โลหะบางชุดเป็นเทาจริง ๆ ไม่ได้อมสีเหมือน KayKit)
+   * light:[..] = ประตูเพิ่มด้วยความสว่าง ใช้แยกของที่ *สีเดียวกันแต่คนละความสว่าง*
+   *             เช่นขนสัตว์สีน้ำตาลเข้ม กับผิวหนังสีน้ำตาลอ่อน ซึ่งแยกด้วย hue ไม่ได้เลย */
+  const list = (Array.isArray(rules) ? rules : [rules]).map(r => ({
+    grey: !!r.grey,
+    h0: r.hue?.[0] ?? 0,
+    h1: r.hue?.[1] ?? 360,
+    l0: r.light?.[0] ?? 0,
+    l1: r.light?.[1] ?? 1,
+    tr: (((r.to ?? 0x1a1d24) >> 16) & 255) / 255,
+    tg: (((r.to ?? 0x1a1d24) >> 8) & 255) / 255,
+    tb: ((r.to ?? 0x1a1d24) & 255) / 255,
+    gain: r.gain ?? 0.9,
+    lift: r.lift ?? 0.35,
+  }));
 
   for (let i = 0; i < px.length; i += 4) {
     const r = px[i] / 255, g = px[i + 1] / 255, b = px[i + 2] / 255;
     const max = Math.max(r, g, b), min = Math.min(r, g, b);
     const delta = max - min;
-    if (delta < 0.06) continue;                    // เกือบไม่มีสี = โลหะ/ขาว/ดำ ปล่อยไว้
+    const light = (max + min) / 2;
 
-    let hue;
-    if (max === r) hue = ((g - b) / delta) % 6;
-    else if (max === g) hue = (b - r) / delta + 2;
-    else hue = (r - g) / delta + 4;
-    hue = (hue * 60 + 360) % 360;
-    if (hue < h0 || hue > h1) continue;            // ไม่ใช่ช่วงสีที่จะย้อม
+    let hue = -1;
+    if (delta >= 0.06) {
+      if (max === r) hue = ((g - b) / delta) % 6;
+      else if (max === g) hue = (b - r) / delta + 2;
+      else hue = (r - g) / delta + 4;
+      hue = (hue * 60 + 360) % 360;
+    }
 
-    const k = lift + ((max + min) / 2) * gain;     // เก็บเงา/ไฮไลต์เดิมไว้
-    px[i] = Math.min(255, tr * 255 * k);
-    px[i + 1] = Math.min(255, tg * 255 * k);
-    px[i + 2] = Math.min(255, tb * 255 * k);
+    for (const rule of list) {
+      if (rule.grey ? hue >= 0 : (hue < rule.h0 || hue > rule.h1)) continue;
+      if (light < rule.l0 || light > rule.l1) continue;
+      const k = rule.lift + light * rule.gain;     // เก็บเงา/ไฮไลต์เดิมไว้
+      px[i] = Math.min(255, rule.tr * 255 * k);
+      px[i + 1] = Math.min(255, rule.tg * 255 * k);
+      px[i + 2] = Math.min(255, rule.tb * 255 * k);
+      break;                                        // กฎแรกที่ตรงชนะ ไม่ย้อมซ้อน
+    }
   }
 
   cx.putImageData(data, 0, 0);
@@ -236,6 +257,28 @@ function applyRecolor(root, rule) {
       if (!m.map) continue;
       if (!done.has(m.map)) done.set(m.map, recolorMap(m.map, rule));
       m.map = done.get(m.map);
+      m.needsUpdate = true;
+    }
+  });
+}
+
+/**
+ * ── แก้วัสดุตรง ๆ ตามชื่อ ──────────────────────────────────────
+ *
+ * ⚠️ ไม่ใช่ทุกสีในโมเดลจะมาจากเทกซ์เจอร์
+ * ตาเรืองแสงของโครงกระดูก KayKit ใช้วัสดุชื่อ "Glow" ที่ **ไม่มีเทกซ์เจอร์เลย**
+ * สีมาจากช่อง emissive ล้วน ๆ → ต่อให้ย้อมเทกซ์เจอร์เก่งแค่ไหนก็ไม่มีทางแตะถึง
+ *
+ * บทเรียน: ก่อนจะไล่แก้ pipeline ให้เช็กก่อนว่า "สีที่เห็นมาจากช่องไหน"
+ * (map / color / emissive) — ผมเสียเวลาย้อมเทกซ์เจอร์ไปหนึ่งรอบเต็มเพราะข้ามขั้นนี้
+ */
+function applyMaterialOverrides(root, overrides) {
+  root.traverse((o) => {
+    for (const m of [].concat(o.material || [])) {
+      const patch = overrides[m.name];
+      if (!patch) continue;
+      if (patch.color !== undefined) m.color.setHex(patch.color);
+      if (patch.emissive !== undefined && m.emissive) m.emissive.setHex(patch.emissive);
       m.needsUpdate = true;
     }
   });
@@ -277,6 +320,7 @@ export async function loadCharacter(id, cfg = {}) {
     gltf.scene.traverse(o => { if (drop.has(o.name)) o.visible = false; });
   }
   if (cfg.recolor) applyRecolor(gltf.scene, cfg.recolor);
+  if (cfg.materials) applyMaterialOverrides(gltf.scene, cfg.materials);
 
   const group = normalize(gltf.scene, cfg);
   const mixer = new THREE.AnimationMixer(gltf.scene);
