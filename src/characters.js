@@ -79,6 +79,17 @@ export const CHARACTERS = {
     build: { h: 1.04, shoulder: 0.84, torso: [0.9, 0.82], limb: 0.86, head: [0.92, 1.04, 0.94] },
     // ผ้าพันหัวเปิดไว้แค่แถบตา — ชุดผ้าจึงต้องด้านที่สุดในเกม ถ้ามันวาวจะกลายเป็นชุดยาง
     face: { mode: 'slit', tone: 0xe8a878, brow: 0x17110d }, gloss: 0.22,
+    /* ใช้โมเดลจริง: KayKit "Rogue_Hooded" (CC0, Kay Lousberg) — ดู assets/models/README.md
+     * props = ชื่อ mesh อาวุธที่ติดมาในไฟล์ ใช้ทำระบบ 3 สถานะเหมือนตัวที่ปั้นเอง
+     * (พกไว้ = มีดสั้นมือซ้าย · ชักออกมาถือ = สองมือ) */
+    model: {
+      props: { stow: ['Knife_Offhand'], hold: ['Knife', 'Knife_Offhand'] },
+      // KayKit ไม่มีนินจา มีแต่โจรใส่ฮู้ด "สีเขียว" — ย้อมเฉพาะช่วงสีเขียวเป็นดำ
+      // ผิวหน้า/หนัง/เหล็กอยู่คนละช่วงสี จึงไม่โดนแตะ (ดู recolorMap ใน models.js)
+      recolor: { hue: [95, 185], to: 0x191c24, gain: 0.95, lift: 0.3 },
+      // ผ้าคลุมหลังบังแขนขาทั้งหมดในมุมที่เราเล่นจริง (ดูเหตุผลใน models.js)
+      hide: ['Rogue_Cape'],
+    },
   },
   darklord: {
     id: 'darklord', name: 'ลอร์ดมืด', emoji: '🌑', price: 1200,

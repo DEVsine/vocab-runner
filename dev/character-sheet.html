@@ -6,7 +6,8 @@
 <title>character shoot</title>
 <style>
   body { margin:0; background:#eef2f7; }
-  canvas { display:block; }
+  /* ย่อด้วย CSS ไม่ใช่ด้วยการอ่าน innerWidth ตอนสคริปต์รัน — ดูเหตุผลที่ตัวแปร W */
+  canvas { display:block; max-width:100%; height:auto; }
 </style>
 <script type="importmap">
 { "imports": { "three": "../vendor/three.module.js" } }
@@ -20,7 +21,11 @@ import { createPlayer } from '../src/player.js';
 import { CHARACTER_ORDER } from '../src/characters.js';
 import { CFG } from '../src/config.js';
 
-const W = Math.min(1100, window.innerWidth), H = 560;
+/* ⚠️ ห้ามอ่าน window.innerWidth ตอนโมดูลรัน
+ * แท็บที่เพิ่งถูกสร้างและยังไม่ถูกจัดวาง จะคืน 0 → canvas กว้าง 0 = จอเปล่าสนิท
+ * แล้วเราจะไปนั่งหาสาเหตุที่โมเดล ทั้งที่โมเดลโหลดสำเร็จตั้งแต่แรก
+ * ใช้ค่าคงที่แล้วให้ CSS ย่อลงตามจอแทน */
+const W = 1100, H = 560;
 const renderer = new THREE.WebGLRenderer({ canvas: document.getElementById('c'), antialias: true });
 renderer.setPixelRatio(2);
 renderer.setSize(W, H);      // ต้องให้มันตั้ง CSS size ด้วย ไม่งั้น canvas จะกางเท่า backing store (×dpr)
@@ -86,12 +91,14 @@ const warm = Math.round(parseFloat(params.get('t') || '3') * 60);
 for (let i = 0; i < warm; i++) for (const p of players) p.update(1 / 60, null);
 renderer.render(scene, camera);
 
-function frame() {
+/* ⚠️ ใช้ setInterval ไม่ใช่ requestAnimationFrame
+ * แท็บที่ไม่ได้อยู่หน้าจอจริงถูกเบรก rAF จนแทบไม่ทำงาน — ซึ่งไม่เป็นไรถ้าฉากนิ่ง
+ * แต่โมเดล glTF โหลดแบบ async มาทีหลัง ถ้าไม่มีเฟรมไหนวาดอีกเลยหลังโหลดเสร็จ
+ * เราจะได้จอเปล่าแล้วสรุปผิดว่า "โมเดลโหลดไม่ขึ้น" ทั้งที่มันโหลดสำเร็จแล้ว */
+setInterval(() => {
   for (const p of players) p.update(1 / 60, null);
   renderer.render(scene, camera);
-  requestAnimationFrame(frame);
-}
-requestAnimationFrame(frame);
+}, 1000 / 30);
 window.__ready = true;
 </script>
 </body>

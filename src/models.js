@@ -19,13 +19,59 @@
 import * as THREE from 'three';
 import { CFG } from './config.js';
 
-/** ชื่อคลิปอนิเมชันต่างเจ้าต่างตั้ง — จับด้วยรูปแบบคำ ไม่ใช่ชื่อเป๊ะ ๆ */
+/**
+ * ชื่อคลิปอนิเมชันต่างเจ้าต่างตั้ง — จับด้วยรูปแบบคำ ไม่ใช่ชื่อเป๊ะ ๆ
+ *
+ * ⚠️ ต้องเป็น "รายการตามลำดับความชอบ" ไม่ใช่รูปแบบเดียว
+ * ชุดโมเดลจริงมีคลิปเป็นสิบเป็นร้อย และคำว่า jump ก็โผล่ในหลายคลิปพร้อมกัน
+ * (Jump_Start / Jump_Idle / Jump_Land / Jump_Full_Long)
+ * ถ้าจับรูปแบบเดียวแล้วเอา "อันแรกที่เจอ" เราจะได้คลิปที่บังเอิญเรียงมาก่อน
+ * ซึ่งมักเป็นคลิปผิด — ท่าลอยกลางอากาศต้องใช้ Jump_Idle (วนได้)
+ * ไม่ใช่ Jump_Full_Long (มีทั้งออกตัวและลงพื้นอยู่ในคลิปเดียว → กระตุกทุกครั้งที่วน)
+ *
+ * ไล่จากเฉพาะเจาะจงที่สุดไปกว้างที่สุด ตัวแรกที่เจอชนะ
+ */
 const CLIP_PATTERNS = {
-  run: /run|sprint|jog/i,
-  idle: /idle|stand|breath/i,
-  jump: /jump|leap|air/i,
-  slide: /slide|roll|crouch|duck|slid/i,
+  run: [/^run(ning)?[_ ]?a$/i, /^run(ning)?$/i, /run|sprint|jog/i],
+  idle: [/^idle$/i, /unarmed[_ ]?idle/i, /idle|stand|breath/i],
+  jump: [/jump[_ ]?idle/i, /jump[_ ]?full/i, /jump|leap|air/i],
+  slide: [/slide|slid/i, /dodge[_ ]?forward/i, /roll|crouch|duck/i],
+  // ท่าหลบซ้าย/ขวา — ใช้ตอนเปลี่ยนเลน ถ้าไฟล์ไม่มีก็ตกไปใช้ท่าวิ่งตามปกติ
+  dodgeL: [/dodge[_ ]?left/i, /strafe[_ ]?left/i, /left/i],
+  dodgeR: [/dodge[_ ]?right/i, /strafe[_ ]?right/i, /right/i],
 };
+
+/**
+ * ── ของที่ "เสียบไว้ในมือ" ต้องถูกซ่อนก่อนเสมอ ─────────────────
+ *
+ * ชุดโมเดลสำเร็จรูปมักแถมอาวุธมาให้หลายชิ้นในไฟล์เดียว โดยเสียบไว้ที่จุดต่อมือ
+ * และ **เปิดแสดงไว้ทั้งหมด** เพราะไฟล์ถูกทำมาให้ดูตอนพรีวิว ไม่ใช่ตอนเล่นจริง
+ * ถ้าเอามาใช้ตรง ๆ ตัวละครจะถือมีด + หน้าไม้ 2 อัน + ระเบิด พร้อมกันทั้งหมด
+ *
+ * ⚠️ และมันพังมากกว่าแค่เรื่องความสวย: ของพวกนี้ยื่นออกไปไกลจากตัว
+ * ทำให้ "กล่องครอบ" ที่เราใช้วัดความสูงเพื่อย่อขยาย กว้าง 2.94 แทนที่จะเป็น 0.9
+ * → ต้องซ่อนให้หมด **ก่อน** วัดกล่อง ไม่ใช่หลัง
+ *
+ * จับว่าอันไหนเป็น "ของเสียบ" จากชื่อกระดูกที่มันแขวนอยู่ (slot/socket/attach)
+ * ซึ่งเป็นธรรมเนียมร่วมของชุดโมเดลเกือบทุกเจ้า
+ * ถ้าไฟล์ไหนไม่ใช้ธรรมเนียมนี้ ก็จะไม่มีอะไรถูกซ่อน = ปลอดภัยอยู่ดี
+ */
+const SLOT_RE = /slot|socket|attach/i;
+
+function collectProps(root) {
+  const props = new Map();
+  root.traverse((o) => {
+    if (!o.isMesh || o.isSkinnedMesh) return;
+    for (let n = o.parent; n; n = n.parent) {
+      if (SLOT_RE.test(n.name || '')) {
+        o.visible = false;
+        props.set(o.name, o);
+        break;
+      }
+    }
+  });
+  return props;
+}
 
 let loaderPromise = null;
 
@@ -100,15 +146,99 @@ function normalize(root, cfg = {}) {
   return holder;
 }
 
-/** จับคู่คลิปอนิเมชันในไฟล์เข้ากับท่าที่เกมต้องใช้ */
+/** จับคู่คลิปอนิเมชันในไฟล์เข้ากับท่าที่เกมต้องใช้ (ไล่ตามลำดับความชอบ) */
 function mapClips(clips) {
   const out = {};
-  for (const [key, pattern] of Object.entries(CLIP_PATTERNS)) {
-    out[key] = clips.find(c => pattern.test(c.name)) || null;
+  for (const [key, patterns] of Object.entries(CLIP_PATTERNS)) {
+    out[key] = null;
+    for (const p of patterns) {
+      const hit = clips.find(c => p.test(c.name));
+      if (hit) { out[key] = hit; break; }
+    }
   }
   // ไม่มีคลิปวิ่งเลย → ใช้คลิปแรกที่มีดีกว่าไม่ขยับเลย
   if (!out.run && clips.length) out.run = clips[0];
   return out;
+}
+
+/**
+ * ── ย้อมสีชุดใหม่ โดยไม่แตะผิวหนัง/หนัง/โลหะ ──────────────────
+ *
+ * ปัญหาจริง: ชุดโมเดลฟรีมักไม่มีตัวละครตรงกับที่เราต้องการเป๊ะ ๆ
+ * (KayKit ไม่มีนินจา มีแต่ "โจรใส่ฮู้ดสีเขียว" ซึ่งทรงใช่แต่สีไม่ใช่)
+ *
+ * ทางที่ผิด: คูณสีทั้งวัสดุ (`material.color`) — มันคูณทุกพิกเซลรวมทั้งใบหน้า
+ * ได้นินจาหน้าเขียว ซึ่งแย่กว่าเดิม
+ *
+ * ทางที่ถูก: **เลือกย้อมเฉพาะช่วงสี (hue) ที่เป็นเนื้อผ้า**
+ * ทั้งตัวใช้เทกซ์เจอร์แผ่นเดียว แต่ของแต่ละอย่างอยู่คนละช่วงสีชัดเจนอยู่แล้ว
+ *   ผิวหนัง ~24° · หนัง ~15° · ผ้าเขียว ~148° · โลหะ = แทบไม่มีสี (delta ต่ำ)
+ * จึงคัดเฉพาะช่วงเขียวมาแทนที่ แล้ว **คูณด้วยความสว่างเดิม** เพื่อเก็บเงากับไฮไลต์ไว้
+ * (ถ้าทาสีทับตรง ๆ จะได้เงาแบนหมด เสียมิติที่ศิลปินปั้นมาให้ฟรี ๆ)
+ *
+ * ⚠️ CanvasTexture ตั้ง flipY = true มาเป็นค่าเริ่มต้น แต่เทกซ์เจอร์จาก glTF เป็น false
+ * ถ้าไม่คัดลอกค่ามา ลายทั้งตัวจะกลับหัว — ซึ่งบน atlas แบบไล่เฉดจะไม่เห็นเป็น "กลับหัว"
+ * แต่เห็นเป็น "สีเพี้ยนทั้งตัว" แทน แล้วหาสาเหตุยากมาก
+ */
+function recolorMap(map, rule) {
+  const img = map.image;
+  if (!img?.width) return map;
+  const cv = document.createElement('canvas');
+  cv.width = img.width;
+  cv.height = img.height;
+  const cx = cv.getContext('2d', { willReadFrequently: true });
+  cx.drawImage(img, 0, 0);
+  const data = cx.getImageData(0, 0, cv.width, cv.height);
+  const px = data.data;
+
+  const [h0, h1] = rule.hue ?? [95, 185];
+  const to = rule.to ?? 0x1a1d24;
+  const tr = ((to >> 16) & 255) / 255;
+  const tg = ((to >> 8) & 255) / 255;
+  const tb = (to & 255) / 255;
+  const gain = rule.gain ?? 0.9;
+  const lift = rule.lift ?? 0.35;
+
+  for (let i = 0; i < px.length; i += 4) {
+    const r = px[i] / 255, g = px[i + 1] / 255, b = px[i + 2] / 255;
+    const max = Math.max(r, g, b), min = Math.min(r, g, b);
+    const delta = max - min;
+    if (delta < 0.06) continue;                    // เกือบไม่มีสี = โลหะ/ขาว/ดำ ปล่อยไว้
+
+    let hue;
+    if (max === r) hue = ((g - b) / delta) % 6;
+    else if (max === g) hue = (b - r) / delta + 2;
+    else hue = (r - g) / delta + 4;
+    hue = (hue * 60 + 360) % 360;
+    if (hue < h0 || hue > h1) continue;            // ไม่ใช่ช่วงสีที่จะย้อม
+
+    const k = lift + ((max + min) / 2) * gain;     // เก็บเงา/ไฮไลต์เดิมไว้
+    px[i] = Math.min(255, tr * 255 * k);
+    px[i + 1] = Math.min(255, tg * 255 * k);
+    px[i + 2] = Math.min(255, tb * 255 * k);
+  }
+
+  cx.putImageData(data, 0, 0);
+  const tex = new THREE.CanvasTexture(cv);
+  tex.flipY = map.flipY;                           // ⚠️ ดูหมายเหตุด้านบน
+  tex.colorSpace = map.colorSpace;
+  tex.wrapS = map.wrapS;
+  tex.wrapT = map.wrapT;
+  tex.needsUpdate = true;
+  return tex;
+}
+
+/** ย้อมทุกวัสดุในโมเดล (ใช้เทกซ์เจอร์ร่วมกัน จึงย้อมครั้งเดียวแล้วแจกต่อ) */
+function applyRecolor(root, rule) {
+  const done = new Map();
+  root.traverse((o) => {
+    for (const m of [].concat(o.material || [])) {
+      if (!m.map) continue;
+      if (!done.has(m.map)) done.set(m.map, recolorMap(m.map, rule));
+      m.map = done.get(m.map);
+      m.needsUpdate = true;
+    }
+  });
 }
 
 /**
@@ -119,7 +249,15 @@ export async function loadCharacter(id, cfg = {}) {
   const loader = await getLoader();
   if (!loader) return null;
 
-  const url = `./assets/models/${id}.glb`;
+  /* ⚠️ ต้องอ้างอิงจาก "ตำแหน่งของโมดูลนี้" ไม่ใช่ "ตำแหน่งของหน้าเว็บ"
+   * `./assets/...` เฉย ๆ จะถูกแปลงเทียบกับ URL ของหน้าที่กำลังเปิดอยู่
+   * ตอนเปิด /index.html ก็ถูก แต่พอเปิดหน้าในโฟลเดอร์ย่อย (เช่น /dev/character-sheet.html)
+   * มันจะไปหา /dev/assets/models/... ซึ่งไม่มี → ตัวละครเงียบ ๆ กลับไปใช้ตัวปั้นเอง
+   * โดยไม่มีอะไรบอกว่าสาเหตุคือเส้นทาง ไม่ใช่ไฟล์หาย
+   *
+   * import.meta.url คือที่อยู่ของไฟล์ .js นี้เอง → ผูกกับโครงโปรเจกต์จริง
+   * ใช้ได้ทุกหน้า ทุก base path ไม่ว่าจะ deploy ไว้ใต้โฟลเดอร์อะไร */
+  const url = new URL(`../assets/models/${id}.glb`, import.meta.url).href;
   let gltf;
   try {
     gltf = await loader.loadAsync(url);
@@ -127,6 +265,18 @@ export async function loadCharacter(id, cfg = {}) {
     console.info(`[models] ไม่มี ${url} — ตัวละคร "${id}" จะใช้แบบปั้นด้วยโค้ด`);
     return null;
   }
+
+  // ⚠️ ซ่อนของที่เสียบมือ *ก่อน* normalize เสมอ — normalize วัดกล่องครอบเพื่อคิดสเกล
+  // ถ้าปล่อยให้หน้าไม้ยื่นออกไปตอนวัด ตัวละครจะถูกย่อผิดขนาดทั้งตัว
+  const props = collectProps(gltf.scene);
+  /* ⚠️ ชิ้นที่ต้องปิดถาวร — ไม่ใช่ทุกอย่างในไฟล์จะเหมาะกับมุมกล้องของเรา
+   * เกมนี้มองตัวละครจากด้านหลังตลอดเวลา ผ้าคลุมหลังผืนใหญ่จึงบังการเคลื่อนไหวของแขนขา
+   * ทั้งหมด เหลือแค่แผ่นดำเรียบ ๆ ลอยอยู่ — ดีในล็อบบี้ แต่แย่ตอนเล่นจริง */
+  if (cfg.hide?.length) {
+    const drop = new Set(cfg.hide);
+    gltf.scene.traverse(o => { if (drop.has(o.name)) o.visible = false; });
+  }
+  if (cfg.recolor) applyRecolor(gltf.scene, cfg.recolor);
 
   const group = normalize(gltf.scene, cfg);
   const mixer = new THREE.AnimationMixer(gltf.scene);
@@ -150,6 +300,20 @@ export async function loadCharacter(id, cfg = {}) {
     current = next;
   }
 
+  /**
+   * เปิดเฉพาะอาวุธที่ระบุ ปิดที่เหลือ — นี่คือวิธีที่ระบบ "3 สถานะ" ยังทำงานได้กับโมเดลสำเร็จรูป
+   * @param {string[]} names ชื่อ mesh ในไฟล์ (ดูได้จากสคริปต์ dump ใน assets/models/README.md)
+   */
+  function setProps(names = []) {
+    const want = new Set(names);
+    for (const [name, mesh] of props) mesh.visible = want.has(name);
+  }
+  setProps([]);
+
   play('idle', 0);
-  return { group, mixer, play, clips, update: (dt) => mixer.update(dt) };
+  return {
+    group, mixer, play, clips, setProps,
+    propNames: [...props.keys()],
+    update: (dt) => mixer.update(dt),
+  };
 }

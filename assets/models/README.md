@@ -1,5 +1,26 @@
 # ที่วางไฟล์โมเดลตัวละคร (.glb)
 
+## ✅ ตัวอย่างที่ทำเสร็จแล้ว: นินจา
+
+`ninja.glb` = **KayKit "Rogue_Hooded"** (CC0, Kay Lousberg) ผ่านการปรับ 3 อย่าง:
+
+| ปัญหาที่เจอจริง | วิธีแก้ | อยู่ที่ไหน |
+|---|---|---|
+| KayKit ไม่มีนินจา มีแต่โจรใส่ฮู้ด **สีเขียว** | ย้อมเฉพาะช่วงสีเขียวเป็นดำ ไม่แตะผิว/หนัง/เหล็ก | `model.recolor` |
+| อาวุธติดมา 5 ชิ้น โผล่พร้อมกันหมด | ซ่อนทั้งหมด แล้วเปิดตามสถานะเกราะ | `model.props` |
+| ผ้าคลุมหลังบังแขนขาในมุมที่เล่นจริง | ปิดถาวร | `model.hide` |
+| ไฟล์ 3.4 MB (77 คลิป ใช้จริง 6) | ตัดคลิปที่ไม่ใช้ + บีบบัฟเฟอร์ → **533 KB** | `dev/prune-glb.py` |
+
+```bash
+python3 dev/prune-glb.py ต้นฉบับ.glb assets/models/ninja.glb Running_A Unarmed_Idle Jump_Idle Dodge_Forward Dodge_Left Dodge_Right
+```
+
+โหลดต้นฉบับได้จาก GitHub ของผู้ทำเอง (ไม่ต้องสมัครสมาชิก ไม่ต้องผ่านหน้า itch.io):
+`github.com/KayKit-Game-Assets/KayKit-Character-Pack-Adventures-1.0`
+→ `addons/kaykit_character_pack_adventures/Characters/gltf/`
+
+---
+
 วางไฟล์ที่นี่ **ชื่อต้องตรงเป๊ะ** ตามนี้:
 
 ```
@@ -93,21 +114,31 @@ ninja: {
 
 ---
 
-## ⚠️ สิ่งที่จะ "หายไป" เมื่อเปลี่ยนไปใช้ .glb
+## ⚙️ ระบบอาวุธ 3 สถานะ ยังใช้ได้กับ .glb
 
-โมเดลจากไฟล์เป็นก้อนเดียว เกมจึงไม่รู้ว่าชิ้นไหนคืออะไร → **ระบบอาวุธ 3 สถานะ
-(มือเปล่า / พกไว้ / ชักออกมาถือ) จะใช้ไม่ได้กับตัวที่โหลดจากไฟล์**
-ตัวที่ปั้นด้วยโค้ดยังทำได้เหมือนเดิมทุกอย่าง
-
-ถ้าอยากได้กลับมา ต้องรู้ชื่อกระดูกมือในไฟล์นั้นก่อน แล้วค่อยแขวนอาวุธเข้ากับกระดูกนั้น
-เปิดเกมแล้ววางบรรทัดนี้ใน console เพื่อดูรายชื่อกระดูกทั้งหมด:
+ตอนแรกคิดว่าจะหายไป แต่ชุดโมเดลที่ทำมาดีจะแถมอาวุธเป็น **mesh แยกชิ้น**
+เสียบไว้ที่กระดูกจุดต่อมือ (ชื่อมักมีคำว่า `slot` / `socket` / `attach`)
+เกมจึงแค่เปิด-ปิดชิ้นที่ต้องการตามสถานะเดิม ไม่ต้องเขียนระบบใหม่:
 
 ```js
-const { GLTFLoader } = await import('./vendor/jsm/loaders/GLTFLoader.js');
-const g = await new GLTFLoader().loadAsync('./assets/models/ninja.glb');
-const bones = []; g.scene.traverse(o => o.isBone && bones.push(o.name));
-console.log(bones.join('\n'));
-console.log('คลิป:', g.animations.map(a => a.name));
+model: { props: { stow: ['Knife_Offhand'], hold: ['Knife', 'Knife_Offhand'] } }
 ```
 
-ส่งชื่อที่ได้มาให้ผม แล้วผมต่อระบบอาวุธเข้ากับกระดูกมือให้ได้
+⚠️ ของพวกนี้มา **เปิดแสดงไว้ทั้งหมด** เพราะไฟล์ถูกทำมาให้ดูตอนพรีวิว
+`models.js` จึงซ่อนทุกชิ้นที่เสียบอยู่ในจุดต่อ **ก่อน** วัดกล่องครอบ —
+ถ้าวัดตอนหน้าไม้ยังกางอยู่ กล่องจะกว้าง 2.94 แทนที่จะเป็น 0.9 แล้วตัวละครถูกย่อผิดทั้งตัว
+
+ดูชื่อ mesh/กระดูก/คลิปทั้งหมดในไฟล์ ด้วยการวางบรรทัดนี้ใน console:
+
+```js
+const { GLTFLoader } = await import('/vendor/jsm/loaders/GLTFLoader.js');
+const g = await new GLTFLoader().loadAsync('/assets/models/ninja.glb');
+const bones = [], props = [];
+g.scene.traverse(o => {
+  if (o.isBone) bones.push(o.name);
+  if (o.isMesh && !o.isSkinnedMesh) props.push(o.name);
+});
+console.log('กระดูก:', bones.join(', '));
+console.log('ของที่เสียบได้:', props.join(', '));
+console.log('คลิป:', g.animations.map(a => a.name).join(', '));
+```

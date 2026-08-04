@@ -40,7 +40,7 @@ import { mulberry32 } from './rng.js';
 import * as srs from './srs.js';
 import {
   unlockAudio, sfx, speak, stopSpeaking, setSfxEnabled, setSpeechEnabled,
-  isSpeechUsable, startAmbience, updateAmbience, stopAmbience,
+  setSfxStyle, isSpeechUsable, startAmbience, updateAmbience, stopAmbience,
 } from './audio.js';
 
 /* ── ตั้งฉาก ─────────────────────────────────────────────── */
@@ -48,6 +48,22 @@ import {
 const canvas = document.getElementById('game-canvas');
 const world = createScene(canvas);
 const player = createPlayer(world.scene);
+
+/**
+ * สวมตัวละคร — ต้องเปลี่ยน "รูปร่าง" กับ "เสียง" ไปพร้อมกันเสมอ
+ *
+ * ⚠️ มีที่เรียกอยู่ 3 จุด (เปลี่ยนในร้าน / เข้าล็อบบี้ / เริ่มรอบใหม่)
+ * ถ้าปล่อยให้แต่ละจุดเรียก applySkin เองแล้วค่อยเติมเสียงทีหลัง
+ * วันที่มีจุดที่ 4 จะได้นินจาที่มีเสียงนักบินอวกาศ โดยไม่มีอะไรฟ้องเลย
+ * รวมสองอย่างไว้ในฟังก์ชันเดียวตั้งแต่แรก = ลืมไม่ได้
+ *
+ * (player.js ไม่อิมพอร์ต audio.js เองโดยตั้งใจ — เสียงถูก "ส่งเข้าไป" เป็นพารามิเตอร์
+ *  ตลอดทั้งไฟล์ การให้ชั้นภาพไปเรียกชั้นเสียงตรง ๆ จะพังรูปแบบนั้น)
+ */
+function equipSkin(id) {
+  player.applySkin(id);
+  setSfxStyle(id);
+}
 const gates = createGatePool(world.scene);
 const obstacles = createObstaclePool(world.scene);
 const trains = createTrainPool(world.scene);
@@ -98,7 +114,7 @@ const ui = createUI({
   onResume: () => resumeGame(),
   onDeckChange: (file) => selectDeck(file),
   onThemeChange: (id) => applyTheme(id),
-  onCharacterChange: (id) => player.applySkin(id),
+  onCharacterChange: (id) => equipSkin(id),
   onSpeakWord: (w) => { unlockAudio(); if (w) speak(w.en, { rate: 0.9 }); },
   onPracticeRun: (words) => startPracticeRun(words),
   onPracticeAgain: () => openPracticeTeach(),
@@ -266,7 +282,7 @@ function toMenu() {
   hud.showSpectate(false);
   // ล็อบบี้โชว์ตัวละคร (สไตล์ Fortnite): กล้องหันเข้าหน้าตัวละครบนแท่นเรืองแสง
   player.reset();
-  player.applySkin(wallet.selected());
+  equipSkin(wallet.selected());
   player.setShowcase(true);
   player.group.visible = true;
   world.setLobbyView(true);
@@ -330,7 +346,7 @@ function startRun() {
   pickups.reset();
   if (!mpActive) ghosts.reset();   // เล่นเดี่ยวต้องไม่มีโกสต์ค้างจากรอบแข่ง
   player.reset();
-  player.applySkin(wallet.selected());
+  equipSkin(wallet.selected());
   player.group.visible = true;
   player.setSelfMarker(mpActive);  // โหมดแข่ง: ลูกศร "คุณ" เหนือหัว แยกตัวเองจากโกสต์
   world.setLobbyView(false);

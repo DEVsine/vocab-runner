@@ -98,6 +98,48 @@ function noise({ duration, gain = 0.3, filterFrom = 5000, filterTo = 400, delay 
 
 /* ── เสียงเหตุการณ์ ─────────────────────────────────────────── */
 
+/** ตัวละครที่ใส่อยู่ตอนนี้ — ตัดสินว่าจะทับชั้นเสียงไหนลงบนเสียงพื้นฐาน */
+let style = 'astro';
+
+/** เรียกทุกครั้งที่เปลี่ยนตัวละคร (จาก main.js) */
+export function setSfxStyle(id) {
+  style = id;
+}
+
+const STYLE_LAYERS = {
+  ninja: {
+    // ผ้าดำสะบัด + คมเหล็กเสียดสั้น ๆ ตอนสะบัดตัวข้ามเลน
+    lane() {
+      noise({ duration: 0.09, gain: 0.24, filterFrom: 5600, filterTo: 1500, type: 'bandpass', delay: 0.02 });
+      tone({ freq: 2700, endFreq: 3500, duration: 0.07, type: 'triangle', gain: 0.075, delay: 0.04 });
+      tone({ freq: 3950, duration: 0.05, type: 'sine', gain: 0.05, delay: 0.055 });
+    },
+    // ถีบตัวขึ้นแบบไร้เสียง แล้วมีลมกรีดสูงตามมา
+    jump() {
+      noise({ duration: 0.26, gain: 0.2, filterFrom: 2400, filterTo: 7200, type: 'bandpass', delay: 0.03 });
+      tone({ freq: 1850, endFreq: 2700, duration: 0.09, type: 'triangle', gain: 0.055, delay: 0.05 });
+    },
+    // ลอดต่ำ — เสียดสีย่านสูงบาง ๆ เหมือนผ้าครูดพื้น ไม่ใช่รองเท้าบู๊ต
+    slide() {
+      noise({ duration: 0.2, gain: 0.15, filterFrom: 6200, filterTo: 2400, type: 'bandpass', delay: 0.04 });
+    },
+  },
+  spartan: {
+    // เกราะโลหะกระทบ — ต่ำและสั้น ตรงข้ามกับนินจาทุกทาง
+    lane() { tone({ freq: 340, endFreq: 260, duration: 0.09, type: 'square', gain: 0.06, delay: 0.03 }); },
+    jump() { tone({ freq: 210, endFreq: 150, duration: 0.13, type: 'square', gain: 0.07 }); },
+  },
+  samurai: {
+    // ดาบในฝักขยับ — โน้ตเดียวสั้น ๆ ไม่ต้องเยอะ ซามูไรคือความนิ่ง
+    lane() { tone({ freq: 2100, endFreq: 2600, duration: 0.06, type: 'sine', gain: 0.06, delay: 0.04 }); },
+  },
+  darklord: {
+    // ลมหายใจในหน้ากาก — คลื่นต่ำยาวใต้เสียงพื้นฐาน
+    lane() { noise({ duration: 0.2, gain: 0.1, filterFrom: 320, filterTo: 140, type: 'bandpass', delay: 0.02 }); },
+    jump() { tone({ freq: 70, endFreq: 45, duration: 0.3, type: 'sine', gain: 0.12 }); },
+  },
+};
+
 export const sfx = {
   /** ผ่านด่านถูก — อาร์เพจจิโอเมเจอร์ไล่ขึ้น + ประกายด้านบน = ความรู้สึก "ตอบถูก!"
    *  ไล่คีย์สูงขึ้นตาม combo เพื่อให้ยิ่งต่อเนื่องยิ่งฟังฮึกเหิม (เสียงบอกสถานะเกม
@@ -200,6 +242,20 @@ export const sfx = {
     noise({ duration: 0.12, gain: 0.14, filterFrom: 2400, filterTo: 500 });
   },
 
+  /* ══ ชั้นเสียงประจำตัวละคร ═══════════════════════════════════
+   *
+   * ⚠️ ออกแบบเป็น "ชั้นที่ทับลงไป" ไม่ใช่ "เสียงชุดใหม่ที่มาแทน"
+   * ถ้าให้แต่ละตัวละครมีเสียงของตัวเองทั้งชุด เราจะต้องจูนสมดุลใหม่ 5 รอบ
+   * และเสียงบางตัวจะเบา/ดังไม่เท่ากันโดยไม่มีใครรู้จนกว่าจะมีคนบ่น
+   * ชั้นเสริมบาง ๆ ทับบนฐานเดียวกัน = จูนที่เดียว ได้บุคลิกครบทุกตัว
+   *
+   * ── ทำไมนินจาถึงใช้ "เสียงแหลมสั้น" ไม่ใช่ "เสียงหนัก" ──
+   * บุคลิกของเสียงมาจาก *ย่านความถี่* กับ *ความยาว* มากกว่าตัวโน้ต
+   *   นินจา = แหลม สั้น คม (ผ้าสะบัด + คมเหล็ก) → ว่องไว เงียบ อันตราย
+   *   สปาตัน = ต่ำ หนัก ยาว (โลหะกระทบ) → หนักแน่น ผลักไม่ล้ม
+   * และ 2 โน้ตสูงที่ห่างกันนิดเดียวจะ "เสียดกัน" เกิดเสียงชิ้งแบบโลหะ
+   * ซึ่งเป็นสิ่งที่โน้ตเดี่ยวทำไม่ได้เลยไม่ว่าจะสูงแค่ไหน
+   */
   /* ── เสียงท่าทาง: "พึบพับ" แบบ Subway จริง ๆ ──
    *
    * บทเรียนจากรอบแรกที่เสียงจมหาย: เสียงชั้นเดียว gain ต่ำ ๆ สู้เพลงที่มี kick
@@ -216,6 +272,7 @@ export const sfx = {
     noise({ duration: 0.16, gain: 0.5, filterFrom: 900, filterTo: 4200, type: 'bandpass' });
     noise({ duration: 0.13, gain: 0.32, filterFrom: 3400, filterTo: 700, type: 'bandpass', delay: 0.055 });
     tone({ freq: 200, endFreq: 120, duration: 0.09, type: 'sine', gain: 0.13, delay: 0.09 });
+    STYLE_LAYERS[style]?.lane?.();
   },
 
   /** กระโดด — ถีบพื้น (พัฟต่ำ) + ลมหวิวกวาดขึ้นยาว ๆ */
@@ -223,6 +280,7 @@ export const sfx = {
     noise({ duration: 0.1, gain: 0.3, filterFrom: 1200, filterTo: 300 });
     noise({ duration: 0.42, gain: 0.45, filterFrom: 500, filterTo: 5200, type: 'bandpass' });
     tone({ freq: 260, endFreq: 540, duration: 0.16, type: 'sine', gain: 0.1 });
+    STYLE_LAYERS[style]?.jump?.();
   },
 
   /** สไลด์ — ตุบทิ้งตัว + ครูดพื้นยาว (สองชั้น: เสียดสีสูง + ลมต่ำ) */
@@ -230,6 +288,7 @@ export const sfx = {
     tone({ freq: 170, endFreq: 90, duration: 0.12, type: 'sine', gain: 0.24 });
     noise({ duration: 0.44, gain: 0.42, filterFrom: 3800, filterTo: 350 });
     noise({ duration: 0.3, gain: 0.2, filterFrom: 900, filterTo: 480, type: 'bandpass', delay: 0.06 });
+    STYLE_LAYERS[style]?.slide?.();
   },
 
   /** ลงพื้นหลังลอย — ตุบ + ฝุ่นฟุ้ง

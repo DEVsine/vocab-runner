@@ -1280,6 +1280,7 @@ export function createPlayer(scene) {
     state.laneTo = laneX(target);
     state.lane = target;
     state.laneT = 0;
+    state.laneDir = dir;          // ใช้เลือกท่าหลบซ้าย/ขวาของโมเดล glTF
     return true;
   }
 
@@ -1356,6 +1357,7 @@ export function createPlayer(scene) {
       a.head.rotation.y = Math.sin(state.runT * 0.9) * 0.16;
       a.head.rotation.x = 0;
       for (const flame of a.thrusters) flame.visible = false;
+      syncModel(dt, 'idle');      // ⚠️ ต้องเรียกก่อน return ไม่งั้นโมเดลค้างท่า T-pose
       return;
     }
     // ออกจากท่าโชว์แล้ว หมุนกลับมาหันหน้าเข้าทางวิ่ง
@@ -1494,17 +1496,25 @@ export function createPlayer(scene) {
     a.rig.rotation.x = slideK * 1.0 + state.lean;
     a.rig.position.y = -slideK * 0.06;
 
-    // เอียงตัวตามทิศที่เลื่อนเลน + เด้งขึ้นลงตอนวิ่ง = ดูมีชีวิต
+    /* เอียงตัวตามทิศที่เลื่อนเลน — เอียงข้าง *และ* บิดตัวเข้าหาเลนใหม่
+     * การเอียงข้างอย่างเดียวได้ "คนยืนเอียง" ส่วนการบิดตัวคือสิ่งที่บอกว่า
+     * เขากำลัง *พุ่งไปทางนั้น* ไม่ใช่แค่เสียหลัก — ท่าหลบของนักกีฬาทุกชนิดมีสองอย่างนี้เสมอ */
     const laneVel = state.laneT < 1 ? (state.laneTo - state.laneFrom) : 0;
-    a.rig.rotation.z = THREE.MathUtils.lerp(a.rig.rotation.z, -laneVel * 0.09, dt * 12);
+    a.rig.rotation.z = THREE.MathUtils.lerp(a.rig.rotation.z, -laneVel * 0.13, dt * 14);
+    a.rig.rotation.y = THREE.MathUtils.lerp(a.rig.rotation.y, laneVel * 0.16, dt * 14);
     const grounded = !airborne && slideK <= 0.05;
 
     // โมเดล glTF: เดินอนิเมชันของมันเอง แล้วเลือกท่าจากสถานะเดียวกับที่ตัวปั้นเองใช้
     // (ท่าทางด้านล่างยังคำนวณต่อไปแม้ตอนใช้โมเดล — เปลืองน้อยมาก และทำให้สลับกลับได้ทันที)
-    if (activeModel) {
-      activeModel.update(dt);
-      activeModel.play(airborne ? 'jump' : slideK > 0.05 ? 'slide' : 'run');
-    }
+    /* ── ท่าเปลี่ยนเลน: ใช้คลิป "หลบซ้าย/ขวา" ที่ติดมากับโมเดล ──────
+     * ของแบบนี้คือกำไรล้วนจากการใช้โมเดลสำเร็จรูป — ท่าหลบที่นักอนิเมเตอร์ทำมาให้
+     * ดูดีกว่าการเอียงตัวที่เราคำนวณเองมาก และไม่ต้องเขียนโค้ดอนิเมชันเพิ่มเลย
+     * (ไฟล์ไหนไม่มีคลิปหลบ play() จะตกไปใช้ท่าวิ่งเองโดยอัตโนมัติ) */
+    syncModel(dt,
+      airborne ? 'jump'
+        : slideK > 0.05 ? 'slide'
+          : state.laneT < 1 ? (state.laneDir < 0 ? 'dodgeL' : 'dodgeR')
+            : 'run');
     a.torso.position.y = TORSO_Y + (grounded ? Math.abs(Math.cos(cadence)) * 0.04 : 0);
     // ไหล่บิดสวนสะโพก — รายละเอียดเล็กที่ทำให้ท่าวิ่งเลิกดูเหมือนหุ่นชักใย
     a.torso.rotation.y = Math.PI / 8 + (grounded ? swing * 0.11 : 0);
@@ -1654,6 +1664,18 @@ export function createPlayer(scene) {
       for (const g of w.stow) g.visible = carrying && !state.armed;
       for (const g of w.hold) g.visible = armed;
     }
+
+    /* ── สถานะเดียวกันนี้ ใช้กับโมเดล glTF ได้ด้วย ──────────────
+     * ตอนแรกผมคิดว่าระบบ 3 สถานะจะหายไปเลยเมื่อเปลี่ยนไปใช้ไฟล์โมเดล
+     * แต่ชุดโมเดลที่ทำมาดี ๆ แถมอาวุธมาเป็น mesh แยกชิ้นเสียบไว้ที่จุดต่อมืออยู่แล้ว
+     * เราจึงแค่ "เปิด-ปิดชิ้นที่ต้องการ" ตามสถานะเดิม ไม่ต้องเขียนระบบใหม่เลย
+     * (ชื่อชิ้นอยู่ในช่อง model.props ของตัวละครนั้น — ดูวิธี dump ใน assets/models/README.md) */
+    if (activeModel?.setProps) {
+      const p = characterById(state.skin).model?.props ?? {};
+      activeModel.setProps(
+        state.armed ? (p.hold ?? []) : (state.stock > 0 ? (p.stow ?? []) : [])
+      );
+    }
   }
 
   /* ══ โหมดโมเดล glTF ═════════════════════════════════════════
@@ -1667,6 +1689,32 @@ export function createPlayer(scene) {
   group.add(modelHolder);
   const modelCache = new Map();
   let activeModel = null;
+
+  /**
+   * เดินเวลาให้โมเดล glTF + เลือกท่า + ทำให้มันหันไปทางเดียวกับตัวที่ปั้นเอง
+   *
+   * ⚠️ modelHolder แขวนอยู่กับ `group` ไม่ใช่กับ `a.rig`
+   * เพราะโมเดลจากไฟล์มีจุดหมุน/สเกลของตัวเอง เอาไปยัดใต้ rig ที่ถูก scale ตาม build
+   * จะได้ตัวละครบิดเบี้ยว — แต่ผลข้างเคียงคือมันไม่ได้รับการหมุนของ rig ไปด้วย
+   * (หันหน้าเข้ากล้องในล็อบบี้ · เอียงตอนเปลี่ยนเลน · ทิ้งตัวตอนสไลด์)
+   * จึงต้องคัดลอกการหมุนมาให้ตรงกันทุกเฟรมที่นี่ที่เดียว
+   *
+   * ⚠️ และต้องถูกเรียกใน **ทุกทางออก** ของ update() รวมถึงท่าโชว์ในล็อบบี้
+   * ตอนแรกลืมเรียกในกิ่งท่าโชว์ (ซึ่ง return ก่อน) → ตัวละครค้างท่า T-pose
+   * อยู่ในร้านค้าตลอด ซึ่งเป็นจอที่ผู้เล่นใช้ตัดสินใจซื้อพอดี
+   */
+  function syncModel(dt, pose) {
+    if (!activeModel) return;
+    modelHolder.rotation.copy(a.rig.rotation);
+    modelHolder.position.y = a.rig.position.y;
+    activeModel.update(dt);
+    /* ⚠️ ท่าหลบต้องเกลี่ยข้ามเร็วกว่าท่าอื่นมาก
+     * การเปลี่ยนเลนใช้เวลาแค่ 140ms แต่ค่า crossFade มาตรฐานคือ 160ms
+     * → ท่าหลบจะยังเกลี่ยไม่ทันเข้าที่ก็ถูกสั่งกลับไปท่าวิ่งแล้ว = แทบไม่เห็นอะไรเลย
+     * เวลาเกลี่ยต้องสั้นกว่าช่วงที่ท่านั้นอยู่บนจอเสมอ */
+    const dodging = pose === 'dodgeL' || pose === 'dodgeR';
+    activeModel.play(pose, dodging ? 0.05 : 0.16);
+  }
 
   function useModel(id) {
     const c = characterById(id);
@@ -1689,6 +1737,9 @@ export function createPlayer(scene) {
     }
     // โมเดลจริงมาแล้วก็ซ่อนตัวที่ปั้นด้วยโค้ดทั้งชุด (รวมอาวุธที่วางตำแหน่งไว้สำหรับโครงเดิม)
     a.rig.visible = !activeModel;
+    // โมเดลโหลดเสร็จทีหลัง (async) — ต้องบอกสถานะเกราะปัจจุบันให้มันอีกรอบ
+    // ไม่งั้นคนที่เก็บเกราะไว้แล้วก่อนโมเดลมาถึง จะเห็นตัวละครมือเปล่า
+    refreshGear();
   }
 
   /**
