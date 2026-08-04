@@ -6,8 +6,11 @@
 <title>character shoot</title>
 <style>
   body { margin:0; background:#eef2f7; }
-  /* ย่อด้วย CSS ไม่ใช่ด้วยการอ่าน innerWidth ตอนสคริปต์รัน — ดูเหตุผลที่ตัวแปร W */
-  canvas { display:block; max-width:100%; height:auto; }
+  /* ⚠️ ย่อด้วย CSS ล้วน และต้องสั่ง renderer.setSize(..., false) ควบคู่กัน
+   * ถ้าปล่อยให้ setSize เขียน style เอง มันจะใส่เป็น *inline style* ซึ่งชนะ stylesheet
+   * → ความกว้างถูก max-width บีบลง แต่ความสูงยังค้างที่ค่า inline = ภาพยืดตามแนวตั้ง
+   * aspect-ratio ทำหน้าที่คุมสัดส่วนแทน โดยไม่ต้องคำนวณอะไรเลย */
+  canvas { display:block; width:100%; max-width:1100px; height:auto; aspect-ratio:1100/560; }
 </style>
 <script type="importmap">
 { "imports": { "three": "../vendor/three.module.js" } }
@@ -28,7 +31,7 @@ import { CFG } from '../src/config.js';
 const W = 1100, H = 560;
 const renderer = new THREE.WebGLRenderer({ canvas: document.getElementById('c'), antialias: true });
 renderer.setPixelRatio(2);
-renderer.setSize(W, H);      // ต้องให้มันตั้ง CSS size ด้วย ไม่งั้น canvas จะกางเท่า backing store (×dpr)
+renderer.setSize(W, H, false);   // false = อย่าแตะ style ปล่อยให้ CSS ด้านบนคุม (ดูเหตุผลที่นั่น)
 renderer.outputColorSpace = THREE.SRGBColorSpace;
 
 const scene = new THREE.Scene();
