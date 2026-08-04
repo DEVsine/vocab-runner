@@ -62,6 +62,33 @@ const easeOutQuad = t => 1 - (1 - t) * (1 - t);
  *
  * ราคา: 1 draw call ต่อชิ้น และใช้ geometry ร่วมกับตัวจริง (ไม่กินหน่วยความจำเพิ่ม)
  */
+/**
+ * ── ท่อนแขน/ขาแบบมีปล้อง: "รอยยับผ้า" ที่ไม่เสีย draw call เพิ่มเลย ────
+ *
+ * ปัญหา: ท่อนแขนขาเป็นทรงกระบอกเรียบ → อ่านเป็น "ท่อพลาสติก" ไม่ใช่ "แขนที่มีชุดคลุม"
+ * ทางที่ตรงไปตรงมาคือเอาวงแหวนไปคาดเป็นชั้น ๆ แต่นั่นคือ +16 mesh ต่อตัวละคร
+ * ซึ่งแพงเกินไปมากสำหรับรายละเอียดที่กว้างแค่ 18px ตอนเล่นจริง
+ *
+ * ทางที่ถูกกว่า: ใช้ LatheGeometry — ปั้น "เส้นขอบด้านข้าง" ที่หยักเข้าออกสลับกัน
+ * แล้วให้มันหมุนรอบแกน Y เป็นทรงตัน ได้ท่อที่มีร่องจริงในเมชเดียว ราคาเท่าทรงกระบอกเดิม
+ *
+ * ⚠️ ลำดับจุดต้องไล่จาก "ล่างขึ้นบน" — ถ้ากลับด้าน normal จะชี้เข้าใน
+ * แล้วท่อนแขนจะกลายเป็นสีดำสนิท (มองไม่เห็นว่าพังเพราะอะไร เพราะรูปทรงยังถูกอยู่)
+ *
+ * ⚠️ ใช้ 8 เหลี่ยมให้เท่ากับที่ลำตัวใช้ — เหลี่ยมคือสิ่งที่ทำให้ toon shading
+ * มีขอบให้ตัดแถบ ถ้าเนียนเกินไปจะได้ไล่เฉดต่อเนื่องซึ่งไม่ใช่ลุคของเกมนี้
+ */
+function ribbedLimb(rTop, rBot, height, ribs = 3, depth = 0.011) {
+  const pts = [];
+  const steps = ribs * 2;
+  for (let i = 0; i <= steps; i++) {
+    const t = i / steps;
+    const r = rBot + (rTop - rBot) * t;
+    pts.push(new THREE.Vector2(r + (i % 2 ? depth : 0), -height / 2 + t * height));
+  }
+  return new THREE.LatheGeometry(pts, 8);
+}
+
 function glossShell(mesh, shininess = 60) {
   const shell = new THREE.Mesh(mesh.geometry, new THREE.MeshPhongMaterial({
     color: 0x000000,
@@ -318,7 +345,7 @@ function buildAstronaut() {
     pivot.add(pauldron);
     gloss.push(glossShell(pauldron, 52).material);
 
-    const upper = new THREE.Mesh(new THREE.CylinderGeometry(0.112, 0.092, 0.24, 7), mat.suit);
+    const upper = new THREE.Mesh(ribbedLimb(0.112, 0.092, 0.24, 3), mat.suit);
     upper.position.y = -0.135;
     pivot.add(upper);
 
@@ -326,27 +353,47 @@ function buildAstronaut() {
     elbow.position.y = -0.26;
     pivot.add(elbow);
 
-    const fore = new THREE.Mesh(new THREE.CylinderGeometry(0.095, 0.082, 0.21, 7), mat.suitDim);
+    const fore = new THREE.Mesh(ribbedLimb(0.095, 0.082, 0.21, 3), mat.suitDim);
     fore.position.y = -0.11;
     elbow.add(fore);
 
-    /* ── มือแบบถุงมือ ไม่ใช่กล่อง ──────────────────────────────
-     * ฟิกเกอร์อ้างอิงทุกตัวมีมือทรงถุงมือกลม ๆ ที่มีนิ้วโป้งแยกออกมาก้อนเดียว
-     * นิ้วโป้งก้อนนั้นสำคัญกว่าที่คิด: มันคือสิ่งเดียวที่บอกว่ามือ "หันด้านไหน"
-     * มือกลมล้วนจะดูเหมือนลูกบอลติดปลายแขน ไม่ว่าจะใหญ่แค่ไหน
+    /* ── มือที่มีนิ้ว ──────────────────────────────────────────
      *
-     * และมือต้องใหญ่เกินจริง — ปลายแขนคือจุดที่แกว่งไกลที่สุดตอนวิ่ง
-     * ถ้ามือเล็ก ตาจะจับจังหวะแขนขาไม่ได้เลยที่ระยะ 150px
+     * เดิมมือเป็นทรงกลมก้อนเดียว + นิ้วโป้ง ซึ่งพอแล้วสำหรับ *ตอนวิ่ง*
+     * (มือกว้าง ~18px ไม่มีใครเห็นนิ้ว) แต่ไม่พอสำหรับล็อบบี้/ร้านค้า/แท่นรับรางวัล
+     * ซึ่งเป็นจังหวะที่ผู้เล่นกำลังตัดสินใจว่าจะจ่ายเหรียญซื้อตัวไหน
+     *
+     * ── เคล็ดลับ: นิ้วไม่ต้อง "แยกกัน" ต้องแค่ "มีร่องระหว่างกัน" ──
+     * วางแคปซูล 4 อันเรียงชิดกันโดยเว้นช่องแค่ 0.002 หน่วย
+     * เงาที่ตกในร่องแคบ ๆ นั้นคือสิ่งที่ตาอ่านว่า "นิ้ว" — ไม่ใช่ตัวนิ้วเอง
+     * ถ้าแยกห่างจริงจะได้มือแบบโครงกระดูก ซึ่งผิดแนวของเล่นทั้งหมด
+     *
+     * นิ้วกลางยาวสุด นิ้วก้อยสั้นสุด และทุกนิ้วงอไปข้างหน้าเล็กน้อย
+     * มือที่เหยียดตรงทุกนิ้วอ่านเป็น "หุ่น" ทันที คนเราไม่เคยปล่อยมือให้ตรงเป๊ะ
      */
-    const glove = new THREE.Mesh(new THREE.SphereGeometry(0.105, 14, 12), mat.joint);
-    glove.scale.set(1, 1.12, 0.92);
-    glove.position.y = -0.245;
-    elbow.add(glove);
-    const thumb = new THREE.Mesh(new THREE.SphereGeometry(0.046, 10, 8), mat.joint);
-    thumb.scale.set(0.9, 1.15, 0.9);
-    thumb.position.set(side * -0.082, -0.215, -0.03);
-    thumb.rotation.z = side * 0.5;
-    elbow.add(thumb);
+    const hand = new THREE.Group();
+    hand.position.y = -0.235;
+    elbow.add(hand);
+
+    const palm = new THREE.Mesh(new THREE.SphereGeometry(0.07, 14, 12), mat.joint);
+    palm.scale.set(1.22, 1.05, 0.92);
+    hand.add(palm);
+
+    const FINGER_LEN = [0.86, 1.0, 0.95, 0.78];      // ชี้ · กลาง · นาง · ก้อย
+    FINGER_LEN.forEach((len, i) => {
+      const f = new THREE.Mesh(new THREE.CapsuleGeometry(0.0205, 0.05 * len, 3, 7), mat.joint);
+      // เรียงตามความกว้างฝ่ามือ แล้วให้ฝั่งนิ้วก้อยอยู่ด้านนอกตัวเสมอ
+      f.position.set(side * (0.0625 - i * 0.0417), -0.075 - (1 - len) * 0.012, -0.012);
+      f.rotation.x = 0.42 + i * 0.05;                 // งอไปข้างหน้า ไล่มากขึ้นทางนิ้วก้อย
+      f.rotation.z = side * -0.06;
+      hand.add(f);
+    });
+
+    // นิ้วโป้งอยู่ "ด้านในตัว" เสมอ — มันคือสิ่งเดียวที่บอกว่ามือหันด้านไหน
+    const thumb = new THREE.Mesh(new THREE.CapsuleGeometry(0.024, 0.042, 3, 7), mat.joint);
+    thumb.position.set(side * -0.072, -0.035, -0.03);
+    thumb.rotation.set(0.5, 0, side * 0.85);
+    hand.add(thumb);
 
     rig.add(pivot);
     pivot.userData.elbow = elbow;
@@ -358,7 +405,7 @@ function buildAstronaut() {
     const pivot = new THREE.Group();
     pivot.position.set(side * 0.145, HIP_Y, 0);
 
-    const thigh = new THREE.Mesh(new THREE.CylinderGeometry(0.14, 0.115, 0.27, 7), mat.suitDim);
+    const thigh = new THREE.Mesh(ribbedLimb(0.14, 0.115, 0.27, 3), mat.suitDim);
     thigh.position.y = -0.135;
     pivot.add(thigh);
 
@@ -366,7 +413,7 @@ function buildAstronaut() {
     knee.position.y = -0.27;
     pivot.add(knee);
 
-    const shin = new THREE.Mesh(new THREE.CylinderGeometry(0.112, 0.092, 0.24, 7), mat.suitDim);
+    const shin = new THREE.Mesh(ribbedLimb(0.112, 0.092, 0.24, 3), mat.suitDim);
     shin.position.y = -0.12;
     knee.add(shin);
 
@@ -434,7 +481,7 @@ function buildAstronaut() {
    *  ไม่งั้นดาบจะไม่งอตามศอก แล้วมันจะทะลุออกจากปลายแขนตอนวิ่ง */
   function handMount(pivot) {
     const g = new THREE.Group();
-    g.position.y = -0.245;         // ระดับถุงมือ (วัดจากข้อศอก)
+    g.position.y = -0.235;         // ระดับฝ่ามือ (วัดจากข้อศอก) — ต้องตรงกับ hand ใน makeArm
     pivot.userData.elbow.add(g);
     return g;
   }
@@ -472,6 +519,49 @@ function buildAstronaut() {
     strap.position.set(0, 0.93, 0.44);
     strap.rotation.z = 0.5;
     restG.add(strap);
+
+    /* ── กระโปรงหนัง (pteruges) — ผ้าเป็นเส้น ๆ ห้อยจากเข็มขัด ──
+     *
+     * นี่คือชิ้นที่หายไปจากสปาตันมาตลอด ทั้งที่มันอยู่ในภาพอ้างอิงชัดมาก
+     * และมันทำสองอย่างพร้อมกัน:
+     *   1) เพิ่มมวลให้ช่วงสะโพก → เส้นรอบรูปเป็นทรงสามเหลี่ยมฐานกว้าง = มั่นคง
+     *   2) เป็น "ผ้า" ชิ้นแรกของตัวละครนี้ — แถบแยกเส้นคือรอยยับที่อ่านง่ายที่สุด
+     *      เพราะร่องระหว่างแถบให้เงาคมกว่ารอยยับที่ปั้นบนผิวเรียบมาก
+     *
+     * ⚠️ แถบต้องเรียงเป็น "ส่วนโค้ง" รอบสะโพก ไม่ใช่เรียงบนระนาบแบน
+     * ไม่งั้นเวลามองจากด้านข้างจะเห็นเป็นแผ่นบางแผ่นเดียว
+     * และแต่ละแถบต้องยาวไม่เท่ากัน — ความยาวเท่ากันเป๊ะอ่านเป็น "หวี" ไม่ใช่ "ผ้า"
+     */
+    const bodyG = new THREE.Group();      // ของประจำตัวที่แขวนกับลำตัว (ไม่ใช่กับหัว)
+    const skirtG = new THREE.Group();
+    skirtG.position.y = HIP_Y - 0.01;
+    bodyG.add(skirtG);
+
+    /* ⚠️ สองเรื่องที่พลาดตอนวางแถบรอบแรก และเป็นความพลาดที่เจอบ่อยมาก
+     *
+     * 1) วางไม่ครบวง — ใช้ cos(a) เป็นแกน Z โดยลืมว่า cos เป็นบวกตลอดช่วง |a| < π/2
+     *    แถบทั้งหมดจึงไปกองอยู่ *ด้านหลัง* ส่วนด้านหน้าซึ่งเป็นมุมโชว์ตัวกลับโล่ง
+     *    → กระโปรงที่ไม่มีใครเห็น ทั้งที่โค้ดถูกทุกบรรทัด
+     *    วิธีเช็ก: เขียนมุมออกมาแล้วถามว่า "จุดที่ a=0 อยู่ตรงไหน" ก่อนเสมอ
+     *
+     * 2) สีใกล้ลำตัวเกินไป — หนัง 0x6b4a2e กับเกราะ 0xb3402e ต่างกันแค่เฉด
+     *    ของสองชิ้นที่ต้องอ่านเป็นคนละชั้นต้องต่างกันที่ *ความสว่าง* ไม่ใช่แค่สี
+     */
+    const pterugesMat = toonMat(0x4a2b18);
+    for (let i = 0; i < 10; i++) {
+      const a = (i / 10) * Math.PI * 2;
+      const len = 0.22 + Math.abs(Math.cos(a)) * 0.05;   // หน้า-หลังยาวกว่าด้านข้าง
+      const strip = new THREE.Mesh(new THREE.BoxGeometry(0.088, len, 0.05), pterugesMat);
+      strip.position.set(-Math.sin(a) * 0.245, -len / 2, -Math.cos(a) * 0.225);
+      strip.rotation.y = -a;
+      strip.rotation.x = Math.cos(a) * 0.1;              // บานออกด้านหน้า-หลังเล็กน้อย
+      skirtG.add(strip);
+      // ปลายแถบมีปุ่มโลหะถ่วง — จุดวาวเล็ก ๆ ที่ทำให้แถบไม่ใช่แค่แท่งทึบ
+      const stud = new THREE.Mesh(new THREE.BoxGeometry(0.055, 0.032, 0.056), weaponMat);
+      stud.position.set(-Math.sin(a) * 0.245, -len + 0.016, -Math.cos(a) * 0.225);
+      stud.rotation.y = -a;
+      skirtG.add(stud);
+    }
 
     /** โล่กลมมีขอบยก + ปุ่มกลาง + ซี่กากบาท — "สมประกอบ" คือมีชั้นความลึก ไม่ใช่แผ่นเรียบ */
     function buildShield() {
@@ -602,8 +692,8 @@ function buildAstronaut() {
     weapons.spartan = {
       // หมวกอยู่ในกลุ่ม always — มันคือ "หัวของสปาตัน" ไม่ใช่ของที่เก็บมาได้
       // เส้นรอบรูปของตัวละครต้องบอกว่าเป็นใครตั้งแต่ก่อนเก็บของชิ้นแรก
-      always: [helmG], rest: [restG], stow: [stowG], hold: [holdL, holdR],
-      glow: shieldHold.glow, mounts: [restG, stowG], headMounts: [helmG],
+      always: [helmG, bodyG], rest: [restG], stow: [stowG], hold: [holdL, holdR],
+      glow: shieldHold.glow, mounts: [restG, stowG, bodyG], headMounts: [helmG],
     };
   }
 
@@ -652,8 +742,30 @@ function buildAstronaut() {
     // มวยผมด้านหลัง — ชิ้นเล็กที่บอกว่าใต้หมวกมีคนอยู่ ไม่ใช่หมวกเปล่า
     const topknot = new THREE.Mesh(new THREE.SphereGeometry(0.07, 12, 10), toonMat(0x1b1512));
     topknot.scale.set(1, 1.5, 1);
-    topknot.position.set(0, 0.12, 0.33);
+    topknot.position.set(0, 0.04, 0.345);
     helmG.add(topknot);
+
+    /* ── กระโปรงเกราะ (kusazuri) — แผ่นเกราะร้อยเชือกห้อยจากเอว ──
+     * ต่างจาก pteruges ของสปาตันตรง "วัสดุ": ของสปาตันเป็นหนังนิ่มห้อยเป็นเส้น
+     * ของซามูไรเป็นแผ่นแข็งร้อยเชือกเป็นแผง — กว้างกว่า สั้นกว่า และมีเส้นเชือกคาด
+     * ความต่างนี้สำคัญ เพราะสองตัวนี้มี "กระโปรง" เหมือนกันแต่ต้องอ่านไม่เหมือนกัน
+     */
+    const bodyG = new THREE.Group();
+    // เว้นช่องด้านหลังไว้ให้ฝักดาบ — ถ้าปิดครบวง ฝักจะโผล่ทะลุแผ่นเกราะออกมา
+    for (let i = 0; i < 5; i++) {
+      const a = (i / 4 - 0.5) * 3.9;
+      const px = -Math.sin(a) * 0.245;
+      const pz = -Math.cos(a) * 0.225;
+      const panel = new THREE.Mesh(new THREE.BoxGeometry(0.155, 0.21, 0.05), kabutoMat);
+      panel.position.set(px, HIP_Y - 0.13, pz);
+      panel.rotation.set(Math.cos(a) * 0.14, -a, 0);
+      bodyG.add(panel);
+      // เส้นเชือกร้อยสีทอง — เส้นเดียวก็พอที่จะบอกว่านี่คือ "แผ่นที่ถูกร้อยไว้"
+      const lace = new THREE.Mesh(new THREE.BoxGeometry(0.16, 0.026, 0.058), weaponMat);
+      lace.position.set(px, HIP_Y - 0.09, pz);
+      lace.rotation.set(Math.cos(a) * 0.14, -a, 0);
+      bodyG.add(lace);
+    }
 
     /** ดาบครบชิ้น: ด้ามพัน + ทสึบะ (การ์ด) + ใบดาบมีคมสว่าง + ปลายแหลม */
     function buildKatana() {
@@ -715,8 +827,8 @@ function buildAstronaut() {
     holdR.add(katanaHold.g);
 
     weapons.samurai = {
-      always: [helmG], rest: [restG], stow: [stowG], hold: [holdR],
-      glow: katanaHold.edge, mounts: [restG, stowG], headMounts: [helmG],
+      always: [helmG, bodyG], rest: [restG], stow: [stowG], hold: [holdR],
+      glow: katanaHold.edge, mounts: [restG, stowG, bodyG], headMounts: [helmG],
     };
   }
 
@@ -785,11 +897,16 @@ function buildAstronaut() {
     // ⚠️ สีต้องตัดกับตัวละคร ไม่ใช่กลมกลืน — นินจาตัวดำบนทางเดินมืด
     // ผ้าสีน้ำเงินเข้มจะหายไปทั้งผืน (ลองมาแล้ว มองไม่เห็นเลย)
     // ผ้าแดงคือสิ่งเดียวในตัวนินจาที่ตาจับได้จากระยะไกล และเป็นเอกลักษณ์อยู่แล้ว
-    const scarfMat = toonMat(0xd63b3b);
+    /* ผ้าพันคอ: แต่ละท่อนบิดไม่เท่ากัน + สอบลงเรื่อย ๆ
+     * ⚠️ ผ้าที่ทุกท่อนกว้างเท่ากันและอยู่ในระนาบเดียวกันอ่านเป็น "ริบบิ้นพลาสติก"
+     * สิ่งที่ทำให้มันเป็นผ้าคือ **การบิดรอบแกนตัวเอง** ซึ่งทำให้แต่ละท่อน
+     * รับแสงไม่เท่ากัน → ได้แถบสว่าง-มืดสลับกันตลอดความยาว = รอยยับที่เคลื่อนไหวได้ */
+    const scarfMat = toonMat(0xd63b3b, { side: THREE.DoubleSide });
     const scarfSegs = [];
     for (let i = 0; i < 5; i++) {
-      const seg = new THREE.Mesh(new THREE.BoxGeometry(0.22 - i * 0.025, 0.05, 0.3), scarfMat);
+      const seg = new THREE.Mesh(new THREE.BoxGeometry(0.22 - i * 0.028, 0.042, 0.3), scarfMat);
       seg.position.set(0, 1.06 - i * 0.05, 0.42 + i * 0.26);
+      seg.rotation.z = (i % 2 ? 0.28 : -0.2) * (1 + i * 0.15);   // บิดสลับข้าง
       alwaysG.add(seg);
       scarfSegs.push(seg);
     }
@@ -889,12 +1006,33 @@ function buildAstronaut() {
     /* ผ้าคลุมหลัง: 4 แผ่นสอบลง ไล่จากบ่าถึงน่อง
      * เคปคือวิธีที่ถูกที่สุดในการทำให้เส้นรอบรูป "ใหญ่และมีน้ำหนัก" โดยไม่ต้องเพิ่มโพลี
      * และเพราะเรามองจากด้านหลังตลอด มันจึงเป็นสิ่งแรกที่ตาเห็นเสมอ */
-    const capeMat = toonMat(0x14161d);
+    /* ── ผ้าคลุมหลังแบบมีจีบ ────────────────────────────────────
+     *
+     * ของเดิมเป็นแผ่นสี่เหลี่ยมแบน 4 แผ่นซ้อนกัน ซึ่งได้ "กระดานดำ" ไม่ใช่ "ผ้า"
+     * เพราะผ้าจริงไม่เคยแบน มันเป็นคลื่นเสมอ และ **คลื่นนั้นเองคือรอยยับ**
+     *
+     * ⚠️ อย่าปั้นรอยยับด้วยการเอาแผ่นบาง ๆ มาแปะเพิ่มทีละรอย
+     * (4 แผ่น × 3 รอย = 12 mesh สำหรับของที่อยู่ *ข้างหลัง* ตัวละครตลอดเวลา)
+     *
+     * ใช้ทรงกระบอกเปิดหัวท้ายที่ตัดเป็นส่วนโค้ง + ตั้งจำนวนเหลี่ยมไว้ต่ำ ๆ (7)
+     * → ได้แผงโค้งที่มีสันเป็นจีบ 7 จีบในเมชเดียว และมันโอบรอบตัวจริง ๆ
+     * ซ้อน 3 ชั้นเพื่อให้ยังสะบัดทีละชั้นได้เหมือนเดิม รวม 3 mesh (น้อยกว่าเดิมด้วยซ้ำ)
+     *
+     * บทเรียนทั่วไป: ถ้าอยากได้ "พื้นผิวที่ไม่เรียบ" ให้หาทรงพื้นฐานที่ไม่เรียบอยู่แล้ว
+     * แล้วลดจำนวนเหลี่ยมลง — อย่าเอาของแบนมาต่อกันเป็นของไม่แบน
+     */
+    const capeMat = toonMat(0x14161d, { side: THREE.DoubleSide });
     const capeSegs = [];
-    for (let i = 0; i < 4; i++) {
-      const t = i / 3;
-      const seg = new THREE.Mesh(new THREE.BoxGeometry(0.56 - t * 0.16, 0.28, 0.05), capeMat);
-      seg.position.set(0, 1.0 - i * 0.26, 0.3 + t * 0.1);
+    for (let i = 0; i < 3; i++) {
+      const t = i / 2;
+      const seg = new THREE.Mesh(
+        new THREE.CylinderGeometry(
+          0.3 + t * 0.05, 0.34 + t * 0.06, 0.34, 7, 1, true,
+          -1.15, 2.3      // ⚠️ ใน CylinderGeometry θ=0 คือ +Z (ด้านหลัง) ไม่ใช่ +X
+        ),
+        capeMat
+      );
+      seg.position.set(0, 0.96 - i * 0.3, 0.06 + t * 0.05);
       beltG.add(seg);
       capeSegs.push(seg);
     }
