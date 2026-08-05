@@ -285,6 +285,56 @@ function applyMaterialOverrides(root, overrides) {
 }
 
 /**
+ * ── เอาอาวุธจาก "ไฟล์อื่น" มาเสียบมือตัวละคร ────────────────────
+ *
+ * บางชุดให้ตัวละครมาเปล่า ๆ ไม่มีอาวุธติดในไฟล์ (โครงกระดูกของ KayKit เป็นแบบนั้น)
+ * แต่ **จุดต่อยังอยู่ครบ** — กระดูกชื่อ handslotl / handslotr มีอยู่จริง แค่ไม่มีอะไรแขวน
+ * เราจึงโหลดไฟล์อาวุธแยกมาแล้ว `bone.add(อาวุธ)` ได้เลย
+ *
+ * ── ทำไมไม่ต้องคำนวณตำแหน่ง/การหมุน/สเกลเองสักตัวเดียว ──
+ * เพราะ **การเป็นลูกใน scene graph แปลว่าได้ทรานส์ฟอร์มของพ่อมาทั้งชุดฟรี ๆ**
+ * กระดูกมือขยับตามอนิเมชันอยู่แล้ว อาวุธที่แขวนใต้มันจึงขยับตามเองทุกเฟรม
+ * โดยเราไม่ต้องเขียนโค้ดอนิเมตอาวุธแม้แต่บรรทัดเดียว
+ *
+ * ⚠️ ต้องแขวน **หลัง** normalize เสมอ
+ * normalize คิดสเกลจากความสูงของกล่องครอบ ถ้าแขวนดาบที่ชูขึ้นก่อน
+ * ความสูงกล่องจะกลายเป็น "หัวถึงปลายดาบ" แล้วตัวละครจะถูกย่อจนเตี้ยกว่าคนอื่น
+ * (อาวุธที่ติดมาในไฟล์รอดมาได้เพราะมันวางแนวนอน ไปกวนแกน X ซึ่งไม่มีใครใช้คิดสเกล
+ *  — โชคช่วยล้วน ๆ ไม่ใช่เพราะออกแบบมาดี)
+ *
+ * ⚠️ และไม่ต้องปรับสเกลอาวุธเอง: อาวุธอยู่ใต้ลำดับชั้นที่ถูกย่อไปแล้ว
+ * มันจึงถูกย่อด้วยอัตราเดียวกับตัวละครโดยอัตโนมัติ ขนาดสัมพัทธ์เลยถูกตั้งแต่แรก
+ */
+async function attachExtras(root, list, props) {
+  const loader = await getLoader();
+  if (!loader) return;
+
+  for (const spec of list) {
+    let bone = null;
+    root.traverse((o) => { if (!bone && o.name === spec.bone) bone = o; });
+    if (!bone) {
+      console.info(`[models] ไม่พบกระดูก "${spec.bone}" — ข้ามอาวุธ ${spec.name}`);
+      continue;
+    }
+    const url = new URL(`../assets/models/${spec.file}`, import.meta.url).href;
+    let gltf;
+    try {
+      gltf = await loader.loadAsync(url);
+    } catch {
+      console.info(`[models] โหลด ${spec.file} ไม่ได้ — ข้ามอาวุธ ${spec.name}`);
+      continue;
+    }
+    const g = gltf.scene;
+    if (spec.scale) g.scale.setScalar(spec.scale);
+    if (spec.pos) g.position.set(...spec.pos);
+    if (spec.rot) g.rotation.set(...spec.rot);
+    g.visible = false;                    // ให้ระบบ 3 สถานะเป็นคนเปิด
+    bone.add(g);
+    props.set(spec.name, g);              // เข้าคิวเดียวกับอาวุธที่ติดมาในไฟล์
+  }
+}
+
+/**
  * โหลดตัวละคร 1 ตัว
  * @returns {Promise<null | {group, mixer, play, clips}>} null = ใช้ตัวสำรองที่ปั้นด้วยโค้ด
  */
@@ -323,6 +373,9 @@ export async function loadCharacter(id, cfg = {}) {
   if (cfg.materials) applyMaterialOverrides(gltf.scene, cfg.materials);
 
   const group = normalize(gltf.scene, cfg);
+  // ⚠️ หลัง normalize เท่านั้น — ดูเหตุผลใน attachExtras
+  if (cfg.attach?.length) await attachExtras(gltf.scene, cfg.attach, props);
+
   const mixer = new THREE.AnimationMixer(gltf.scene);
   const clips = mapClips(gltf.animations || []);
   const actions = {};

@@ -125,6 +125,13 @@ export const CHARACTERS = {
     model: {
       // ⚠️ ตาเรืองแสงไม่ได้มาจากเทกซ์เจอร์ — วัสดุชื่อ "Glow" ใช้ช่อง emissive ล้วน
       materials: { Glow: { color: 0xff2d4d, emissive: 0xff2d4d } },
+      /* ชุดโครงกระดูกส่งตัวละครมามือเปล่า แต่ **กระดูกจุดต่อยังอยู่ครบ**
+       * เลยยืมดาบจากไฟล์อาวุธของชุดเดียวกันมาเสียบเอง ได้ระบบ 3 สถานะกลับมาครบ */
+      attach: [
+        { name: 'Blade', bone: 'handslotr', file: 'weapons/Skeleton_Blade.gltf' },
+        { name: 'BladeOff', bone: 'handslotl', file: 'weapons/Skeleton_Blade.gltf' },
+      ],
+      props: { stow: ['BladeOff'], hold: ['Blade', 'BladeOff'] },
     },
   },
 };
