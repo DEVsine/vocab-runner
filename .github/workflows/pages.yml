@@ -1,0 +1,45 @@
+# เผยแพร่เว็บด้วย GitHub Actions แทนตัว build เดิม (legacy)
+#
+# ── ทำไมต้องเปลี่ยน ──────────────────────────────────────────────
+# ตัว build เดิมของ Pages ล้มติดกันสองรอบด้วย "Page build failed." และ
+# duration = 0 คือมันล้มก่อนเริ่มทำงานจริง ไม่ใช่ล้มเพราะเนื้อไฟล์
+# (ตรวจแล้ว: ไม่มี symlink · ไม่มี submodule · .nojekyll ถูก commit จริง ·
+#  11MB / 209 ไฟล์ ห่างจากเพดาน 1GB มาก · การตั้งค่า branch/path ถูกต้อง)
+#
+# เวิร์กโฟลว์นี้อัปโหลดไฟล์ทั้งโฟลเดอร์ตรง ๆ ไม่ผ่านตัว build ที่มีปัญหา
+# และเป็นเส้นทางที่ GitHub แนะนำให้ใช้แทน legacy อยู่แล้ว
+#
+# ⚠️ repo นี้เป็นปลายทางของ deploy.sh ซึ่ง rsync --delete ทับทั้งก้อน
+# deploy.sh จึงต้อง --exclude '.github' ไว้ ไม่งั้นไฟล์นี้จะโดนลบทุกรอบ
+
+name: Deploy to Pages
+
+on:
+  push:
+    branches: [main]
+  workflow_dispatch:
+
+permissions:
+  contents: read
+  pages: write
+  id-token: write
+
+# ปล่อยให้รอบที่กำลังเผยแพร่ทำจนจบ ไม่ตัดกลางคัน — เว็บครึ่ง ๆ กลาง ๆ แย่กว่าเว็บเก่า
+concurrency:
+  group: pages
+  cancel-in-progress: false
+
+jobs:
+  deploy:
+    runs-on: ubuntu-latest
+    environment:
+      name: github-pages
+      url: ${{ steps.deployment.outputs.page_url }}
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/configure-pages@v5
+      - uses: actions/upload-pages-artifact@v3
+        with:
+          path: .
+      - id: deployment
+        uses: actions/deploy-pages@v4
