@@ -1,0 +1,697 @@
+{
+  "id": "vegetables",
+  "name": "🥬 ผัก (Vegetables)",
+  "description": "ผักไทยและผักสากล 84 คำ — ทุกคำมีรูปถ่ายจริงในเครื่อง เล่นโหมดภาพได้แม้ไม่มีเน็ต ครอบคลุมผักใบ สมุนไพร พริก มะเขือ ถั่ว และหัวใต้ดิน",
+  "words": [
+    {
+      "en": "broccoli",
+      "th": "บรอกโคลี",
+      "pos": "noun",
+      "level": 1,
+      "topic": "veg-leaf",
+      "emoji": "🥦",
+      "img": "vegetables/broccoli.webp"
+    },
+    {
+      "en": "cabbage",
+      "th": "กะหล่ำปลี",
+      "pos": "noun",
+      "level": 1,
+      "topic": "veg-leaf",
+      "emoji": "🥬",
+      "img": "vegetables/cabbage.webp"
+    },
+    {
+      "en": "carrot",
+      "th": "แครอท",
+      "pos": "noun",
+      "level": 1,
+      "topic": "veg-root",
+      "emoji": "🥕",
+      "img": "vegetables/carrot.webp"
+    },
+    {
+      "en": "chili pepper",
+      "th": "พริก",
+      "pos": "noun",
+      "level": 1,
+      "topic": "veg-chili",
+      "emoji": "🌶️",
+      "img": "vegetables/chili-pepper.webp"
+    },
+    {
+      "en": "cucumber",
+      "th": "แตงกวา",
+      "pos": "noun",
+      "level": 1,
+      "topic": "veg-fruit",
+      "emoji": "🥒",
+      "img": "vegetables/cucumber.webp"
+    },
+    {
+      "en": "garlic",
+      "th": "กระเทียม",
+      "pos": "noun",
+      "level": 1,
+      "topic": "veg-bulb",
+      "emoji": "🧄",
+      "img": "vegetables/garlic.webp"
+    },
+    {
+      "en": "ginger",
+      "th": "ขิง",
+      "pos": "noun",
+      "level": 1,
+      "topic": "veg-root",
+      "emoji": "🫚",
+      "img": "vegetables/ginger.webp"
+    },
+    {
+      "en": "lettuce",
+      "th": "ผักกาดหอม",
+      "pos": "noun",
+      "level": 1,
+      "topic": "veg-leaf",
+      "emoji": "🥬",
+      "img": "vegetables/lettuce.webp"
+    },
+    {
+      "en": "lime",
+      "th": "มะนาว",
+      "pos": "noun",
+      "level": 1,
+      "topic": "veg-herb",
+      "emoji": "🍋",
+      "img": "vegetables/lime.webp"
+    },
+    {
+      "en": "mushroom",
+      "th": "เห็ด",
+      "pos": "noun",
+      "level": 1,
+      "topic": "veg-other",
+      "emoji": "🍄",
+      "img": "vegetables/mushroom.webp"
+    },
+    {
+      "en": "onion",
+      "th": "หัวหอมใหญ่",
+      "pos": "noun",
+      "level": 1,
+      "topic": "veg-bulb",
+      "emoji": "🧅",
+      "img": "vegetables/onion.webp"
+    },
+    {
+      "en": "pea",
+      "th": "ถั่วลันเตา",
+      "pos": "noun",
+      "level": 1,
+      "topic": "veg-bean",
+      "emoji": "🫛",
+      "img": "vegetables/pea.webp"
+    },
+    {
+      "en": "potato",
+      "th": "มันฝรั่ง",
+      "pos": "noun",
+      "level": 1,
+      "topic": "veg-root",
+      "emoji": "🥔",
+      "img": "vegetables/potato.webp"
+    },
+    {
+      "en": "pumpkin",
+      "th": "ฟักทอง",
+      "pos": "noun",
+      "level": 1,
+      "topic": "veg-fruit",
+      "emoji": "🎃",
+      "img": "vegetables/pumpkin.webp"
+    },
+    {
+      "en": "tomato",
+      "th": "มะเขือเทศ",
+      "pos": "noun",
+      "level": 1,
+      "topic": "veg-fruit",
+      "emoji": "🍅",
+      "img": "vegetables/tomato.webp"
+    },
+    {
+      "en": "asparagus",
+      "th": "หน่อไม้ฝรั่ง",
+      "pos": "noun",
+      "level": 2,
+      "topic": "veg-other",
+      "img": "vegetables/asparagus.webp"
+    },
+    {
+      "en": "baby corn",
+      "th": "ข้าวโพดอ่อน",
+      "pos": "noun",
+      "level": 2,
+      "topic": "veg-other",
+      "emoji": "🌽",
+      "img": "vegetables/baby-corn.webp"
+    },
+    {
+      "en": "bamboo shoot",
+      "th": "หน่อไม้",
+      "pos": "noun",
+      "level": 2,
+      "topic": "veg-other",
+      "img": "vegetables/bamboo-shoot.webp"
+    },
+    {
+      "en": "banana leaf",
+      "th": "ใบตอง",
+      "pos": "noun",
+      "level": 2,
+      "topic": "veg-leaf",
+      "img": "vegetables/banana-leaf.webp"
+    },
+    {
+      "en": "bitter melon",
+      "th": "มะระ",
+      "pos": "noun",
+      "level": 2,
+      "topic": "veg-fruit",
+      "img": "vegetables/bitter-melon.webp"
+    },
+    {
+      "en": "celery",
+      "th": "ขึ้นฉ่าย",
+      "pos": "noun",
+      "level": 2,
+      "topic": "veg-herb",
+      "img": "vegetables/celery.webp"
+    },
+    {
+      "en": "chinese radish",
+      "th": "หัวไชเท้า",
+      "pos": "noun",
+      "level": 2,
+      "topic": "veg-root",
+      "img": "vegetables/chinese-radish.webp"
+    },
+    {
+      "en": "chive",
+      "th": "กุยช่าย",
+      "pos": "noun",
+      "level": 2,
+      "topic": "veg-bulb",
+      "img": "vegetables/chive.webp"
+    },
+    {
+      "en": "coriander",
+      "th": "ผักชี",
+      "pos": "noun",
+      "level": 2,
+      "topic": "veg-herb",
+      "img": "vegetables/coriander.webp"
+    },
+    {
+      "en": "holy basil",
+      "th": "กะเพรา",
+      "pos": "noun",
+      "level": 2,
+      "topic": "veg-herb",
+      "img": "vegetables/holy-basil.webp"
+    },
+    {
+      "en": "kaffir lime",
+      "th": "มะกรูด",
+      "pos": "noun",
+      "level": 2,
+      "topic": "veg-herb",
+      "img": "vegetables/kaffir-lime.webp"
+    },
+    {
+      "en": "kale",
+      "th": "คะน้า",
+      "pos": "noun",
+      "level": 2,
+      "topic": "veg-leaf",
+      "img": "vegetables/kale.webp"
+    },
+    {
+      "en": "leek",
+      "th": "กระเทียมต้น",
+      "pos": "noun",
+      "level": 2,
+      "topic": "veg-bulb",
+      "img": "vegetables/leek.webp"
+    },
+    {
+      "en": "lemon grass",
+      "th": "ตะไคร้",
+      "pos": "noun",
+      "level": 2,
+      "topic": "veg-herb",
+      "img": "vegetables/lemon-grass.webp"
+    },
+    {
+      "en": "long eggplant",
+      "th": "มะเขือยาว",
+      "pos": "noun",
+      "level": 2,
+      "topic": "veg-eggplant",
+      "img": "vegetables/long-eggplant.webp"
+    },
+    {
+      "en": "long green bean",
+      "th": "ถั่วฝักยาว",
+      "pos": "noun",
+      "level": 2,
+      "topic": "veg-bean",
+      "img": "vegetables/long-green-bean.webp"
+    },
+    {
+      "en": "mint",
+      "th": "สะระแหน่",
+      "pos": "noun",
+      "level": 2,
+      "topic": "veg-herb",
+      "img": "vegetables/mint.webp"
+    },
+    {
+      "en": "morning glory",
+      "th": "ผักบุ้ง",
+      "pos": "noun",
+      "level": 2,
+      "topic": "veg-leaf",
+      "img": "vegetables/morning-glory.webp"
+    },
+    {
+      "en": "okra",
+      "th": "กระเจี๊ยบเขียว",
+      "pos": "noun",
+      "level": 2,
+      "topic": "veg-fruit",
+      "img": "vegetables/okra.webp"
+    },
+    {
+      "en": "parsley",
+      "th": "พาร์สลีย์",
+      "pos": "noun",
+      "level": 2,
+      "topic": "veg-herb",
+      "img": "vegetables/parsley.webp"
+    },
+    {
+      "en": "pepper",
+      "th": "พริกไทย",
+      "pos": "noun",
+      "level": 2,
+      "topic": "veg-herb",
+      "img": "vegetables/pepper.webp"
+    },
+    {
+      "en": "scallion",
+      "th": "ต้นหอม",
+      "pos": "noun",
+      "level": 2,
+      "topic": "veg-bulb",
+      "img": "vegetables/scallion.webp"
+    },
+    {
+      "en": "shallot",
+      "th": "หอมแดง",
+      "pos": "noun",
+      "level": 2,
+      "topic": "veg-bulb",
+      "img": "vegetables/shallot.webp"
+    },
+    {
+      "en": "sweet basil",
+      "th": "โหระพา",
+      "pos": "noun",
+      "level": 2,
+      "topic": "veg-herb",
+      "img": "vegetables/sweet-basil.webp"
+    },
+    {
+      "en": "sweet pepper",
+      "th": "พริกหวาน",
+      "pos": "noun",
+      "level": 2,
+      "topic": "veg-chili",
+      "emoji": "🫑",
+      "img": "vegetables/sweet-pepper.webp"
+    },
+    {
+      "en": "taro",
+      "th": "เผือก",
+      "pos": "noun",
+      "level": 2,
+      "topic": "veg-root",
+      "img": "vegetables/taro.webp"
+    },
+    {
+      "en": "turmeric",
+      "th": "ขมิ้น",
+      "pos": "noun",
+      "level": 2,
+      "topic": "veg-root",
+      "img": "vegetables/turmeric.webp"
+    },
+    {
+      "en": "white cabbage",
+      "th": "กะหล่ำปลีขาว",
+      "pos": "noun",
+      "level": 2,
+      "topic": "veg-leaf",
+      "img": "vegetables/white-cabbage.webp"
+    },
+    {
+      "en": "winter melon",
+      "th": "ฟัก",
+      "pos": "noun",
+      "level": 2,
+      "topic": "veg-fruit",
+      "img": "vegetables/winter-melon.webp"
+    },
+    {
+      "en": "yam",
+      "th": "มันเทศ",
+      "pos": "noun",
+      "level": 2,
+      "topic": "veg-root",
+      "emoji": "🍠",
+      "img": "vegetables/yam.webp"
+    },
+    {
+      "en": "acacia leaf",
+      "th": "ยอดกระถิน",
+      "pos": "noun",
+      "level": 3,
+      "topic": "veg-leaf",
+      "img": "vegetables/acacia.webp"
+    },
+    {
+      "en": "angled luffa",
+      "th": "บวบเหลี่ยม",
+      "pos": "noun",
+      "level": 3,
+      "topic": "veg-fruit",
+      "img": "vegetables/angled-luffa.webp"
+    },
+    {
+      "en": "asiatic pennywort",
+      "th": "ใบบัวบก",
+      "pos": "noun",
+      "level": 3,
+      "topic": "veg-leaf",
+      "img": "vegetables/asiatic-pennywort.webp"
+    },
+    {
+      "en": "banana flower bud",
+      "th": "หัวปลี",
+      "pos": "noun",
+      "level": 3,
+      "topic": "veg-other",
+      "img": "vegetables/banana-flower-bud.webp"
+    },
+    {
+      "en": "betel leaf",
+      "th": "ใบชะพลู",
+      "pos": "noun",
+      "level": 3,
+      "topic": "veg-leaf",
+      "img": "vegetables/betel-leaf.webp"
+    },
+    {
+      "en": "bottle gourd",
+      "th": "น้ำเต้า",
+      "pos": "noun",
+      "level": 3,
+      "topic": "veg-fruit",
+      "img": "vegetables/bottle-gourd.webp"
+    },
+    {
+      "en": "cha-om",
+      "th": "ชะอม",
+      "pos": "noun",
+      "level": 3,
+      "topic": "veg-leaf",
+      "img": "vegetables/cha-om.webp"
+    },
+    {
+      "en": "chive leaf",
+      "th": "ใบกุยช่าย",
+      "pos": "noun",
+      "level": 3,
+      "topic": "veg-leaf",
+      "img": "vegetables/chive-leaf.webp"
+    },
+    {
+      "en": "crisp eggplant",
+      "th": "มะเขือเปราะ",
+      "pos": "noun",
+      "level": 3,
+      "topic": "veg-eggplant",
+      "img": "vegetables/crisp-eggplant.webp"
+    },
+    {
+      "en": "dill",
+      "th": "ผักชีลาว",
+      "pos": "noun",
+      "level": 3,
+      "topic": "veg-herb",
+      "img": "vegetables/laos-coriander.webp"
+    },
+    {
+      "en": "french bean",
+      "th": "ถั่วแขก",
+      "pos": "noun",
+      "level": 3,
+      "topic": "veg-bean",
+      "img": "vegetables/french-bean.webp"
+    },
+    {
+      "en": "galingale",
+      "th": "ข่า",
+      "pos": "noun",
+      "level": 3,
+      "topic": "veg-root",
+      "img": "vegetables/galingale.webp"
+    },
+    {
+      "en": "green bird chili",
+      "th": "พริกขี้หนูเขียว",
+      "pos": "noun",
+      "level": 3,
+      "topic": "veg-chili",
+      "img": "vegetables/bird-chili-green.webp"
+    },
+    {
+      "en": "green eggplant",
+      "th": "มะเขือเขียว",
+      "pos": "noun",
+      "level": 3,
+      "topic": "veg-eggplant",
+      "img": "vegetables/green-eggplant.webp"
+    },
+    {
+      "en": "green spur chili",
+      "th": "พริกชี้ฟ้าเขียว",
+      "pos": "noun",
+      "level": 3,
+      "topic": "veg-chili",
+      "img": "vegetables/spur-chili-green.webp"
+    },
+    {
+      "en": "hairy basil",
+      "th": "แมงลัก",
+      "pos": "noun",
+      "level": 3,
+      "topic": "veg-herb",
+      "img": "vegetables/hairy-basil.webp"
+    },
+    {
+      "en": "kaempfer",
+      "th": "กระชาย",
+      "pos": "noun",
+      "level": 3,
+      "topic": "veg-root",
+      "img": "vegetables/kaempfer.webp"
+    },
+    {
+      "en": "kaffir lime leaf",
+      "th": "ใบมะกรูด",
+      "pos": "noun",
+      "level": 3,
+      "topic": "veg-herb",
+      "img": "vegetables/kaffir-lime-leaf.webp"
+    },
+    {
+      "en": "kale sprout",
+      "th": "ยอดคะน้า",
+      "pos": "noun",
+      "level": 3,
+      "topic": "veg-leaf",
+      "img": "vegetables/kale-sprout.webp"
+    },
+    {
+      "en": "long cucumber",
+      "th": "แตงร้าน",
+      "pos": "noun",
+      "level": 3,
+      "topic": "veg-fruit",
+      "img": "vegetables/long-cucumber.webp"
+    },
+    {
+      "en": "long green eggplant",
+      "th": "มะเขือยาวเขียว",
+      "pos": "noun",
+      "level": 3,
+      "topic": "veg-eggplant",
+      "img": "vegetables/long-green-eggplant.webp"
+    },
+    {
+      "en": "lotus seed",
+      "th": "เมล็ดบัว",
+      "pos": "noun",
+      "level": 3,
+      "topic": "veg-other",
+      "img": "vegetables/lotus-seed.webp"
+    },
+    {
+      "en": "mustard leaf",
+      "th": "ผักกาดเขียว",
+      "pos": "noun",
+      "level": 3,
+      "topic": "veg-leaf",
+      "img": "vegetables/mustard-leaf.webp"
+    },
+    {
+      "en": "papaya leaf",
+      "th": "ใบมะละกอ",
+      "pos": "noun",
+      "level": 3,
+      "topic": "veg-leaf",
+      "img": "vegetables/papaya-leaf.webp"
+    },
+    {
+      "en": "pea eggplant",
+      "th": "มะเขือพวง",
+      "pos": "noun",
+      "level": 3,
+      "topic": "veg-eggplant",
+      "img": "vegetables/small-eggplant.webp"
+    },
+    {
+      "en": "red bird chili",
+      "th": "พริกขี้หนูแดง",
+      "pos": "noun",
+      "level": 3,
+      "topic": "veg-chili",
+      "img": "vegetables/bird-chili-red.webp"
+    },
+    {
+      "en": "red spur chili",
+      "th": "พริกชี้ฟ้าแดง",
+      "pos": "noun",
+      "level": 3,
+      "topic": "veg-chili",
+      "img": "vegetables/spur-chili-red.webp"
+    },
+    {
+      "en": "round eggplant",
+      "th": "มะเขือกลม",
+      "pos": "noun",
+      "level": 3,
+      "topic": "veg-eggplant",
+      "img": "vegetables/round-eggplant.webp"
+    },
+    {
+      "en": "round white eggplant",
+      "th": "มะเขือขาวกลม",
+      "pos": "noun",
+      "level": 3,
+      "topic": "veg-eggplant",
+      "img": "vegetables/round-white-eggplant.webp"
+    },
+    {
+      "en": "smooth luffa",
+      "th": "บวบกลม",
+      "pos": "noun",
+      "level": 3,
+      "topic": "veg-fruit",
+      "img": "vegetables/smooth-luffa.webp"
+    },
+    {
+      "en": "stink bean",
+      "th": "สะตอ",
+      "pos": "noun",
+      "level": 3,
+      "topic": "veg-bean",
+      "img": "vegetables/satol.webp"
+    },
+    {
+      "en": "tang oh",
+      "th": "ตังโอ๋",
+      "pos": "noun",
+      "level": 3,
+      "topic": "veg-leaf",
+      "img": "vegetables/tang-oh.webp"
+    },
+    {
+      "en": "thai bitter melon",
+      "th": "มะระขี้นก",
+      "pos": "noun",
+      "level": 3,
+      "topic": "veg-fruit",
+      "img": "vegetables/thai-bitter-melon.webp"
+    },
+    {
+      "en": "water mimosa",
+      "th": "ผักกระเฉด",
+      "pos": "noun",
+      "level": 3,
+      "topic": "veg-leaf",
+      "img": "vegetables/water-mimosa.webp"
+    },
+    {
+      "en": "white eggplant",
+      "th": "มะเขือขาว",
+      "pos": "noun",
+      "level": 3,
+      "topic": "veg-eggplant",
+      "img": "vegetables/white-eggplant.webp"
+    },
+    {
+      "en": "winged bean",
+      "th": "ถั่วพู",
+      "pos": "noun",
+      "level": 3,
+      "topic": "veg-bean",
+      "img": "vegetables/winged-bean.webp"
+    },
+    {
+      "en": "yam bean",
+      "th": "มันแกว",
+      "pos": "noun",
+      "level": 3,
+      "topic": "veg-root",
+      "img": "vegetables/yam-bean.webp"
+    },
+    {
+      "en": "yellow eggplant",
+      "th": "มะเขือเหลือง",
+      "pos": "noun",
+      "level": 3,
+      "topic": "veg-eggplant",
+      "img": "vegetables/yellow-eggplant.webp"
+    },
+    {
+      "en": "young ginger",
+      "th": "ขิงอ่อน",
+      "pos": "noun",
+      "level": 3,
+      "topic": "veg-root",
+      "img": "vegetables/young-ginger.webp"
+    }
+  ]
+}
