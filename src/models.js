@@ -350,7 +350,10 @@ export async function loadCharacter(id, cfg = {}) {
    *
    * import.meta.url คือที่อยู่ของไฟล์ .js นี้เอง → ผูกกับโครงโปรเจกต์จริง
    * ใช้ได้ทุกหน้า ทุก base path ไม่ว่าจะ deploy ไว้ใต้โฟลเดอร์อะไร */
-  const url = new URL(`../assets/models/${id}.glb`, import.meta.url).href;
+  /* ปกติชื่อไฟล์ = ชื่อตัวละคร แต่ตั้ง model.file ทับได้เพื่อให้ "หลายตัวใช้ไฟล์เดียวกัน"
+   * พ่อมด/แม่มด มาจาก KayKit Mage ตัวเดียวกัน ต่างกันที่ recolor + hide + props
+   * ถ้าบังคับใช้ชื่อตามไอดี จะต้องเก็บไฟล์ 525 KB ซ้ำสองก๊อบทั้งที่ไบต์เหมือนกันเป๊ะ */
+  const url = new URL(`../assets/models/${cfg.file ?? `${id}.glb`}`, import.meta.url).href;
   let gltf;
   try {
     gltf = await loader.loadAsync(url);

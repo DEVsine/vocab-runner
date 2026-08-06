@@ -51,7 +51,8 @@ const camera = new THREE.PerspectiveCamera(30, W / H, 0.1, 100);
 const players = CHARACTER_ORDER.map((id, i) => {
   const p = createPlayer(scene);
   const holder = new THREE.Group();
-  holder.position.x = (i - 2) * 1.35;
+  // จัดกึ่งกลางตามจำนวนตัวละครจริง — เดิมตรึงไว้ที่ 5 ตัว (i - 2) พอเพิ่มตัวที่ 6/7 แล้วแถวเลื่อนหลุดขอบขวา
+  holder.position.x = (i - (CHARACTER_ORDER.length - 1) / 2) * 1.35;
   scene.add(holder);
   holder.add(p.group);
   p.applySkin(id);

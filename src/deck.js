@@ -152,11 +152,23 @@ export function pickWordSeeded(deck, recentQueue, rand) {
  *
  * เงื่อนไข: โหมดรูปใช้ได้เฉพาะคำที่มี emoji, โหมดเสียงใช้ได้เมื่อเปิดเสียงอ่าน
  */
-export function chooseMode(word, { speechEnabled = true } = {}, rand = Math.random) {
+export function chooseMode(word, { speechEnabled = true, allow = null } = {}, rand = Math.random) {
   const w = CFG.question.weights;
-  const pool = [['text', w.text]];
-  if (word.emoji) pool.push(['image', w.image]);
+  let pool = [['text', w.text]];
+  // img = รูปถ่ายจริงที่อยู่ในเครื่อง (เด็คผลไม้) · emoji = ตัวยืนแบบเดิม
+  // มีอย่างใดอย่างหนึ่งก็เล่นโหมดภาพได้ — คำที่มี img ไม่จำเป็นต้องมี emoji
+  if (word.emoji || word.img) pool.push(['image', w.image]);
   if (speechEnabled) pool.push(['audio', w.audio]);
+
+  /* allow = รายการโหมดที่ผู้เล่นเปิดไว้ในหน้าตั้งค่า
+   * ⚠️ ถ้ากรองแล้วไม่เหลืออะไรเลย ต้องถอยกลับไปใช้ pool เดิม **ห้ามคืนค่าว่าง**
+   * เคสจริงที่เกิดได้: เปิดเฉพาะ "รูป" แต่คำนั้นไม่มีทั้ง emoji และรูป
+   * ถ้าดันให้เป็นโหมดรูปทั้งที่ไม่มีรูป ผู้เล่นจะได้โจทย์ว่างเปล่าที่ตอบไม่ได้เลย
+   * ผิดคำสั่งผู้ใช้หนึ่งข้อ ดีกว่าปล่อยโจทย์ที่เล่นต่อไม่ได้ */
+  if (allow?.length) {
+    const kept = pool.filter(([mode]) => allow.includes(mode));
+    if (kept.length) pool = kept;
+  }
 
   const total = pool.reduce((sum, [, weight]) => sum + weight, 0);
   let roll = rand() * total;
@@ -174,6 +186,31 @@ export function chooseMode(word, { speechEnabled = true } = {}, rand = Math.rand
  * ⚠️ ต้องมีตาข่ายกันพัง: ถ้าระดับที่เลือกมีคำน้อยเกินไป ตัวลวงจะซ้ำจนจำได้
  * ภายในไม่กี่ข้อ → ถอยกลับไปใช้ deck เต็มแทน ดีกว่าให้ผู้เล่นเจอโจทย์เดิมวนซ้ำ
  */
+/**
+ * กรองเด็คให้เหลือคำที่เด็กเล่นได้ — สั้นและอยู่ระดับต้น
+ *
+ * ⚠️ "สั้น" นับจากตัวอักษรอังกฤษ ไม่ใช่จากระดับความยาก เพราะสองอย่างนี้ไม่เท่ากัน
+ * `mangosteen` ระดับ 2 แต่ยาว 10 ตัว เด็กที่เพิ่งหัดอ่านสะกดไม่ไหวถึงจะรู้จักผลไม้
+ * ส่วน `ripe` ระดับ 1 ยาว 4 ตัว อ่านออกทันที
+ *
+ * คืนเด็คเดิมถ้ากรองแล้วเหลือน้อยเกินไป — เด็คที่ไม่มีคำง่ายพอ (เช่นศัพท์การเงิน)
+ * ไม่ควรถูกบีบจนตัวลวงวนซ้ำคำเดิมทุกข้อ ยอมให้โหมดเด็กไม่มีผลดีกว่าเกมพัง
+ */
+export function kidsDeck(deck) {
+  const { tiers, minWords } = CFG.kids;
+  let best = null;
+  for (const { maxLevel, maxLetters } of tiers) {
+    const words = deck.words.filter(w =>
+      (w.level ?? 2) <= maxLevel && (w.en?.length ?? 99) <= maxLetters
+    );
+    best = words;                       // จำขั้นล่าสุดไว้ เผื่อไม่มีขั้นไหนถึงเกณฑ์
+    if (words.length >= minWords) return { ...deck, words };
+  }
+  // ไม่มีขั้นไหนได้คำพอ — ใช้ขั้นหลวมสุดถ้ายังพอเล่นได้ ไม่งั้นยอมคืนเด็คเต็ม
+  // (ต้องมีอย่างน้อย 3 คำ ไม่งั้นตัวลวงจะซ้ำกับคำตอบ)
+  return best && best.length >= 3 ? { ...deck, words: best } : deck;
+}
+
 export function zoneDeck(deck, levels) {
   if (!Array.isArray(levels) || !levels.length) return deck;
   const words = deck.words.filter(w => levels.includes(w.level ?? 2));

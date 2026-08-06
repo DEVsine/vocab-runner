@@ -69,6 +69,7 @@ export function createHUD(handlers = {}) {
     actBonus: $('act-bonus'),
     cheatTag: $('cheat-tag'),
     mpLeaderboard: $('mp-leaderboard'),
+    mpLbToggle: $('mp-lb-toggle'),
     mpLbList: $('mp-lb-list'),
     mpCountdown: $('mp-countdown'),
     mpCountdownNum: $('mp-countdown-num'),
@@ -142,6 +143,21 @@ export function createHUD(handlers = {}) {
     if (li) handlers.onSelectTarget?.(li.dataset.id);
   });
 
+  /* ── ย่อ/ขยายตารางคะแนน ───────────────────────────────────
+   * เริ่มที่ "ย่อ" บนจอแคบ เพราะตารางเต็มรูปแบบทับเลนขวาจนมองไม่เห็นตัวเอง
+   * แต่ย่อ ≠ ซ่อน — แถวยังอยู่ครบและยังแตะเล็งเป้าได้ ซึ่งบนมือถือคือทางเดียวที่ทำได้
+   * จำค่าที่ผู้เล่นเลือกไว้ด้วย ไม่งั้นต้องมากดใหม่ทุกแมตช์ */
+  const LB_KEY = `${CFG.storageKey}:mpLbCompact`;
+  const savedCompact = localStorage.getItem(LB_KEY);
+  const compact0 = savedCompact === null ? window.innerWidth < 820 : savedCompact === '1';
+  el.mpLeaderboard.classList.toggle('compact', compact0);
+  el.mpLbToggle.setAttribute('aria-expanded', String(!compact0));
+  el.mpLbToggle.addEventListener('click', () => {
+    const on = el.mpLeaderboard.classList.toggle('compact');
+    el.mpLbToggle.setAttribute('aria-expanded', String(!on));
+    try { localStorage.setItem(LB_KEY, on ? '1' : '0'); } catch { /* โหมดส่วนตัวเขียนไม่ได้ ไม่เป็นไร */ }
+  });
+
   /* ── การ์ดศึกชิงคำ: แตะตัวเลือกได้ตรง ๆ ──────────────────── */
   el.contestOptions.addEventListener('click', (e) => {
     const btn = e.target.closest('button[data-index]');
@@ -170,6 +186,15 @@ export function createHUD(handlers = {}) {
       img.onerror = () => {};                     // รูปเสีย/โหลดไม่ได้ → คง emoji ไว้เฉย ๆ
       img.src = url;
     };
+
+    /* รูปในเครื่องมาก่อนเสมอ — เร็วกว่า ตรงคำกว่า และเล่นได้แม้ไม่มีเน็ต
+     * ⚠️ ต้องอ้างจาก import.meta.url ไม่ใช่เส้นทางเทียบหน้าเว็บ
+     * เหตุผลเดียวกับ models.js: หน้าใน /dev/ จะไปหา /dev/assets/... ซึ่งไม่มี
+     * แล้วรูปจะหายเงียบ ๆ โดยไม่มีอะไรบอกว่าสาเหตุคือเส้นทาง */
+    if (word.img) {
+      applyPhoto(new URL(`../assets/${word.img}`, import.meta.url).href);
+      return;
+    }
 
     const cached = cachedImage(word.en);
     if (cached === null) return;                  // เคยหาแล้วไม่มีรูป → ใช้ emoji ต่อ

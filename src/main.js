@@ -32,7 +32,7 @@ import { wallet } from './wallet.js';
 import { cheats } from './cheats.js';
 import { characterById } from './characters.js';
 import { pickPracticeWords, buildPracticeQueue } from './practice.js';
-import { loadDeckIndex, loadDeck, pickWord, pickWordSeeded, buildQuestion, zoneDeck } from './deck.js';
+import { loadDeckIndex, loadDeck, pickWord, pickWordSeeded, buildQuestion, zoneDeck, kidsDeck } from './deck.js';
 import { stormLevel, stormPhase, drainOver } from './storm.js';
 import { AMMO, AMMO_ORDER, ammoById } from './weapons.js';
 import { addMissed, clearWords, pending as inboxPending, pendingCount } from './inbox.js';
@@ -354,6 +354,12 @@ function startRun() {
 
   const zone = CFG.br.zones.find(z => z.id === ui.selectedZone()) || CFG.br.zones[1];
 
+  /* ⚠️ ต้องทับ CFG.speed **ก่อน** สร้าง run เพราะ run อ่าน CFG.speed.start ไปตั้งต้นทันที
+   * ถ้าทับทีหลัง รอบนั้นจะออกตัวด้วยความเร็วของโปรไฟล์เก่า แล้วค่อยกระตุกเปลี่ยนกลางคัน
+   * ⚠️ และห้ามทับตอนแข่งหลายคน — ทุกเครื่องต้องวิ่งด้วยความเร็วเดียวกัน
+   * ไม่งั้นคนตั้ง "ช้าตลอด" จะได้เวลาคิดนานกว่าคนอื่นในสนามเดียวกัน */
+  applySpeedMode(mpActive ? 'ramp' : ui.speedMode());
+
   run = {
     practice: null,                // โหมดฝึก: { queue, words } — ตั้งค่าโดย startPracticeRun
     time: 0,
@@ -383,7 +389,15 @@ function startRun() {
     rng: Math.random,
     br: mpActive,                  // เปิดพายุ/อาวุธ/ศึกชิงคำเฉพาะในห้องแข่ง
     zone: mpActive ? zone : CFG.br.zones[1],
-    deck: mpActive ? zoneDeck(deck, zone.levels) : deck,
+    /* โหมดเด็กกรองเด็คทิ้งครั้งเดียวตอนเริ่มรอบ ไม่ใช่กรองใหม่ทุกข้อ —
+     * ตัวลวงถูกเลือกจาก deck.words ด้วย ถ้าเด็คต่างกันระหว่างข้อ
+     * ตัวลวงจะหลุดมาเป็นคำยาว ๆ ที่เด็กอ่านไม่ออก ทั้งที่โจทย์กรองไว้แล้ว
+     * ⚠️ ไม่ใช้ในโหมดแข่ง — ทุกเครื่องต้องได้คลังคำชุดเดียวกัน */
+    deck: mpActive ? zoneDeck(deck, zone.levels) : (ui.kidsMode() ? kidsDeck(deck) : deck),
+    // อ่านค่าครั้งเดียวตอนเริ่มรอบ — ผู้เล่นเปิดหน้าตั้งค่าระหว่างวิ่งไม่ได้อยู่แล้ว
+    // และการอ่านสดทุกข้อจะทำให้ประเภทโจทย์เปลี่ยนกลางรอบถ้ามีอะไรไปแตะ prefs
+    // ⚠️ โหมดแข่งไม่กรอง — ทุกเครื่องต้องได้โจทย์ชนิดเดียวกัน
+    qModes: mpActive ? null : ui.questionModes(),
     oxy: 1,
     stormSec: 0,
     stormLvl: 1,
@@ -1198,7 +1212,7 @@ function spawnGate(windowSeconds) {
     // (ห้ามอ่าน queue[0] เฉย ๆ — director อาจ spawn ด่านถัดไปก่อนด่านแรกถูกตัดสิน
     //  ถ้าสองด่านชี้ entry เดียวกัน การนับจบชุดจะเพี้ยนทันที)
     const entry = run.practice.queue.shift();
-    question = buildQuestion(run.deck, entry.word, { speechEnabled: isSpeechUsable() });
+    question = buildQuestion(run.deck, entry.word, { speechEnabled: isSpeechUsable(), allow: run.qModes });
     question.mode = entry.mode;
     question.practiceEntry = entry;
   } else if (run.finalRound) {
@@ -1210,7 +1224,7 @@ function spawnGate(windowSeconds) {
   } else {
     const word = run.forcedWord || pickWord(run.deck, run.recent);
     run.forcedWord = null;
-    question = buildQuestion(run.deck, word, { speechEnabled: isSpeechUsable() });
+    question = buildQuestion(run.deck, word, { speechEnabled: isSpeechUsable(), allow: run.qModes });
   }
   const word = question.word;
   gates.spawn(question, -distanceOver(windowSeconds));
@@ -2078,6 +2092,20 @@ document.addEventListener('visibilitychange', () => {
   }
   lastFrame = performance.now();
 });
+
+/**
+ * ทับ CFG.speed ด้วยโปรไฟล์ที่เลือก
+ *
+ * ที่ต้องทับของกลางแทนการส่งค่าไปทีละที่ เพราะมีคนอ่าน CFG.speed อยู่หลายจุดและ
+ * "ไม่ได้อยู่ในสายเดียวกัน" เลย — audio.js ใช้คิด BPM ของเพลง, ตัวทำนายระยะด่านใช้
+ * คำนวณว่าอีกกี่เมตรถึงจะถึงเวลาตอบพอดี, ลูปหลักใช้เร่งความเร็ว
+ * ถ้าส่งค่าไปทีละจุด วันหลังมีคนเพิ่มจุดที่ 7 แล้วลืม จะได้บั๊กที่ "เพลงเร็วไม่ตรงกับเกม"
+ * ซึ่งไล่หายากมากเพราะไม่มีใครเดาว่าเพลงไปผูกกับความเร็ว
+ */
+function applySpeedMode(id) {
+  const preset = CFG.speedModes[id] ?? CFG.speedModes.ramp;
+  Object.assign(CFG.speed, preset);
+}
 
 /* ── เริ่มระบบ ───────────────────────────────────────────── */
 

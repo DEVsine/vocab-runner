@@ -2,6 +2,7 @@
   "decks": [
     { "file": "core-a2b1.json", "id": "core-a2b1", "name": "ศัพท์พื้นฐาน A2–B1 (178 คำ)" },
     { "file": "animals.json", "id": "animals", "name": "🐘 สัตว์ (204 คำ)" },
+    { "file": "fruits.json", "id": "fruits", "name": "🍎 ผลไม้ (64 คำ · มีรูปจริงทุกคำ)" },
     { "file": "clothes.json", "id": "clothes", "name": "👕 เสื้อผ้าและเครื่องแต่งกาย (205 คำ)" },
     { "file": "verbs.json", "id": "verbs", "name": "🏃 กริยาที่ใช้บ่อย (204 คำ)" },
     { "file": "nouns.json", "id": "nouns", "name": "📦 คำนามในชีวิตประจำวัน (203 คำ)" },

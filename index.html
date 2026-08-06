@@ -170,6 +170,30 @@
               <select id="theme-select"></select>
             </label>
 
+            <label class="field">
+              <span>ความเร็ว</span>
+              <select id="speed-select">
+                <option value="ramp">เริ่มช้า แล้วค่อย ๆ เร็วขึ้น</option>
+                <option value="fast">เร็วตั้งแต่ต้น</option>
+                <option value="calm">ช้าตลอด (สำหรับเด็ก)</option>
+              </select>
+            </label>
+
+            <div class="field">
+              <span>ประเภทโจทย์</span>
+              <div class="toggles">
+                <label class="toggle"><input type="checkbox" id="qmode-text" checked> <span>🔤 ตัวอักษร</span></label>
+                <label class="toggle"><input type="checkbox" id="qmode-image" checked> <span>🖼️ รูปภาพ</span></label>
+                <label class="toggle"><input type="checkbox" id="qmode-audio" checked> <span>🔊 เสียง</span></label>
+              </div>
+              <p id="qmode-note" class="deck-info"></p>
+            </div>
+
+            <div class="toggles">
+              <label class="toggle"><input type="checkbox" id="toggle-kids"> <span>👶 โหมดเด็ก (Phonics)</span></label>
+            </div>
+            <p id="kids-note" class="deck-info">คำสั้นระดับต้น · วิ่งช้า · โจทย์รูปกับเสียงเท่านั้น</p>
+
             <div class="toggles">
               <label class="toggle"><input type="checkbox" id="toggle-sfx" checked> <span>เสียงประกอบ</span></label>
               <label class="toggle"><input type="checkbox" id="toggle-speech" checked> <span>อ่านออกเสียงคำ</span></label>
@@ -370,8 +394,13 @@
 
   <!-- ตารางคะแนนสด (นอก #hud เพื่อให้ยังเห็นตอนตายด้วย)
        แถวกดได้ = เล็งเป้าอาวุธ — นี่คือวิธีเล็งที่ใช้ได้ทั้งเมาส์และนิ้ว -->
+  <!-- ⚠️ หัวตารางเป็น "ปุ่ม" ไม่ใช่ป้าย — บนมือถือตารางเต็มรูปแบบกินพื้นที่เลนขวา
+       จนบังตัวละคร ย่อได้เหลือแค่แถบแคบ ๆ แต่ยังแตะเล็งเป้าได้เหมือนเดิม -->
   <div id="mp-leaderboard" class="hidden">
-    <div class="mp-lb-title">แตะชื่อเพื่อเล็งเป้า</div>
+    <button id="mp-lb-toggle" class="mp-lb-title" type="button" aria-expanded="true">
+      <span class="mp-lb-title-text">แตะชื่อเพื่อเล็งเป้า</span>
+      <span class="mp-lb-caret">‹</span>
+    </button>
     <ol id="mp-lb-list"></ol>
   </div>
 

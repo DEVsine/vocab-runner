@@ -264,6 +264,60 @@ export function createUI(handlers) {
     handlers.onAudioPrefs(toggleSfx.checked, toggleSpeech.checked);
   });
 
+  /* ── ความเร็ว / ประเภทโจทย์ / โหมดเด็ก ─────────────────── */
+
+  const speedSelect = $('speed-select');
+  const qModeBoxes = { text: $('qmode-text'), image: $('qmode-image'), audio: $('qmode-audio') };
+  const toggleKids = $('toggle-kids');
+  const qModeNote = $('qmode-note');
+  const kidsNote = $('kids-note');
+
+  speedSelect.value = CFG.speedModes[prefs.speedMode] ? prefs.speedMode : 'ramp';
+  const savedModes = Array.isArray(prefs.qModes) ? prefs.qModes : null;
+  for (const [id, box] of Object.entries(qModeBoxes)) {
+    box.checked = savedModes ? savedModes.includes(id) : true;
+  }
+  toggleKids.checked = prefs.kids === true;
+
+  const checkedModes = () =>
+    Object.entries(qModeBoxes).filter(([, b]) => b.checked).map(([id]) => id);
+
+  /* โหมดเด็กเป็น "ชุดค่าสำเร็จรูป" ไม่ใช่สวิตช์อิสระ — มันทับความเร็วกับประเภทโจทย์
+   * จึงต้องปิดสองอันนั้นให้เห็นด้วยตา ไม่งั้นผู้ใช้จะเลือกค่าที่ไม่มีผลแล้วงงว่าทำไมไม่เปลี่ยน
+   * (ปิดเฉพาะการแก้ไข ไม่ล้างค่าที่เก็บไว้ — ปิดโหมดเด็กแล้วต้องได้ค่าเดิมกลับมาครบ) */
+  function syncKidsLock() {
+    const on = toggleKids.checked;
+    speedSelect.disabled = on;
+    for (const box of Object.values(qModeBoxes)) box.disabled = on;
+    kidsNote.classList.toggle('hidden', !on);
+    if (on) {
+      qModeNote.textContent = 'โหมดเด็กกำลังคุมอยู่ — ใช้รูปกับเสียงเท่านั้น';
+      return;
+    }
+    const n = checkedModes().length;
+    qModeNote.textContent = n === 0
+      ? '⚠️ ยังไม่ได้เลือกสักประเภท — เกมจะสุ่มให้เองทุกแบบ'
+      : '';
+  }
+  syncKidsLock();
+
+  speedSelect.addEventListener('change', () => {
+    prefs.speedMode = speedSelect.value;
+    savePrefs(prefs);
+  });
+  for (const box of Object.values(qModeBoxes)) {
+    box.addEventListener('change', () => {
+      prefs.qModes = checkedModes();
+      savePrefs(prefs);
+      syncKidsLock();
+    });
+  }
+  toggleKids.addEventListener('change', () => {
+    prefs.kids = toggleKids.checked;
+    savePrefs(prefs);
+    syncKidsLock();
+  });
+
   /* ── ปุ่มต่าง ๆ ────────────────────────────────────────── */
 
   $('btn-test-speech').addEventListener('click', () => handlers.onTestSpeech());
@@ -475,6 +529,11 @@ export function createUI(handlers) {
 
     selectedDeckFile: () => deckSelect.value,
     audioPrefs: () => ({ sfx: toggleSfx.checked, speech: toggleSpeech.checked }),
+
+    kidsMode: () => toggleKids.checked,
+    // โหมดเด็กชนะเสมอ — ค่าที่ผู้ใช้ตั้งเองยังอยู่ในที่เก็บ แค่ไม่ถูกใช้ระหว่างเปิดโหมดเด็ก
+    speedMode: () => (toggleKids.checked ? CFG.kids.speedMode : speedSelect.value),
+    questionModes: () => (toggleKids.checked ? CFG.kids.modes : checkedModes()),
 
     // ── เล่นหลายคน ──
     mpEnterRoom,

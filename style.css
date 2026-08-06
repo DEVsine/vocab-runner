@@ -719,7 +719,39 @@ td.en { font-weight: 700; }
   backdrop-filter: blur(6px);
   pointer-events: none;
 }
-.mp-lb-title { font-size: 9.5px; letter-spacing: .1em; text-transform: uppercase; color: var(--cyan); margin-bottom: 6px; }
+/* ── ช่องตั้งค่าที่ถูกโหมดเด็กคุมอยู่ ──────────────────────────
+   disabled ที่ไม่มีสัญญาณทางสายตา = ผู้ใช้กดแล้วไม่มีอะไรเกิดขึ้นโดยไม่รู้ว่าทำไม
+   ต้องเห็นได้ว่า "ปิดอยู่" ก่อนจะกด ไม่ใช่หลังจากกดแล้วสงสัยว่าพัง */
+.settings-body select:disabled {
+  opacity: .45;
+  cursor: not-allowed;
+}
+.settings-body .toggle:has(input:disabled) {
+  opacity: .45;
+  cursor: not-allowed;
+}
+
+/* หัวตาราง = ปุ่มย่อ/ขยาย · ต้องเปิด pointer-events เองเพราะกล่องแม่ปิดไว้ */
+.mp-lb-title {
+  display: flex; align-items: center; justify-content: space-between; gap: 6px;
+  width: 100%; margin-bottom: 6px; padding: 2px 0;
+  font-size: 9.5px; letter-spacing: .1em; text-transform: uppercase; color: var(--cyan);
+  background: none; border: 0; font-family: inherit; text-align: left;
+  pointer-events: auto; cursor: pointer;
+}
+.mp-lb-caret { transition: transform .18s ease; font-size: 13px; line-height: 1; }
+
+/* ── โหมดย่อ: เหลือ อันดับ · จุดสี · คะแนน ─────────────────────
+   ⚠️ ห้ามซ่อนทั้งตาราง — แถวคือปุ่มเล็งเป้าเพียงทางเดียวบนมือถือ
+   สิ่งที่กินพื้นที่จริงคือ "ชื่อ" ไม่ใช่ตัวตาราง จึงตัดเฉพาะชื่อกับแถบออกซิเจน
+   ได้พื้นที่เลนขวาคืนเกือบทั้งหมด โดยที่ระบบอาวุธยังใช้ได้ครบ */
+#mp-leaderboard.compact { width: auto; }
+#mp-leaderboard.compact .mp-lb-title-text { display: none; }
+#mp-leaderboard.compact .mp-lb-caret { transform: rotate(180deg); }
+#mp-leaderboard.compact .lb-name,
+#mp-leaderboard.compact .lb-oxy { display: none; }
+#mp-leaderboard.compact .lb-body { flex: 0 0 auto; }
+#mp-leaderboard.compact #mp-lb-list li { gap: 4px; padding: 5px 2px; }
 #mp-lb-list { list-style: none; display: flex; flex-direction: column; gap: 3px; }
 /* ⚠️ แถวนี้คือ "ปุ่มเล็งเป้า" เพียงทางเดียวบนมือถือ — ต้องสูงพอให้นิ้วแตะได้จริง
    ถ้าปล่อยไว้ที่ 29px ระบบอาวุธทั้งระบบจะใช้ไม่ได้เลยสำหรับคนเล่นมือถือ */
