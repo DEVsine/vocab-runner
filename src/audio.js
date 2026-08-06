@@ -17,6 +17,7 @@ import { CFG } from './config.js';
 let ctx = null;
 let master = null;       // สำหรับ SFX
 let musicBus = null;     // สำหรับเสียงบรรยากาศระหว่างวิ่ง
+let musicDelay = null;   // ดีเลย์ป้อนกลับ — ใช้เป็น "send" ให้เมโลดี้กับแพด
 let sfxEnabled = true;
 let speechEnabled = true;
 let englishVoice = null;
@@ -32,9 +33,45 @@ export function unlockAudio() {
     master.gain.value = CFG.audio.sfxVolume;
     master.connect(ctx.destination);
 
+    /* ── สายสัญญาณของเพลง ─────────────────────────────────────
+     * musicBus → เร่งฮาร์มอนิก → คอมเพรสเซอร์ → ลำโพง
+     *
+     * เดิมต่อ musicBus เข้าลำโพงตรง ๆ ซึ่งเป็นเหตุผลหนึ่งที่เสียง "บาง":
+     * คลื่นสังเคราะห์ล้วนมีฮาร์มอนิกน้อยกว่าเครื่องดนตรีจริงมาก หูเลยอ่านว่าแบน
+     *
+     * waveshaper โค้ง ๆ = ซอฟต์คลิป เพิ่มฮาร์มอนิกคู่/คี่ที่หูตีความว่า "อุ่น" และ "ดัง"
+     * โดยไม่ต้องเพิ่มวอลุ่มจริง ส่วนคอมเพรสเซอร์รวบทุกชิ้นให้เป็นก้อนเดียว
+     * แทนที่จะเป็นเสียงหลายเสียงวางซ้อนกันเฉย ๆ */
     musicBus = ctx.createGain();
     musicBus.gain.value = 0;   // ค่อย ๆ ดันขึ้นตอนเริ่มวิ่ง
-    musicBus.connect(ctx.destination);
+
+    const shaper = ctx.createWaveShaper();
+    const curve = new Float32Array(1024);
+    for (let i = 0; i < 1024; i++) {
+      const x = (i / 1023) * 2 - 1;
+      curve[i] = Math.tanh(x * 1.9) / Math.tanh(1.9);   // นุ่ม ไม่ถึงกับแตก
+    }
+    shaper.curve = curve;
+    shaper.oversample = '2x';                            // กัน aliasing จากฮาร์มอนิกใหม่
+
+    const glue = ctx.createDynamicsCompressor();
+    glue.threshold.value = -18;
+    glue.ratio.value = 3.5;
+    glue.attack.value = 0.006;                           // ปล่อยหัวกระเดื่องผ่านก่อนบีบ
+    glue.release.value = 0.18;
+
+    musicBus.connect(shaper).connect(glue).connect(ctx.destination);
+
+    /* ดีเลย์ป้อนกลับ — "ที่ว่าง" รอบตัวโน้ต ซึ่งเป็นอีกครึ่งของความรู้สึกว่าเสียงแน่น
+     * เสียงแห้งสนิทฟังเหมือนเครื่องสังเคราะห์เสมอ ไม่ว่าจะซ้อนกี่ชั้น */
+    musicDelay = ctx.createDelay(1.0);
+    const fb = ctx.createGain();
+    const damp = ctx.createBiquadFilter();
+    damp.type = 'lowpass';
+    damp.frequency.value = 2600;   // ตัดปลายแหลมของเสียงสะท้อน ไม่ให้ฟุ้งทับเมโลดี้
+    fb.gain.value = 0.34;
+    musicDelay.connect(damp).connect(fb).connect(musicDelay);
+    musicDelay.connect(musicBus);
   }
   if (ctx.state === 'suspended') ctx.resume();
   pickVoice();
@@ -324,10 +361,10 @@ export const sfx = {
 
 // คอร์ด 4 ตัว (root ของเบส + โน้ตประกอบ) — ความถี่ตรง equal temperament
 const CHORDS = [
-  { root: 55.00, name: 'Am' },   // A1
-  { root: 43.65, name: 'F'  },   // F1
-  { root: 65.41, name: 'C'  },   // C2
-  { root: 49.00, name: 'G'  },   // G1
+  { root: 55.00, name: 'Am', tones: [0, 3, 7, 12] },   // A1 · ไมเนอร์
+  { root: 43.65, name: 'F',  tones: [0, 4, 7, 12] },   // F1 · เมเจอร์
+  { root: 65.41, name: 'C',  tones: [0, 4, 7, 12] },   // C2 · เมเจอร์
+  { root: 49.00, name: 'G',  tones: [0, 4, 7, 12] },   // G1 · เมเจอร์
 ];
 
 // แพตเทิร์นกลอง 16 ช่อง (1 = ตี) — four-on-the-floor + snare ตกจังหวะ 2,4
@@ -358,11 +395,28 @@ function playKick(when) {
   osc.type = 'sine';
   osc.frequency.setValueAtTime(150, when);
   osc.frequency.exponentialRampToValueAtTime(48, when + 0.1);
-  g.gain.setValueAtTime(0.5, when);
-  g.gain.exponentialRampToValueAtTime(0.0001, when + 0.16);
+  g.gain.setValueAtTime(0.55, when);
+  g.gain.exponentialRampToValueAtTime(0.0001, when + 0.2);
   osc.connect(g).connect(musicBus);
   osc.start(when);
-  osc.stop(when + 0.18);
+  osc.stop(when + 0.22);
+
+  /* หัวกระเดื่อง — noise สั้นจิ๋ว 8ms
+   * ย่านต่ำอย่างเดียวจะ "ตุบ" แต่ไม่ "ชัด" โดยเฉพาะบนลำโพงมือถือที่เล่นเบสไม่ออกเลย
+   * เสียงคลิกสั้น ๆ ทำให้รู้ว่ากลองตกตรงไหนแม้ลำโพงจะไม่มีย่านเบสให้ฟัง */
+  const frames = Math.floor(ctx.sampleRate * 0.008);
+  const buf = ctx.createBuffer(1, frames, ctx.sampleRate);
+  const d = buf.getChannelData(0);
+  for (let i = 0; i < frames; i++) d[i] = (Math.random() * 2 - 1) * (1 - i / frames);
+  const click = ctx.createBufferSource();
+  click.buffer = buf;
+  const cf = ctx.createBiquadFilter();
+  cf.type = 'bandpass';
+  cf.frequency.value = 2200;
+  const cg = ctx.createGain();
+  cg.gain.value = 0.14;
+  click.connect(cf).connect(cg).connect(musicBus);
+  click.start(when);
 }
 
 /** สแนร์: noise ผ่าน bandpass + โทนสั้น — ghost note เบากว่าตัวจริงครึ่งหนึ่ง */
@@ -404,36 +458,132 @@ function playHat(when, open = false) {
   src.start(when);
 }
 
-/** เบส: sawtooth ผ่าน lowpass — ตัวเชื่อมกลองกับเมโลดี้ */
+/**
+ * เบส: saw สองตัวเพี้ยนกันเล็กน้อย + sine ต่ำอีกอ็อกเทฟ
+ *
+ * ── ทำไม saw ตัวเดียวถึงบาง ──
+ * คลื่นจากออสซิลเลเตอร์ตัวเดียวนิ่งสนิท ไม่มีการแกว่ง หูจึงอ่านว่า "เครื่องสังเคราะห์"
+ * ทันที เครื่องดนตรีจริงไม่มีชิ้นไหนที่ความถี่นิ่ง 100%
+ * ซ้อนสองตัวห่างกัน ~10 เซนต์ จะเกิดการตีกัน (beating) ช้า ๆ ซึ่งหูอ่านว่า "หนา"
+ * นี่คือหลักเดียวกับ supersaw และเป็นวิธีที่ได้ผลที่สุดต่อบรรทัดโค้ดที่เขียน
+ *
+ * ส่วน sine ล่างคือ "ตัวเนื้อ" — ย่าน 40–80Hz ที่ saw ผ่าน lowpass ให้ไม่พอ
+ * ลำโพงมือถือเล่นย่านนี้ไม่ออกก็จริง แต่หูฟังกับลำโพงคอมได้ยินชัด
+ */
 function playBass(when, freq, dur) {
-  const osc = ctx.createOscillator();
-  const f = ctx.createBiquadFilter();
   const g = ctx.createGain();
-  osc.type = 'sawtooth';
-  osc.frequency.setValueAtTime(freq, when);
-  f.type = 'lowpass';
-  f.frequency.value = 520;
   g.gain.setValueAtTime(0.0001, when);
-  g.gain.exponentialRampToValueAtTime(0.2, when + 0.015);
+  g.gain.exponentialRampToValueAtTime(0.19, when + 0.015);
   g.gain.exponentialRampToValueAtTime(0.0001, when + dur);
-  osc.connect(f).connect(g).connect(musicBus);
-  osc.start(when);
-  osc.stop(when + dur + 0.02);
+
+  const f = ctx.createBiquadFilter();
+  f.type = 'lowpass';
+  f.frequency.setValueAtTime(1100, when);          // เปิดกว้างตอนหัวโน้ต = มีจังหวะ "ป๊ะ"
+  f.frequency.exponentialRampToValueAtTime(480, when + Math.min(0.12, dur));
+  f.Q.value = 6;                                   // เรโซแนนซ์นิดหน่อยให้มีคาแรกเตอร์
+  f.connect(g).connect(musicBus);
+
+  for (const cents of [-9, +9]) {
+    const osc = ctx.createOscillator();
+    osc.type = 'sawtooth';
+    osc.frequency.setValueAtTime(freq, when);
+    osc.detune.setValueAtTime(cents, when);
+    osc.connect(f);
+    osc.start(when);
+    osc.stop(when + dur + 0.02);
+  }
+
+  const sub = ctx.createOscillator();
+  const subG = ctx.createGain();
+  sub.type = 'sine';
+  sub.frequency.setValueAtTime(freq / 2, when);
+  subG.gain.setValueAtTime(0.0001, when);
+  subG.gain.exponentialRampToValueAtTime(0.16, when + 0.02);
+  subG.gain.exponentialRampToValueAtTime(0.0001, when + dur);
+  sub.connect(subG).connect(musicBus);
+  sub.start(when);
+  sub.stop(when + dur + 0.02);
 }
 
-/** เมโลดี้: square บาง ๆ + echo หลอก ๆ ด้วยโน้ตซ้ำเบา ๆ ตามหลัง */
-function playLead(when, freq, dur) {
-  for (const [delay, vol] of [[0, 0.085], [dur * 0.9, 0.03]]) {
-    const osc = ctx.createOscillator();
+/**
+ * แพดคอร์ด — ชิ้นที่หายไปทั้งเพลง
+ *
+ * ⚠️ นี่คือสาเหตุหลักที่เพลงฟังบาง: คอร์ด Am–F–C–G ถูกประกาศไว้ในข้อมูล
+ * แต่ไม่เคยมีเครื่องดนตรีชิ้นไหนเล่นมันเลย เบสเล่นแค่ "โน้ตราก" ตัวเดียว
+ * เพลงจึงมีแค่เส้นล่างกับเส้นบน ไม่มีอะไรอยู่ตรงกลาง — ซึ่งคือที่ที่หูฟังหา "เนื้อ"
+ *
+ * เล่นยาวทั้งบาร์ เบา ๆ ไม่ต้องเด่น หน้าที่ของมันคือเป็นพื้น ไม่ใช่เป็นตัวเอก
+ * แต่ละโน้ตในคอร์ดกระจายซ้าย-ขวาไม่เท่ากัน เพื่อให้เกิดความกว้างแบบสเตอริโอ
+ */
+function playPad(when, chord, dur) {
+  const send = ctx.createGain();
+  send.gain.value = 0.22;
+  send.connect(musicDelay);
+
+  chord.tones.forEach((semi, i) => {
+    const freq = chord.root * 4 * Math.pow(2, semi / 12);   // ยกขึ้น 2 อ็อกเทฟจากรากเบส
+    const pan = ctx.createStereoPanner();
+    pan.pan.value = (i / (chord.tones.length - 1)) * 1.3 - 0.65;
+
     const g = ctx.createGain();
+    g.gain.setValueAtTime(0.0001, when);
+    g.gain.linearRampToValueAtTime(0.05, when + dur * 0.25);   // เข้าช้า ๆ ไม่ให้ชนกระเดื่อง
+    g.gain.linearRampToValueAtTime(0.0001, when + dur);
+
+    const f = ctx.createBiquadFilter();
+    f.type = 'lowpass';
+    f.frequency.value = 2100;      // ตัดความแหลมทิ้ง แพดต้องอยู่ "ข้างหลัง" เมโลดี้
+    f.connect(g);
+    g.connect(pan).connect(musicBus);
+    g.connect(send);
+
+    for (const cents of [-7, +7]) {
+      const osc = ctx.createOscillator();
+      osc.type = 'sawtooth';
+      osc.frequency.setValueAtTime(freq, when);
+      osc.detune.setValueAtTime(cents, when);
+      osc.connect(f);
+      osc.start(when);
+      osc.stop(when + dur + 0.05);
+    }
+  });
+}
+
+/**
+ * เมโลดี้: ยูนิซัน 3 เสียงเพี้ยนกัน + ดีเลย์จริง
+ *
+ * ของเดิมเป็น square ตัวเดียวแล้ว "ปลอมเสียงสะท้อน" ด้วยการเล่นโน้ตซ้ำเบา ๆ ตามหลัง
+ * ซึ่งได้แค่โน้ตซ้ำ ไม่ได้หางเสียงที่ค่อย ๆ จางแบบเสียงสะท้อนจริง
+ * ตอนนี้ส่งเข้าดีเลย์ป้อนกลับของจริงแทน — ได้หางหลายชั้นที่จางลงเองตามธรรมชาติ
+ */
+function playLead(when, freq, dur) {
+  const g = ctx.createGain();
+  g.gain.setValueAtTime(0.0001, when);
+  g.gain.exponentialRampToValueAtTime(0.075, when + 0.02);
+  g.gain.exponentialRampToValueAtTime(0.0001, when + dur);
+
+  const f = ctx.createBiquadFilter();
+  f.type = 'lowpass';
+  f.frequency.value = 3800;     // square ดิบ ๆ บาดหูที่ย่าน 5–8k — เกลาปลายทิ้ง
+  f.connect(g).connect(musicBus);
+
+  const send = ctx.createGain();
+  send.gain.value = 0.3;
+  g.connect(send).connect(musicDelay);
+
+  // ตัวกลางดัง ตัวข้างเบากว่าและกางออกซ้าย-ขวา = กว้างแต่ยังรู้ว่าโน้ตอยู่ตรงกลาง
+  for (const [cents, panVal, vol] of [[0, 0, 1], [-11, -0.5, 0.6], [+11, 0.5, 0.6]]) {
+    const osc = ctx.createOscillator();
+    const vg = ctx.createGain();
+    const pan = ctx.createStereoPanner();
     osc.type = 'square';
-    osc.frequency.setValueAtTime(freq, when + delay);
-    g.gain.setValueAtTime(0.0001, when + delay);
-    g.gain.exponentialRampToValueAtTime(vol, when + delay + 0.02);
-    g.gain.exponentialRampToValueAtTime(0.0001, when + delay + dur);
-    osc.connect(g).connect(musicBus);
-    osc.start(when + delay);
-    osc.stop(when + delay + dur + 0.02);
+    osc.frequency.setValueAtTime(freq, when);
+    osc.detune.setValueAtTime(cents, when);
+    vg.gain.value = vol;
+    pan.pan.value = panVal;
+    osc.connect(vg).connect(pan).connect(f);
+    osc.start(when);
+    osc.stop(when + dur + 0.02);
   }
 }
 
@@ -446,6 +596,10 @@ export function startAmbience() {
     stepDur: 60 / 118 / 4,                // ความยาว 1 ช่อง (เขบ็ตสองชั้น) — อัปเดตตามความเร็ว
     timer: null,
   };
+
+  // ⚠️ delayTime ค่าเริ่มต้นเป็น 0 — ปล่อยไว้จะได้ลูปป้อนกลับความยาวศูนย์ ต้องตั้งเสมอ
+  // 3 ช่อง = เขบ็ตประจุด ซึ่งเป็นค่าที่ทำให้เสียงสะท้อนตกคร่อมจังหวะแทนที่จะทับโน้ตตัวถัดไป
+  musicDelay.delayTime.setValueAtTime(ambience.stepDur * 3, ctx.currentTime);
 
   // เฟดเข้าแทนการเปิดโครม ๆ
   musicBus.gain.cancelScheduledValues(ctx.currentTime);
@@ -469,6 +623,9 @@ function scheduleStep(step, when, stepDur) {
   const bar = Math.floor(step / 16) % CHORDS.length;
   const chord = CHORDS[bar];
 
+  // แพดวางทีเดียวต้นบาร์ ยาวคลุมทั้งบาร์ — ไม่ต้องยิงทุกช่อง
+  if (inBar === 0) playPad(when, chord, stepDur * 16);
+
   if (DRUM.kick[inBar]) playKick(when);
   if (DRUM.snare[inBar]) playSnare(when, inBar === 15);
   if (DRUM.hat[inBar]) playHat(when, inBar % 4 === 2);
@@ -486,6 +643,9 @@ export function updateAmbience(speed) {
   const ratio = Math.min(1, (speed - CFG.speed.start) / Math.max(1, CFG.speed.max - CFG.speed.start));
   const bpm = 108 + ratio * 52;
   ambience.stepDur = 60 / bpm / 4;
+  // ดีเลย์ต้องขยับตาม BPM ด้วย ไม่งั้นพอเพลงเร่งขึ้น เสียงสะท้อนจะหลุดจังหวะ
+  // ค่อย ๆ เลื่อนแทนการกระโดด — เปลี่ยนความยาวดีเลย์ทันทีจะได้เสียงวี้ดแบบเทปยืด
+  musicDelay.delayTime.linearRampToValueAtTime(ambience.stepDur * 3, ctx.currentTime + 0.4);
 }
 
 export function stopAmbience() {
