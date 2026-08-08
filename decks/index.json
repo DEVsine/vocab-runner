@@ -7,6 +7,7 @@
     { "file": "clothes.json", "id": "clothes", "name": "👕 เสื้อผ้าและเครื่องแต่งกาย (205 คำ)" },
     { "file": "verbs.json", "id": "verbs", "name": "🏃 กริยาที่ใช้บ่อย (204 คำ)" },
     { "file": "nouns.json", "id": "nouns", "name": "📦 คำนามในชีวิตประจำวัน (203 คำ)" },
+    { "file": "awl-cutep.json", "id": "awl-cutep", "name": "🎓 เตรียมสอบ CU-TEP — Academic Word List (570 คำ / 10 ระดับ)" },
     { "file": "finance-basics.json", "id": "finance-basics", "name": "💰 ตัวอย่าง: ศัพท์การเงิน (19 คำ)" }
   ]
 }

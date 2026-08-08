@@ -368,6 +368,7 @@ function startRun() {
     score: 0,
     gates: 0,
     combo: 1,
+    distance: 0,           // เมตรสะสมทั้งรอบ (1 หน่วยโลก ≈ 1 เมตร — ดู config.js)
     coins: 0,
     jets: 0,
     jetArmed: false,       // ไอพ่นต้อง "กดใส่" เองถึงจะกันตาย (Space/แตะจอ)
@@ -423,6 +424,7 @@ function startRun() {
   hud.show();
   hud.setScore(0, 0, 1);
   hud.setCoins(0);
+  hud.setDistance(0);
   syncGear();
   hud.setStars(0, CFG.stars.needed);
   hud.setBonusTimer(null);
@@ -944,6 +946,7 @@ function enterFinalRound(msg) {
     hud.setQuestionVisible(true);
   }
   run.time = 0;
+  // run.distance ตั้งใจ "ไม่" รีเซ็ต — ระยะทางคือของทั้งรอบชีวิต ไม่ใช่ของรอบชิง
   run.speedBase = CFG.br.final.speed;
   run.speed = CFG.br.final.speed;
   run.stormLvl = CFG.br.final.stormLevel;
@@ -1629,6 +1632,7 @@ function die(cause, word, chosen) {
     word,
     chosen,
     score: run.score,
+    distance: run.distance,
     gates: run.gates,
     coins: run.coins,
     best: srs.getBest(deck.id).score,
@@ -1920,6 +1924,12 @@ function update(dt) {
     // ถูกบีบเวลามาถึงจนต่ำกว่าพื้นเวลาตอบสนองของมนุษย์ (CFG.pacing.obstacleLeadFloor)
     base += CFG.br.weapon.surgeBonus * run.surgeBlend;
     run.speed = base + (CFG.br.contest.slowSpeed - base) * run.slowBlend;
+    // ระยะทาง = ปริพันธ์ของความเร็วโลกต่อเฟรม (เอนจินจัดตารางเป็น "เวลา"
+    // แต่ config นิยาม 1 หน่วยโลก ≈ 1 เมตร จึงแปลงกลับเป็นเมตรได้ตรง ๆ)
+    // ต้องสะสม "ก่อน" ทางแยกศึกชิงคำข้างล่าง — โลกช่วงสโลว์โมชันยังไหลอยู่
+    // และด่านโบนัสก็นับด้วย: ผู้เล่นยังวิ่งไปข้างหน้าจริงในทุกกรณีเหล่านั้น
+    run.distance += run.speed * dt;
+    hud.setDistance(run.distance);
     run.invuln = Math.max(0, run.invuln - dt);
 
     run.fogT = Math.max(0, run.fogT - dt);

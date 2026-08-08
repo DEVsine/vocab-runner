@@ -4,6 +4,7 @@
  */
 
 import { CFG } from './config.js';
+import { formatDistance } from './format.js';
 import { playerHue } from './net.js';
 import { THEMES, THEME_ORDER } from './themes.js';
 import { CHARACTERS, CHARACTER_ORDER, characterById } from './characters.js';
@@ -446,6 +447,7 @@ export function createUI(handlers) {
       : (DEATH_NOTE[info.cause] || '');
     document.querySelector('.dead-tag').textContent = DEATH_TAG[info.cause] || DEATH_TAG.lane;
     $('dead-score').textContent = info.score;
+    $('dead-dist').textContent = formatDistance(info.distance ?? 0);
     $('dead-gates').textContent = info.gates;
     $('dead-coins').textContent = info.coins ?? 0;
     $('dead-best').textContent = info.best;

@@ -42,28 +42,38 @@
     <!-- ══ HUD (DOM overlay — คมกว่าการวาดลง canvas และได้ฟอนต์ไทยของระบบฟรี) ══ -->
     <div id="hud" class="hidden">
 
-      <!-- แถวสถิติแถวเดียวด้านบน
+      <!-- สถิติสองแถวด้านบน (สไตล์ Subway Surfers)
            เดิมแยกเป็นกอง "ซ้ายบน" กับ "ขวาบน" ซึ่งพอจอแคบลง กล่องโจทย์ตรงกลาง
            จะขยายไปทับทั้งสองกองพอดี → บนมือถืออ่านคะแนนไม่ได้เลย
-           แถวเดียวที่ "ไหลตามความกว้าง" แก้ปัญหานี้ที่ต้นเหตุ -->
+           ทางแก้คือให้ทุกอย่าง "ไหลตามความกว้าง" ใน flow เดียวกัน:
+           แถวบน = ตัวเลขความคืบหน้า (คะแนน/ระยะทาง/ด่าน/สูงสุด) + ปุ่มพัก
+           แถวล่าง = ของสะสมเป็นชิปไอคอนชิดขวา — จอแคบแค่ไหนก็ไม่มีอะไรทับกันเอง
+           (กล่องโจทย์ถูกเลื่อนลงให้พ้นทั้งสองแถวใน style.css) -->
       <div id="hud-stats">
-        <div class="stat"><span class="stat-label">คะแนน</span><span id="hud-score" class="hud-num">0</span></div>
-        <div id="hud-combo" class="combo hidden">×<span id="hud-combo-value" class="hud-num">1</span></div>
-        <div class="stat"><span class="stat-label">ด่าน</span><span id="hud-gates" class="hud-num">0</span></div>
-        <div class="stat dim"><span class="stat-label">สูงสุด</span><span id="hud-best" class="hud-num">0</span></div>
-        <div id="hud-collect">
-          <div class="stat coins"><span class="stat-label">เหรียญ</span><span id="hud-coins" class="hud-num">0</span></div>
-          <div class="stat stars"><span class="stat-label">ดาว</span><span id="hud-stars" class="hud-num">0/5</span></div>
-          <div id="hud-jets" class="jets"></div>
+        <div class="stats-row">
+          <div class="stat"><span class="stat-label">คะแนน</span><span id="hud-score" class="hud-num">0</span></div>
+          <div id="hud-combo" class="combo hidden">×<span id="hud-combo-value" class="hud-num">1</span></div>
+          <div class="stat dist"><span class="stat-label">ระยะทาง</span><span id="hud-dist" class="hud-num">0 ม.</span></div>
+          <div class="stat"><span class="stat-label">ด่าน</span><span id="hud-gates" class="hud-num">0</span></div>
+          <div class="stat dim"><span class="stat-label">สูงสุด</span><span id="hud-best" class="hud-num">0</span></div>
+          <button id="btn-hud-pause" type="button" title="พัก / ออก">⏸</button>
         </div>
-        <!-- โหมดฝึก: แถบความคืบหน้าเข้ามาแทนที่ของสะสมทั้งชุดในแถวเดียวกัน
-             (อยู่ใน flow เดียวกัน จึงไม่มีทางวางทับกันได้เลย) -->
-        <div id="hud-practice" class="hidden">
-          <span class="pr-hud-label">ฝึก</span>
-          <div class="pr-hud-track"><div id="pr-hud-bar"></div></div>
-          <span id="pr-hud-count">0/0</span>
+        <div class="stats-row stats-sub">
+          <!-- ป้ายความหมายอยู่ใน aria-label ไม่ใช่ title — #hud ปิด pointer-events
+               ทั้งผืน tooltip จึงไม่มีวันโผล่ แต่ screen reader ยังอ่าน aria ได้ปกติ -->
+          <div id="hud-collect">
+            <div class="stat coins"><span class="chip-icon" role="img" aria-label="เหรียญ">🪙</span><span id="hud-coins" class="hud-num">0</span></div>
+            <div class="stat stars"><span class="chip-icon" role="img" aria-label="ดาว">⭐</span><span id="hud-stars" class="hud-num">0/5</span></div>
+            <div id="hud-jets" class="jets"></div>
+          </div>
+          <!-- โหมดฝึก: แถบความคืบหน้าเข้ามาแทนที่ของสะสมทั้งชุดในช่องเดียวกัน
+               (อยู่ใน flow เดียวกัน จึงไม่มีทางวางทับกันได้เลย) -->
+          <div id="hud-practice" class="hidden">
+            <span class="pr-hud-label">ฝึก</span>
+            <div class="pr-hud-track"><div id="pr-hud-bar"></div></div>
+            <span id="pr-hud-count">0/0</span>
+          </div>
         </div>
-        <button id="btn-hud-pause" type="button" title="พัก / ออก">⏸</button>
       </div>
 
       <div id="hud-prompt">
@@ -235,6 +245,7 @@
 
         <div class="dead-scores">
           <div><span class="stat-label">คะแนน</span><strong id="dead-score">0</strong></div>
+          <div><span class="stat-label">ระยะทาง</span><strong id="dead-dist">0 ม.</strong></div>
           <div><span class="stat-label">ด่านผ่าน</span><strong id="dead-gates">0</strong></div>
           <div><span class="stat-label">เหรียญ</span><strong id="dead-coins">0</strong></div>
           <div><span class="stat-label">สูงสุด</span><strong id="dead-best">0</strong></div>

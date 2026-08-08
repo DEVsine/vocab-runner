@@ -88,22 +88,47 @@ button { touch-action: manipulation; -webkit-tap-highlight-color: transparent; }
   pointer-events: none;   /* HUD ต้องไม่ขวางการปัดนิ้วบน canvas */
   padding: calc(10px + var(--sa-top)) calc(12px + var(--sa-right))
            calc(10px + var(--sa-bottom)) calc(12px + var(--sa-left));
+  /* ความสูงจริงของสถิติสองแถว + padding บน + ระยะหายใจ — วัดจากจอจริง
+     กล่องโจทย์ใช้ค่านี้เป็น top เพื่อให้ "แก้ที่เดียว" เวลาสถิติเปลี่ยนขนาด
+     (breakpoint จอใหญ่ทับค่านี้ใหม่ ส่วนจอเตี้ยกำหนด top เองเพราะจงใจให้คร่อมกัน) */
+  --hud-prompt-top: 80px;
 }
 
-/* ── แถวสถิติแถวเดียวบนสุด ──────────────────────────────────
+/* ── สถิติสองแถวบนสุด (สไตล์ Subway Surfers) ─────────────────
    เดิมเป็นสองกอง (ซ้ายบน/ขวาบน) ซึ่งบนจอแคบจะถูกกล่องโจทย์ตรงกลางทับทั้งคู่
-   แถวเดียวที่ไหลตามความกว้างแก้ที่ต้นเหตุ: ไม่มีอะไรวางทับกันได้อีกเลย */
+   การไหลตามความกว้างใน flow เดียวแก้ที่ต้นเหตุ: ไม่มีอะไรวางทับกันได้อีกเลย
+   ⚠️ ความสูงรวมของสองแถวผูกกับ top ของ #hud-prompt — แก้ขนาดตรงนี้เมื่อไหร่
+   ต้องขยับ top ของกล่องโจทย์ตาม (ทุก breakpoint) ไม่งั้นแถวล่างจะมุดใต้กล่อง */
 #hud-stats {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+}
+.stats-row {
   display: flex;
   align-items: flex-start;
   gap: 10px;
   flex-wrap: nowrap;
 }
-#hud-collect { display: flex; align-items: flex-start; gap: 10px; margin-left: auto; }
-#hud-practice + #btn-hud-pause, #hud-collect + #hud-practice { margin-left: auto; }
+/* แถวของสะสมชิดขวา — ฝั่งซ้ายเว้นว่างไว้ให้เห็นเลนวิ่งต่อเนื่องจากใต้คะแนน */
+.stats-sub { justify-content: flex-end; align-items: center; }
+#hud-collect { display: flex; align-items: center; gap: 6px; }
 
 .stat { display: flex; flex-direction: column; line-height: 1.1; }
 .stat-label { font-size: 9px; letter-spacing: .1em; color: var(--dim); text-transform: uppercase; white-space: nowrap; }
+
+/* ชิปของสะสม: ไอคอน+ตัวเลขบนพื้นทึบมน — อ่านออกในแวบเดียวแบบเกม runner
+   (ป้ายตัวหนังสือจิ๋วอ่านช้ากว่าไอคอนมากตอนกำลังวิ่งหลบของ) */
+.stats-sub .stat {
+  flex-direction: row;
+  align-items: center;
+  gap: 5px;
+  padding: 2px 9px;
+  border-radius: 999px;
+  background: rgba(6, 10, 24, .62);
+  border: 1px solid rgba(255, 255, 255, .12);
+}
+.chip-icon { font-size: 13px; line-height: 1; }
 
 /* ── ตัวเลขแบบมีขอบ: 80% ของ "ความเป็นเกม" ในสายตาคน ──────────
    ตัวเลขบางบนพื้นหลัง 3D ที่มีทั้งสว่างและมืดจะอ่านยากเป็นบางจังหวะเสมอ
@@ -123,8 +148,9 @@ button { touch-action: manipulation; -webkit-tap-highlight-color: transparent; }
 }
 #hud-score, #hud-gates, #hud-best { font-size: 22px; }
 .stat.dim #hud-best { font-size: 16px; color: var(--dim); -webkit-text-stroke-width: 3px; }
-.stat.coins #hud-coins { font-size: 19px; color: var(--gold); }
-.stat.stars #hud-stars { font-size: 17px; color: #fff3b0; }
+.stat.dist #hud-dist { font-size: 18px; color: var(--cyan); white-space: nowrap; }
+.stat.coins #hud-coins { font-size: 16px; color: var(--gold); -webkit-text-stroke-width: 3px; }
+.stat.stars #hud-stars { font-size: 15px; color: #fff3b0; -webkit-text-stroke-width: 3px; }
 .stat.stars.ready #hud-stars { color: var(--lime); text-shadow: 0 0 14px rgba(163,230,53,.6); }
 
 .combo {
@@ -170,7 +196,7 @@ button { touch-action: manipulation; -webkit-tap-highlight-color: transparent; }
 /* ── โจทย์ไทย — ต้องเป็นสิ่งที่อ่านง่ายที่สุดในเฟรม ───────── */
 #hud-prompt {
   position: absolute;
-  top: calc(44px + var(--sa-top)); left: 50%;
+  top: calc(var(--hud-prompt-top) + var(--sa-top)); left: 50%;
   transform: translateX(-50%);
   width: min(92vw, 560px);
   padding: 8px 16px 10px;
@@ -233,7 +259,10 @@ button { touch-action: manipulation; -webkit-tap-highlight-color: transparent; }
    ที่บอกผู้เล่นว่าธงใบไหนคือเลนไหน — ห้ามเปลี่ยนให้ไม่ตรงกันเด็ดขาด) */
 #lane-flags {
   position: absolute;
-  top: 31%;
+  /* ต้องบวก --sa-top เหมือนกล่องโจทย์ — เครื่องมีรอยบากดันทุกอย่างด้านบนลงมา
+     ถ้าธงยึด % เพียว ๆ ช่องว่างระหว่างกล่องโจทย์กับธงจะหดจนทับกัน (โจทย์แบบรูป
+     กล่องสูงขึ้นอีก ~90px ยิ่งเสี่ยง) — บวกเท่ากันทั้งคู่ = ช่องว่างคงที่ทุกเครื่อง */
+  top: calc(31% + var(--sa-top));
   left: 50%;
   transform: translateX(-50%);
   width: calc(100vw - 12px);
@@ -356,7 +385,9 @@ button { touch-action: manipulation; -webkit-tap-highlight-color: transparent; }
    (แตะจอเปล่า ๆ ถูกจองไว้ให้ "ใส่เกราะ" แล้ว)
    อยู่ในแถวสถิติเพื่อให้ flex จัดตำแหน่งให้เอง — absolute ตรงมุมจะไปทับของสะสม */
 #btn-hud-pause {
-  flex: 0 0 auto; align-self: center; margin-left: 8px;
+  /* margin-left: auto = ดันตัวเองไปสุดขวาของแถวบน — อย่าเปลี่ยนเป็นค่าคงที่
+     (เคยเป็น 8px สมัยที่ปุ่มต่อท้ายแถบของสะสม ซึ่งตอนนี้ย้ายไปแถวล่างแล้ว) */
+  flex: 0 0 auto; align-self: center; margin-left: auto;
   width: 40px; height: 40px; border-radius: 12px;
   display: flex; align-items: center; justify-content: center;
   background: rgba(10,16,36,.7); border: 1px solid rgba(255,255,255,.16);
@@ -972,11 +1003,13 @@ td.en { font-weight: 700; }
 @media (min-width: 620px) {
   #hud { padding: calc(16px + var(--sa-top)) calc(20px + var(--sa-right))
                   calc(14px + var(--sa-bottom)) calc(20px + var(--sa-left)); }
-  #hud-stats { gap: 16px; }
+  .stats-row { gap: 16px; }
   .stat-label { font-size: 10px; }
   #hud-score, #hud-gates { font-size: 27px; }
-  #hud-prompt { top: calc(52px + var(--sa-top)); padding: 11px 24px 13px; }
-  #lane-flags { top: 33%; gap: 10px; width: min(940px, 92vw); }
+  .stat.dist #hud-dist { font-size: 21px; }
+  #hud { --hud-prompt-top: 92px; }   /* สถิติสองแถวสูงขึ้นตามฟอนต์จอใหญ่ */
+  #hud-prompt { padding: 11px 24px 13px; }
+  #lane-flags { top: calc(33% + var(--sa-top)); gap: 10px; width: min(940px, 92vw); }
   .flag { padding: 9px 10px 13px; border-radius: 15px; }
   .jet-pip { width: 14px; height: 20px; }
   #hud-toast { font-size: 15px; padding: 9px 20px; }
@@ -1011,7 +1044,18 @@ td.en { font-weight: 700; }
 @media (max-height: 480px) {
   /* จอเตี้ยกว้าง: กล่องโจทย์ต้องแคบลงด้วย ไม่ใช่แค่เตี้ยลง
      ไม่งั้นขอบซ้าย/ขวาของมันจะไปคร่อมแถวคะแนนที่อยู่มุมบนทั้งสองข้าง */
-  #hud-prompt { top: calc(26px + var(--sa-top)); padding: 5px 14px 7px; width: min(56vw, 460px); }
+  #hud-prompt { top: calc(26px + var(--sa-top)); padding: 5px 14px 7px; width: min(52vw, 460px); }
+  /* จอเตี้ย: กล่องโจทย์คร่อมแนวตั้งกับสถิติสองแถว — อยู่ร่วมกันได้เพราะกล่องแคบ
+     ฝั่งซ้ายย่อฟอนต์/ช่องไฟให้จบก่อนขอบซ้ายของกล่อง (ค่าคะแนนสุดโต่งอาจแตะขอบ
+     ได้บ้าง — ยอมรับ เพราะกล่องโปร่งแสงและดีกว่าซ่อนตัวเลขทิ้งทั้งตัว)
+     ฝั่งขวาแถวชิปต้องเล็กพอที่จะไม่มุดใต้ขอบขวาของกล่องโจทย์ */
+  .stats-row { gap: 8px; }
+  #hud-score, #hud-gates { font-size: 18px; }
+  .stat.dist #hud-dist { font-size: 15px; }
+  .stats-sub .stat { padding: 1px 7px; }
+  .stat.coins #hud-coins { font-size: 13px; }
+  .stat.stars #hud-stars { font-size: 12px; }
+  .chip-icon { font-size: 11px; }
   #hud-prompt-word { font-size: clamp(18px, 4.4vh, 28px); }
   #hud-prompt-emoji { font-size: clamp(30px, 9vh, 52px); }
   #hud-prompt-image { width: 56px; height: 56px; }

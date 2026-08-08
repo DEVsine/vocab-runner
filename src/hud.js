@@ -17,6 +17,7 @@
  */
 
 import { CFG } from './config.js';
+import { formatDistance } from './format.js';
 import { fetchImage, cachedImage } from './images.js';
 import { playerHue } from './net.js';
 import { ammoById } from './weapons.js';
@@ -31,6 +32,7 @@ export function createHUD(handlers = {}) {
     prompt: $('hud-prompt'),
     laneFlags: $('lane-flags'),
     score: $('hud-score'),
+    dist: $('hud-dist'),
     gates: $('hud-gates'),
     best: $('hud-best'),
     coins: $('hud-coins'),
@@ -108,6 +110,7 @@ export function createHUD(handlers = {}) {
 
   let hintTimer = null;
   let toastTimer = null;
+  let lastDistText = '';
   let bannerTimer = null;
   let contestCursor = 1;
   let contestLocked = false;
@@ -327,6 +330,14 @@ export function createHUD(handlers = {}) {
     },
 
     setCoins(n) { el.coins.textContent = n; },
+
+    /** ระยะทางวิ่ง (เมตร) — ถูกเรียกทุกเฟรม จึงแตะ DOM เฉพาะตอนข้อความเปลี่ยนจริง */
+    setDistance(meters) {
+      const text = formatDistance(meters);
+      if (text === lastDistText) return;
+      lastDistText = text;
+      el.dist.textContent = text;
+    },
 
     setStars(collected, needed) {
       el.stars.textContent = `${collected}/${needed}`;
