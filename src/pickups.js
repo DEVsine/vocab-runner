@@ -17,6 +17,16 @@ import { CFG } from './config.js';
 import { PALETTE, toonMat } from './scene.js';
 
 export const PICKUP = { COIN: 'coin', JET: 'jet', STAR: 'star' };
+// ไอเทมจับเวลา (EZL-71): collect() คืน "ชนิด" ตรงจาก CFG.boosts.items (magnet/x2)
+// ไม่ใส่ใน PICKUP เพราะรายชื่อจริงอยู่ที่ config — pool/รูปทรง/สีตามชนิดใหม่ได้เอง
+// (แต่ "พฤติกรรม" ของชนิดใหม่ยังต้องเขียนโค้ดอยู่ดี เช่น แรงดูดของ magnet ข้างล่าง)
+
+/** รูปทรงกล่องไอเทมที่เลือกได้จาก config (`shape`) — ผิดคีย์ = ถอยไปใช้กล่อง */
+const BOOST_GEO = {
+  cube: () => new THREE.BoxGeometry(0.55, 0.55, 0.55),
+  diamond: () => new THREE.OctahedronGeometry(0.42, 0),
+  sphere: () => new THREE.SphereGeometry(0.4, 18, 14),
+};
 
 const LANE_X = i => (i - 1) * CFG.world.laneWidth;
 
@@ -100,6 +110,33 @@ export function createPickupPool(scene) {
     stars.push({ group: g, core, glow, ring, active: false });
   }
 
+  /* ── ไอเทมจับเวลา: แม่เหล็ก / คะแนน ×2 (EZL-71) ─────────────
+   * รูปทรง+สีมาจาก config ทั้งหมด — จูนหน้าตาไอเทมได้โดยไม่แตะโค้ดนี้
+   * มีวงแหวนเรืองแสงแบบเดียวกับไอพ่น = ภาษาภาพเดียวกันว่า "ของพิเศษ เก็บเถอะ" */
+  const boosts = [];
+  for (const [type, bc] of Object.entries(CFG.boosts.items)) {
+    for (let i = 0; i < CFG.boosts.poolPerType; i++) {
+      const g = new THREE.Group();
+
+      const core = new THREE.Mesh(
+        (BOOST_GEO[bc.shape] || BOOST_GEO.cube)(),
+        toonMat(bc.color, { emissive: bc.emissive })
+      );
+      g.add(core);
+
+      const halo = new THREE.Mesh(
+        new THREE.TorusGeometry(0.52, 0.035, 8, 24),
+        new THREE.MeshBasicMaterial({ color: bc.color, transparent: true, opacity: 0.75 })
+      );
+      halo.rotation.x = Math.PI / 2;
+      g.add(halo);
+
+      g.visible = false;
+      scene.add(g);
+      boosts.push({ type, group: g, halo, active: false });
+    }
+  }
+
   let spin = 0;
 
   return {
@@ -131,16 +168,70 @@ export function createPickupPool(scene) {
       return j;
     },
 
-    update(dt, speed) {
+    spawnBoost(type, lane, z) {
+      const b = boosts.find(o => o.type === type && !o.active);
+      if (!b) return null;
+      b.active = true;
+      b.group.visible = true;
+      b.group.position.set(LANE_X(lane), CFG.boosts.y, z);
+      return b;
+    },
+
+    /**
+     * @param {{x:number,y:number}|null} [magnetAt]
+     *        ตำแหน่งผู้เล่น (x, y ที่เท้า) ตอน "แม่เหล็กทำงาน" — main เป็นคนส่งเข้ามา
+     *        โมดูลนี้แปลงเป็น "กลางลำตัว" เอง ด้วยกติกาเดียวกับ collect() ข้างล่าง
+     *        (offset +0.8 ต้องมีเจ้าของที่เดียว — ถ้าให้ผู้เรียกบวกมาเอง จูนทีต้องแก้สองไฟล์)
+     */
+    update(dt, speed, magnetAt = null) {
       spin += dt;
+      const mg = CFG.boosts.items.magnet;
 
       for (const c of coins) {
         if (!c.active) continue;
-        c.mesh.position.z += speed * dt;
+        const p = c.mesh.position;
+
+        // แม่เหล็ก: เหรียญ "ทุกเลน" ในระยะบินเข้าหาตัวเป็นเส้นตรง แล้วถูกเก็บ
+        // ผ่านเส้นทาง collect ปกติ (ได้ทั้งคะแนน/ยอดเหรียญจริง ไม่ใช่หายไปเฉย ๆ)
+        // ความเร็วดูด = ความเร็วโลก + pullSpeed → ไล่ทันเสมอไม่ว่าเกมเร็วแค่ไหน
+        // และ clamp ก้าวสุดท้ายไม่ให้วิ่งเลยเป้าจนแกว่งไปมา
+        //
+        // ขอบเขตของ "ทุกเลน" (สำคัญ — เลน ≠ ทุกที่บนจอ):
+        //   แนวลึก: เฉพาะเหรียญที่ยัง "อยู่ข้างหน้า" — ของที่พลาดไปแล้วไม่ย้อนกลับมา
+        //   แนวตั้ง (attractY): เหรียญบนหลังคายานต้องไม่ถูกลากทะลุตัวยานลงมา
+        //   เพราะมันคือรางวัลของการเสี่ยงกระโดดขึ้นไป — แม่เหล็กห้ามแจกของชั้นนั้นฟรี
+        //   (ยืนบนหลังคาแล้วเปิดแม่เหล็ก = ดูดชั้นหลังคาแทน ซึ่งถูกต้องตามเจตนา)
+        const ty = magnetAt ? magnetAt.y + 0.8 : 0;
+        if (magnetAt
+            && p.z > -mg.attractZ && p.z < CFG.world.playerZ + 0.6
+            && Math.abs(p.y - ty) <= mg.attractY) {
+          const dx = magnetAt.x - p.x, dy = ty - p.y, dz = CFG.world.playerZ - p.z;
+          const dist = Math.hypot(dx, dy, dz);
+          const step = (speed + mg.pullSpeed) * dt;
+          if (dist > 1e-6) {
+            const k = Math.min(1, step / dist);
+            p.x += dx * k; p.y += dy * k; p.z += dz * k;
+          }
+        } else {
+          p.z += speed * dt;
+        }
+
         c.mesh.rotation.y = spin * 3.2;      // หมุนให้แวบสะท้อนแสง = ตาจับได้ง่าย
-        if (c.mesh.position.z > CFG.world.despawnZ) {
+        if (p.z > CFG.world.despawnZ) {
           c.active = false;
           c.mesh.visible = false;
+        }
+      }
+
+      for (const b of boosts) {
+        if (!b.active) continue;
+        b.group.position.z += speed * dt;
+        b.group.rotation.y = spin * 2.0;
+        b.group.position.y = CFG.boosts.y + Math.sin(spin * 3) * 0.12;
+        b.halo.scale.setScalar(1 + Math.sin(spin * 5) * 0.08);
+        if (b.group.position.z > CFG.world.despawnZ) {
+          b.active = false;
+          b.group.visible = false;
         }
       }
 
@@ -200,6 +291,17 @@ export function createPickupPool(scene) {
         got.push(PICKUP.JET);
       }
 
+      for (const b of boosts) {
+        if (!b.active) continue;
+        const p = b.group.position;
+        if (Math.abs(p.z - CFG.world.playerZ) > CFG.boosts.pickRadius) continue;
+        if (Math.abs(p.x - px) > CFG.boosts.pickRadius) continue;
+        if (Math.abs(p.y - (py + 0.8)) > 1.6) continue;
+        b.active = false;
+        b.group.visible = false;
+        got.push(b.type);
+      }
+
       for (const s of stars) {
         if (!s.active) continue;
         const p = s.group.position;
@@ -220,6 +322,7 @@ export function createPickupPool(scene) {
       for (const c of coins) { c.active = false; c.mesh.visible = false; }
       for (const j of jets) { j.active = false; j.group.visible = false; }
       for (const s of stars) { s.active = false; s.group.visible = false; }
+      for (const b of boosts) { b.active = false; b.group.visible = false; }
     },
   };
 }

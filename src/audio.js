@@ -252,6 +252,19 @@ export const sfx = {
     tone({ freq: 600, endFreq: 1800, duration: 0.32, type: 'sine', gain: 0.14, delay: 0.05 });
   },
 
+  /** เก็บไอเทมจับเวลา (แม่เหล็ก/×2) — ประกายสั้นสดใส สั้นกว่าเสียง "ของหายาก" ของไอพ่น
+   *  เพราะของพวกนี้ออกบ่อยกว่า เสียงยาวจะรกหูเร็วมาก */
+  boostPickup() {
+    tone({ freq: 700, endFreq: 1400, duration: 0.14, type: 'square', gain: 0.15 });
+    tone({ freq: 1050, endFreq: 2100, duration: 0.2, type: 'sine', gain: 0.12, delay: 0.04 });
+  },
+
+  /** ผลไอเทมหมดเวลา — โน้ตตกเบา ๆ บอกว่า "กลับสู่ปกติแล้ว" ไม่ใช่เสียงลงโทษ
+   *  (HUD นับถอยหลังเป็นของใบ EZL-70 — เสียงนี้คือสัญญาณเดียวที่ใบนี้ให้) */
+  boostEnd() {
+    tone({ freq: 880, endFreq: 520, duration: 0.2, type: 'triangle', gain: 0.12 });
+  },
+
   /** กด "ใส่" ไอพ่น — คลิกกลไก + เสียงระบบติดเครื่อง = รู้สึกว่าเพิ่งติดอาวุธ */
   jetEquip() {
     noise({ duration: 0.06, gain: 0.22, filterFrom: 4000, filterTo: 2000 });

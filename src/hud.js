@@ -112,6 +112,7 @@ export function createHUD(handlers = {}) {
   let toastTimer = null;
   let lastDistText = '';
   let bannerTimer = null;
+  let activeBoosts = [];   // สถานะไอเทมจับเวลาเฟรมล่าสุด (EZL-71) — EZL-70 อ่านไปวาด
   let contestCursor = 1;
   let contestLocked = false;
 
@@ -441,6 +442,15 @@ export function createHUD(handlers = {}) {
       el.bonusTimer.classList.remove('hidden');
       el.bonusTimerBar.style.transform = `scaleX(${Math.max(0, Math.min(1, ratio))})`;
     },
+
+    /**
+     * สถานะไอเทมจับเวลา (EZL-71): [{ type: 'magnet'|'x2', remainingMs }]
+     * main ป้อนเข้ามาทุกเฟรม — ใบนี้แค่ "เปิดสถานะ" ให้พร้อมใช้
+     * การวาดนับถอยหลังเป็นงานของใบ EZL-70 (HUD มือถือ) มาเติมในฟังก์ชันนี้
+     * ระหว่างนี้เก็บค่าล่าสุดไว้ให้อ่านผ่าน getBoosts() (QA/เดโม่ใช้ส่องได้)
+     */
+    setBoosts(list) { activeBoosts = list; },
+    getBoosts: () => activeBoosts,
 
     /** @param {number} n เกราะในคลัง (ยังไม่ใส่) @param {boolean} armed ใส่อยู่ = pip เรืองแสงพิเศษ */
     setJets(n, armed = false) {

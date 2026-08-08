@@ -22,6 +22,7 @@ import { createObstaclePool, pickObstacleType } from './obstacles.js';
 import { createTrainPool, TRAIN } from './trains.js';
 import { createPickupPool, PICKUP } from './pickups.js';
 import { planBonus } from './bonus.js';
+import { createBoosts, BOOST } from './boosts.js';
 import { createHUD } from './hud.js';
 import { createUI } from './ui.js';
 import { createInput, ACTIONS } from './input.js';
@@ -373,6 +374,7 @@ function startRun() {
     jets: 0,
     jetArmed: false,       // ไอพ่นต้อง "กดใส่" เองถึงจะกันตาย (Space/แตะจอ)
     stars: 0,
+    boosts: createBoosts(),  // ไอเทมจับเวลา (แม่เหล็ก/×2) — นาฬิกาเดินใน update()
     bonus: null,
     recent: [],
     events: [],
@@ -427,6 +429,7 @@ function startRun() {
   hud.setDistance(0);
   syncGear();
   hud.setStars(0, CFG.stars.needed);
+  hud.setBoosts([]);
   hud.setBonusTimer(null);
   hud.hideBonusBanner();
   hud.setBest(srs.getBest(deck.id).score);
@@ -875,14 +878,14 @@ function onContestResult(msg) {
 
   if (iWon) {
     addOxygen(CFG.br.storm.refillOnContestWin, 'contest');
-    run.score += CFG.br.contest.scoreBonus;
+    addScore(CFG.br.contest.scoreBonus);
     run.ammo = Math.min(CFG.br.weapon.maxAmmo, run.ammo + 1);
     srs.record(deck.id, c.en, true);
     clearWords(deck.id, [c.en]);     // ตอบถูกที่ไหนก็ปลดออกจากคิวทวนเหมือนกัน
     sfx.correct(5);
   } else if (correct) {
     addOxygen(CFG.br.storm.refillOnContestCorrect, 'contest');
-    run.score += Math.round(CFG.br.contest.scoreBonus / 3);
+    addScore(Math.round(CFG.br.contest.scoreBonus / 3));
     srs.record(deck.id, c.en, true);
     clearWords(deck.id, [c.en]);
     sfx.correct(2);
@@ -1346,6 +1349,23 @@ function scheduleBreather(gateArrival) {
   // ห้องซ้อมไม่มีเหรียญเลย — ไม่ใช่ "เหรียญที่ไม่มีค่า" แต่คือไม่มีให้เห็นตั้งแต่แรก
   // แถวเหรียญคือสิ่งที่ดึงสายตาแรงที่สุดในจอ ถ้าปล่อยไว้ห้องซ้อมจะไม่ใช่ห้องซ้อมอีกต่อไป
   if (practice) return;
+
+  // ── ไอเทมจับเวลา: แม่เหล็ก / ×2 (EZL-71) — ออกตามช่วงพักเหมือนของชิ้นอื่น ──
+  // อยู่หลัง return ของห้องซ้อม = "ไม่มีเดิมพัน" ถูกบังคับโดยโครงสร้าง ไม่ใช่ flag
+  // ⚠️ วินัยเดียวกับยานสวน: ดึง rnd() จำนวนคงที่เป็นลำดับตายตัวเสมอ ค่อยตัดสินใจทีหลัง
+  // เพราะ laneFreeAt อ่าน run.events ซึ่งมีของ per-เครื่องปนได้ ถ้าจำนวนครั้งที่ดึงเลข
+  // ขึ้นกับมัน สายสุ่มของรอบชิง (เมล็ดร่วม) จะเหลื่อมกันระหว่างเครื่องทันที
+  // (Object.entries เดินตามลำดับคีย์ใน config — โค้ดเดียวกันทุกเครื่อง = ลำดับเดียวกัน)
+  for (const [type, bc] of Object.entries(CFG.boosts.items)) {
+    const roll = rnd();
+    const laneDraw = Math.floor(rnd() * CFG.world.laneCount);
+    if (roll >= bc.chancePerBreather) continue;
+    const time = gateArrival + CFG.pacing.breatherSeconds * bc.slot;
+    const cand = groundLanes.filter(l => laneFreeAt(l, time));
+    if (!cand.length) continue;
+    run.events.push({ kind: 'boost', type, time, lane: cand[laneDraw % cand.length], lead: CFG.boosts.lead });
+  }
+
   if (rnd() > CFG.coins.chancePerBreather) return;
 
   /** วางเหรียญ 1 แถวในเลนที่กำหนด — คืนเวลาของเหรียญเม็ดสุดท้าย */
@@ -1420,6 +1440,7 @@ function runDirector() {
     if (ev.kind === 'obstacle') obstacles.spawn(ev.type, ev.lane, z);
     else if (ev.kind === 'coin') pickups.spawnCoin(ev.lane, z);
     else if (ev.kind === 'star') pickups.spawnStar(ev.lane, z);
+    else if (ev.kind === 'boost') pickups.spawnBoost(ev.type, ev.lane, z);
     else if (ev.kind === 'train') {
       trains.spawn(TRAIN.RIDE, ev.lane, z);
       // แถวเหรียญบนหลังคา — วาง "เชิงเรขาคณิต" ตามความยาวยาน (ไม่ใช่ตามเวลา)
@@ -1533,13 +1554,25 @@ function exitBonus() {
 
 /* ── ผลของการตอบ ─────────────────────────────────────────── */
 
+/**
+ * ⭐ ตัวคูณกลางจุดเดียว (EZL-71): คะแนน "ทุกทาง" ต้องเข้าทางนี้เท่านั้น
+ * ห้ามมี `run.score +=` ตรงอื่นอีก — จุดที่แอบบวกเองคือจุดที่ไอเทม ×2 ไม่ออกฤทธิ์
+ * แล้วผู้เล่นจะรู้สึกว่าไอเทม "โกหก" โดยไม่มี error ให้เห็นสักบรรทัด
+ *
+ * ตัวคูณด่านโบนัส (coinValueMultiplier) เป็นส่วนหนึ่งของ "คะแนนฐาน" ที่ผู้เรียกส่งมา
+ * → ×2 กับโบนัสจึงซ้อนกันแบบคูณต่อ (เหรียญ 5 × โบนัส 2 × ไอเทม 2 = 20) โดยอัตโนมัติ
+ */
+function addScore(points) {
+  run.score += Math.round(points * run.boosts.scoreMultiplier());
+}
+
 function passGate(gate) {
   const q = gate.question;
   srs.record(deck.id, q.word.en, true);
   clearWords(deck.id, [q.word.en]);   // ตอบถูกแล้ว → ปลดออกจากคิว "คำที่ต้องทวน"
 
   run.gates += 1;
-  run.score += Math.round(CFG.score.perGate * run.combo * (run.br ? run.zone.reward : 1));
+  addScore(CFG.score.perGate * run.combo * (run.br ? run.zone.reward : 1));
   run.combo = Math.min(CFG.score.comboMax, run.combo + 1);
 
   sfx.correct(run.combo);
@@ -1611,6 +1644,9 @@ function saveWithJet(gate) {
 function die(cause, word, chosen) {
   state = 'dying';
   dyingTimer = 0;
+  // ล้างสถานะไอเทมจับเวลาที่ป้อนให้ HUD — ตายแล้วนาฬิกาหยุดเดิน (update ไม่วิ่งแล้ว)
+  // ถ้าไม่ล้าง EZL-70 จะเห็นตัวเลขแช่ค้างข้ามไปจนถึงจอตาย
+  hud.setBoosts([]);
 
   world.shake(1.1);
   stopAmbience();
@@ -1660,7 +1696,7 @@ function resolveJokeGate(gate, lane) {
 
   if (correct) {
     run.coins += CFG.bonus.jokeRewardCoins;
-    run.score += CFG.bonus.jokeRewardCoins * CFG.coins.value;
+    addScore(CFG.bonus.jokeRewardCoins * CFG.coins.value);
     sfx.jokeRight();
     hud.toast(`ถูกต้อง! ${q.word.punch} (+${CFG.bonus.jokeRewardCoins} เหรียญ)`, 2600);
   } else {
@@ -1804,6 +1840,16 @@ function checkTrains() {
   }
 }
 
+/**
+ * ตำแหน่งผู้เล่น (x, y ที่เท้า) สำหรับแรงดูดแม่เหล็ก — pickups แปลงเป็นกลางลำตัวเอง
+ * คืน null ตอนแม่เหล็กไม่ทำงาน — pickups ไม่ต้องรู้จัก player หรือระบบไอเทมเลย
+ * รู้แค่ "มีจุดดูดไหม" ก็พอ (เหตุผลเดียวกับที่ bonus.js ไม่รู้จัก three.js)
+ */
+function magnetTarget() {
+  if (!run.boosts.isActive(BOOST.MAGNET)) return null;
+  return { x: player.x(), y: player.group.position.y };
+}
+
 function collectPickups() {
   const got = pickups.collect(player);
   if (!got.length) return;
@@ -1816,7 +1862,7 @@ function collectPickups() {
       run.coinStreak = (run.time - run.lastCoinAt < 0.55) ? run.coinStreak + 1 : 0;
       run.lastCoinAt = run.time;
       run.coins += 1;
-      run.score += CFG.coins.value * (run.bonus ? CFG.bonus.coinValueMultiplier : 1);
+      addScore(CFG.coins.value * (run.bonus ? CFG.bonus.coinValueMultiplier : 1));
       sfx.coin(run.coinStreak);
 
     } else if (kind === PICKUP.STAR) {
@@ -1825,10 +1871,21 @@ function collectPickups() {
       hud.setStars(run.stars, CFG.stars.needed);
       if (!run.bonus && !enteredBonus && run.stars >= CFG.stars.needed) enteredBonus = true;
 
-    } else {
+    } else if (kind === PICKUP.JET) {
       run.jets = Math.min(CFG.powerup.maxCharges, run.jets + 1);
       sfx.jetPickup();
       hud.toast(`ได้${armorName()}! กด Space หรือแตะจอเพื่อ "ใส่" — ใส่แล้วถึงจะกันตาย`, 2400);
+
+    } else {
+      // ไอเทมจับเวลา (แม่เหล็ก/×2): ทำงานทันที ไม่ต้องกดใช้ —
+      // เก็บชนิดเดิมซ้ำ activate() จะรีเซ็ตเวลากลับไปเต็มให้เอง
+      // (ชนิดที่ไม่รู้จักจะ throw ตรงนี้ = บั๊กดังทันที ไม่เงียบหาย)
+      run.boosts.activate(kind);
+      sfx.boostPickup();
+      const sec = Math.round(CFG.boosts.items[kind].durationSeconds);
+      hud.toast(kind === BOOST.MAGNET
+        ? `🧲 แม่เหล็กทำงาน ${sec} วิ — เหรียญทุกเลนวิ่งเข้าหาคุณ`
+        : `✨ คะแนน ×2 นาน ${sec} วิ!`, 2000);
     }
   }
 
@@ -1932,6 +1989,11 @@ function update(dt) {
     hud.setDistance(run.distance);
     run.invuln = Math.max(0, run.invuln - dt);
 
+    // ไอเทมจับเวลา (EZL-71): นับถอยด้วย dt ของลูปหลัก — พักเกม = นาฬิกาหยุดเองเพราะ
+    // update ไม่ถูกเรียก และป้อนสถานะ {ชนิด, เวลาคงเหลือ} ให้ HUD ทุกเฟรม (EZL-70 เป็นคนวาด)
+    if (run.boosts.tick(dt).length) sfx.boostEnd();
+    hud.setBoosts(run.boosts.active());
+
     run.fogT = Math.max(0, run.fogT - dt);
     hud.setFog(run.fogSpan > 0 ? run.fogT / run.fogSpan : 0);
 
@@ -1952,7 +2014,7 @@ function update(dt) {
       if (c.t <= -CONTEST_GRACE) { endContest(); return; }
 
       player.update(dt, sfx);
-      pickups.update(dt, run.speed);
+      pickups.update(dt, run.speed, magnetTarget());
       world.update(dt, run.speed, player.x());
       updateAmbience(run.speed);
       hud.setActiveLane(player.nearestLane());
@@ -1967,7 +2029,7 @@ function update(dt) {
     gates.update(dt, run.speed);
     obstacles.update(dt, run.speed);
     trains.update(dt, run.speed);
-    pickups.update(dt, run.speed);
+    pickups.update(dt, run.speed, magnetTarget());
     world.update(dt, run.speed, player.x());
     updateAmbience(run.speed);
 
@@ -2194,6 +2256,14 @@ if (location.hostname === 'localhost' || location.hostname === '127.0.0.1') {
     pickPracticeWords: () => pickPracticeWords(deck),
     /** กระโดดเข้าด่านโบนัสทันที (ไม่ต้องไล่เก็บดาว 5 ดวง) */
     forceBonus: () => { if (state === 'running' && !run.bonus) enterBonus(); },
+    // ── ไอเทมจับเวลา (EZL-71) — ให้ QA/ทีม HUD (EZL-70) ทดสอบได้โดยไม่ต้องรอสุ่ม ──
+    BOOST,
+    getBoosts: () => (run ? run.boosts.active() : []),
+    grantBoost: type => {
+      if (state !== 'running') return;
+      run.boosts.activate(type);
+      hud.setBoosts(run.boosts.active());
+    },
     // ── โหมดแข่ง (ใช้ทดสอบ 2 แท็บ) ──
     net,
     openMultiplayer, mpCreate, mpJoin, mpStart,
