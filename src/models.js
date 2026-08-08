@@ -413,6 +413,9 @@ export async function loadCharacter(id, cfg = {}) {
   play('idle', 0);
   return {
     group, mixer, play, clips, setProps,
+    // เปิดให้ภายนอกเข้าถึงตัว prop ตรง ๆ — player.js ใช้ฝากออร่าเรืองแสงตอนใส่เกราะ
+    // ไว้กับอาวุธในมือ (sprite ลูกของ prop จะโดน visible ของ setProps ดับให้เอง)
+    getProp: (name) => props.get(name),
     propNames: [...props.keys()],
     update: (dt) => mixer.update(dt),
   };

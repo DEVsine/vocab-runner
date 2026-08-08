@@ -20,6 +20,7 @@ import { CFG } from './config.js';
 import { PALETTE, toonMat } from './scene.js';
 import { characterById } from './characters.js';
 import { loadCharacter } from './models.js';
+import { createDotTexture } from './textures.js';
 
 /* ══ โครงกระดูก — ตัวเลขชุดเดียวที่ทุกชิ้นส่วนอ้างอิง ═══════════
  *
@@ -102,6 +103,47 @@ function glossShell(mesh, shininess = 60) {
   shell.scale.setScalar(1.006);      // ลอยพ้นผิวนิดเดียว กัน z-fighting
   mesh.add(shell);
   return shell;
+}
+
+/**
+ * ── ออร่าเรืองแสงรอบอาวุธ: ทำ "bloom" โดยไม่มี post-processing ────
+ *
+ * ปัญหา: สัญญาณ "ใส่เกราะอยู่" เดิมคือชิ้น glow เล็ก ๆ ขยาย-หด ±14%
+ * ซึ่งบนจอมือถือ (ตัวละครสูง ~150px) ชิ้นนั้นกว้างไม่กี่พิกเซล — หางตามนุษย์
+ * ไม่จับ "ขนาดที่เปลี่ยน" บนพื้นที่เล็กขนาดนั้น แต่จับ **ความสว่างที่เปลี่ยน
+ * บนพื้นที่ใหญ่** ได้เสมอ นี่คือช่องว่างที่ผู้เล่นรู้สึกว่า "ไม่เรืองแสง"
+ *
+ * ทางแก้: sprite จุดกลมขอบจาง (createDotTexture ตัวเดียวกับฝุ่นดาว) แบบ
+ * AdditiveBlending ครอบอาวุธ — สูตรเดียวกับเปลือกไฮไลต์ด้านบนเป๊ะ:
+ *   Additive → ส่วนจางของ texture บวกศูนย์ = กลืนกับฉากเอง ไม่ต้องเจาะขอบ
+ *   depthWrite:false → รัศมีแสงไม่บังของข้างหลัง
+ *   fog:false → กันฉากไกลถูก "บวกสีหมอก" จนเรืองเอง (บทเรียนจาก glossShell)
+ * sprite หันเข้ากล้องเสมอ จึงอ่านเป็น "แสงฟุ้ง" จากทุกมุม ราคา 1 draw call ต่อดวง
+ *
+ * ⚠️ ห้ามใช้ post-processing bloom แทน — EffectComposer ต้อง render ทั้งฉาก
+ * เพิ่มอีกอย่างน้อยหนึ่งรอบทุกเฟรม ซึ่งแพงเกินไปสำหรับมือถือที่เกมนี้เล็งอยู่
+ */
+let auraTexture = null;
+function makeAuraSprite(color, size, opacity = 0.7) {
+  auraTexture ??= createDotTexture();
+  const s = new THREE.Sprite(new THREE.SpriteMaterial({
+    map: auraTexture,
+    color,
+    blending: THREE.AdditiveBlending,
+    transparent: true,
+    opacity,
+    depthWrite: false,
+    fog: false,
+  }));
+  s.scale.setScalar(size);
+  s.userData.base = size;        // ขนาดตั้งต้น — จังหวะเต้นคูณจากค่านี้ ไม่สะสมเพี้ยน
+  return s;
+}
+
+/** เต้นตามเฟส k (0..1) — ความทึบคือพระเอก ขนาดแค่เสริม (ดูเหตุผลที่ makeAuraSprite) */
+function pulseAura(s, k) {
+  s.material.opacity = 0.45 + k * 0.45;
+  s.scale.setScalar(s.userData.base * (0.9 + k * 0.28));
 }
 
 /**
@@ -645,6 +687,17 @@ function buildAstronaut() {
     spearHold.rotation.set(-0.22, 0, -0.14);
     holdR.add(spearHold);
 
+    /* ออร่าแขวนใต้กลุ่ม hold → refreshGear ที่ซ่อน hold ตอนถอดเกราะ
+     * จะดับออร่าให้เองโดยไม่ต้องมีสวิตช์เพิ่มแม้แต่ตัวเดียว (ทุกสกินใช้กติกานี้)
+     * โล่ = พื้นที่ใหญ่สุดของสปาตัน / ปลายหอก = จุดที่โผล่พ้นเส้นรอบรูปตอนวิ่ง */
+    const spartanAura = [
+      makeAuraSprite(0xffd166, 0.8),
+      makeAuraSprite(0xffd166, 0.42),
+    ];
+    shieldHold.g.add(spartanAura[0]);
+    spartanAura[1].position.y = 0.9;
+    spearHold.add(spartanAura[1]);
+
     /* ── หมวกโครินเธียน ────────────────────────────────────────
      * โดมทองเหลืองห่อหัวเกือบทั้งใบ เว้นลิ่มด้านหน้าให้เห็นใบหน้า
      * แล้วปิดหน้าผากด้วยคาดขวาง + แก้มสองข้าง → ได้ช่องหน้าทรง "T" ที่จำได้ทันที
@@ -693,7 +746,8 @@ function buildAstronaut() {
       // หมวกอยู่ในกลุ่ม always — มันคือ "หัวของสปาตัน" ไม่ใช่ของที่เก็บมาได้
       // เส้นรอบรูปของตัวละครต้องบอกว่าเป็นใครตั้งแต่ก่อนเก็บของชิ้นแรก
       always: [helmG, bodyG], rest: [restG], stow: [stowG], hold: [holdL, holdR],
-      glow: shieldHold.glow, mounts: [restG, stowG, bodyG], headMounts: [helmG],
+      glow: shieldHold.glow, aura: spartanAura,
+      mounts: [restG, stowG, bodyG], headMounts: [helmG],
     };
   }
 
@@ -928,9 +982,16 @@ function buildAstronaut() {
     katanaHold.g.rotation.set(-0.3, 0, -0.62);
     holdR.add(katanaHold.g);
 
+    // ออร่าสองดวงซ้อนตามแนวใบ — ดวงเดียวกลางใบอ่านเป็น "ลูกบอลแสง" ไม่ใช่ดาบเรือง
+    const samuraiAura = [makeAuraSprite(0xeaf2ff, 0.5), makeAuraSprite(0xeaf2ff, 0.42)];
+    samuraiAura[0].position.y = 0.35;
+    samuraiAura[1].position.y = 0.82;
+    katanaHold.g.add(samuraiAura[0], samuraiAura[1]);
+
     weapons.samurai = {
       always: [helmG, bodyG], rest: [restG], stow: [stowG], hold: [holdR],
-      glow: katanaHold.edge, mounts: [restG, stowG, bodyG], headMounts: [helmG],
+      glow: katanaHold.edge, aura: samuraiAura,
+      mounts: [restG, stowG, bodyG], headMounts: [helmG],
     };
   }
 
@@ -1043,9 +1104,15 @@ function buildAstronaut() {
     spin.g.position.set(0.06, -0.02, -0.14);
     holdR.add(spin.g);
 
+    // ⚠️ แขวนกับ holdR ไม่ใช่ spin.g — กลุ่มดาวถูก scale 1.35 ไว้ ซึ่งจะไปคูณ
+    // ขนาด sprite ให้โตกว่าที่ตั้งใจ (และหมุนตามดาวโดยไม่ได้ประโยชน์อะไร)
+    const ninjaAura = [makeAuraSprite(0xa3e635, 0.62)];
+    ninjaAura[0].position.copy(spin.g.position);
+    holdR.add(ninjaAura[0]);
+
     weapons.ninja = {
       always: [alwaysG, hoodG], rest: [restG], stow: [stowG], hold: [holdR],
-      glow: spin.glow, spin: spin.g, scarf: scarfSegs, tails: hoodTails,
+      glow: spin.glow, aura: ninjaAura, spin: spin.g, scarf: scarfSegs, tails: hoodTails,
       mounts: [alwaysG, restG, stowG], headMounts: [hoodG],
     };
   }
@@ -1256,9 +1323,17 @@ function buildAstronaut() {
     const blade = buildBlade();
     hiltHold.add(blade);
 
+    // ⚠️ แขวนกับด้าม ไม่ใช่กลุ่มใบดาบ — ใบดาบคือ glow ที่ถูกเต้น ±14% อยู่แล้ว
+    // ถ้าออร่าไปอยู่ใต้มัน ขนาดจะโดนคูณสองต่อ (เต้นของใบ × เต้นของออร่า)
+    const darklordAura = [makeAuraSprite(0xff2d4d, 0.5), makeAuraSprite(0xff2d4d, 0.44)];
+    darklordAura[0].position.y = 0.55;
+    darklordAura[1].position.y = 1.05;
+    hiltHold.add(darklordAura[0], darklordAura[1]);
+
     weapons.darklord = {
       always: [beltG, maskG], rest: [restG], stow: [stowG], hold: [holdR],
-      glow: blade, cape: capeSegs, mounts: [beltG, restG, stowG], headMounts: [maskG],
+      glow: blade, aura: darklordAura, cape: capeSegs,
+      mounts: [beltG, restG, stowG], headMounts: [maskG],
     };
   }
 
@@ -1634,10 +1709,17 @@ export function createPlayer(scene) {
 
     // อาวุธประจำตัวละคร: เรืองแสงเต้นตุบ ๆ ตอนใส่เกราะ (ลอร์ดมืด = ใบดาบโผล่เฉพาะตอนใส่)
     const weapon = a.weapons[state.skin];
-    if (weapon && state.armed) {
-      // เต้นเป็นจังหวะตอนใส่เกราะ = "พร้อมใช้งาน" ที่มองเห็นได้จากหางตา
-      weapon.glow.scale.setScalar(1 + Math.sin(state.runT * 10) * 0.14);
-      if (weapon.spin) weapon.spin.rotation.z += dt * 9;   // ดาวกระจายหมุนตลอด
+    if (state.armed) {
+      /* เฟสเดียวกันทั้งชิ้น glow เดิมและออร่า — สองสัญญาณที่เต้นคนละจังหวะ
+       * อ่านเป็น "สองอย่างพัง ๆ" ไม่ใช่ "ของชิ้นเดียวที่มีพลัง" */
+      const k = 0.5 + Math.sin(state.runT * 10) * 0.5;
+      if (weapon) {
+        weapon.glow.scale.setScalar(1 + (k - 0.5) * 0.28);
+        for (const s of weapon.aura ?? []) pulseAura(s, k);
+        if (weapon.spin) weapon.spin.rotation.z += dt * 9;   // ดาวกระจายหมุนตลอด
+      }
+      // โหมดโมเดล glTF: ออร่าดวงเดียวกันที่ refreshGear ฝากไว้กับอาวุธในมือของโมเดล
+      if (modelAura.parent) pulseAura(modelAura, k);
     }
     // ผ้าคลุมหลังของลอร์ดมืด — สะบัดช้ากว่าผ้าพันคอเพราะหนักกว่า
     if (weapon?.cape) {
@@ -1774,9 +1856,35 @@ export function createPlayer(scene) {
      * (ชื่อชิ้นอยู่ในช่อง model.props ของตัวละครนั้น — ดูวิธี dump ใน assets/models/README.md) */
     if (activeModel?.setProps) {
       const p = characterById(state.skin).model?.props ?? {};
-      activeModel.setProps(
-        state.armed ? (p.hold ?? []) : (state.stock > 0 ? (p.stow ?? []) : [])
-      );
+      const hold = p.hold ?? [];
+      const stow = p.stow ?? [];
+      activeModel.setProps(state.armed ? hold : (state.stock > 0 ? stow : []));
+
+      /* ออร่าของโหมดโมเดล: ฝาก sprite ไว้กับอาวุธของโมเดล แล้วปล่อยให้
+       * visible ของ prop (ที่ setProps เพิ่งตัดสินไป) เป็นคนดับแสงให้เอง
+       * — เส้นทางเดียวกับที่กลุ่ม hold ดับออร่าของตัวที่ปั้นด้วยโค้ด
+       * ทั้งคู่จึงไหลมาจาก setGear จุดเดียว ไม่มีสวิตช์แสงแยกให้ลืมสั่ง
+       *
+       * ⚠️ ต้องเลือกชิ้นที่ *ไม่อยู่ในชุด stow* — โล่สปาตันอยู่ทั้งสองชุด
+       * ถ้าเกาะโล่ ออร่าจะสว่างตั้งแต่ยังไม่กดใส่เกราะ = สัญญาณโกหกผู้เล่น */
+      const anchorName = hold.find((n) => !stow.includes(n)) ?? hold[0];
+      const anchor = state.armed && anchorName ? activeModel.getProp?.(anchorName) : null;
+      if (anchor) {
+        if (modelAura.parent !== anchor) anchor.add(modelAura);
+        /* โมเดลถูก normalize ด้วยสเกลที่ไม่รู้ค่าล่วงหน้า (ไฟล์ 1 หน่วยกับ
+         * 180 หน่วยต้องจบเท่ากัน — ดู models.js) sprite ที่ฝากเข้าไปจะโดน
+         * สเกลนั้นคูณด้วย จึงวัดของจริงแล้วหารคืนให้ขนาดบนจอคงที่ทุกโมเดล */
+        anchor.updateWorldMatrix(true, false);
+        const ws = anchor.getWorldScale(_propWorldScale).x || 1;
+        modelAura.userData.base = 0.7 / ws;
+        modelAura.scale.setScalar(modelAura.userData.base);
+        modelAura.material.color.setHex(characterById(state.skin).accent);
+      } else {
+        modelAura.removeFromParent();
+      }
+    } else {
+      // กลับมาใช้ตัวที่ปั้นด้วยโค้ด (สลับสกิน/โมเดลโหลดไม่สำเร็จ) — ถอนออร่าที่ฝากค้างไว้
+      modelAura.removeFromParent();
     }
   }
 
@@ -1791,6 +1899,11 @@ export function createPlayer(scene) {
   group.add(modelHolder);
   const modelCache = new Map();
   let activeModel = null;
+
+  // ออร่าโหมดโมเดล — ดวงเดียวใช้ร่วมทุกสกิน (ตัวละครถูกถือได้ทีละสกินอยู่แล้ว)
+  // refreshGear เป็นคนฝากมันไว้กับอาวุธในมือของโมเดล และตั้งสีตาม accent ของสกิน
+  const modelAura = makeAuraSprite(0xffffff, 0.7);
+  const _propWorldScale = new THREE.Vector3();   // scratch — รับค่าจาก getWorldScale ไม่ต้อง new ทุกครั้ง
 
   /**
    * เดินเวลาให้โมเดล glTF + เลือกท่า + ทำให้มันหันไปทางเดียวกับตัวที่ปั้นเอง
