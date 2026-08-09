@@ -90,8 +90,11 @@ button { touch-action: manipulation; -webkit-tap-highlight-color: transparent; }
            calc(10px + var(--sa-bottom)) calc(12px + var(--sa-left));
   /* ความสูงจริงของสถิติสองแถว + padding บน + ระยะหายใจ — วัดจากจอจริง
      กล่องโจทย์ใช้ค่านี้เป็น top เพื่อให้ "แก้ที่เดียว" เวลาสถิติเปลี่ยนขนาด
-     (breakpoint จอใหญ่ทับค่านี้ใหม่ ส่วนจอเตี้ยกำหนด top เองเพราะจงใจให้คร่อมกัน) */
-  --hud-prompt-top: 80px;
+     (breakpoint จอใหญ่ทับค่านี้ใหม่ ส่วนจอเตี้ยกำหนด top เองเพราะจงใจให้คร่อมกัน)
+     ⚠️ ต้องวัดจาก "กรณีที่แน่นที่สุด" ไม่ใช่กรณีว่างที่สุด: 80px พอดีเป๊ะกับสถิติ
+     สองแถวเปล่า ๆ แต่แถวล่างสูงขึ้นอีก ~4px ทันทีที่ชิปไอเทมจับเวลาโผล่มา
+     (ชิปสูงกว่าชิปของสะสมเพราะมีหลอดเวลาแนบขอบล่าง) แล้วขอบชิปจะมุดใต้กล่องโจทย์ */
+  --hud-prompt-top: 92px;
 }
 
 /* ── สถิติสองแถวบนสุด (สไตล์ Subway Surfers) ─────────────────
@@ -128,7 +131,9 @@ button { touch-action: manipulation; -webkit-tap-highlight-color: transparent; }
   border: 1px solid rgba(255, 255, 255, .12);
 }
 .boost-icon { font-size: 13px; line-height: 1; }
-.boost-time { font-size: 13px; font-weight: 800; font-variant-numeric: tabular-nums; color: var(--ink); }
+/* nowrap สำคัญกว่าที่คิด: ถ้า "8.4 วิ" ตกบรรทัด ชิปจะสูงขึ้นเกือบเท่าตัว
+   แล้วดันแถวชิปทั้งแถวมุดใต้กล่องโจทย์ที่ปักไว้ด้วย --hud-prompt-top */
+.boost-time { font-size: 13px; font-weight: 800; font-variant-numeric: tabular-nums; color: var(--ink); white-space: nowrap; }
 /* หลอดเวลาแนบขอบล่างของชิป — เห็น "เหลือน้อยแล้ว" ได้โดยไม่ต้องอ่านตัวเลข */
 .boost-bar { position: absolute; left: 0; right: 0; bottom: 0; height: 2px; background: rgba(255, 255, 255, .12); }
 .boost-bar i {
@@ -727,7 +732,10 @@ select {
   border-color: rgba(34, 211, 238, .85);
 }
 .set-card .toggle input[type="checkbox"]:checked::after { transform: translateX(20px); }
-.set-card .toggle input[type="checkbox"]:disabled { opacity: .4; cursor: not-allowed; }
+/* ⚠️ ห้ามใส่ opacity ตรงนี้ — .panel-settings .toggle:has(input:disabled) หรี่ทั้งแถวให้แล้ว
+   opacity ที่ซ้อนกันจะ "คูณกัน" (.45 × .4 = .18) จนแยกไม่ออกว่าสวิตช์ที่ถูกล็อกอยู่
+   เปิดหรือปิด ซึ่งสำคัญมากตอนโหมดเด็กล็อกประเภทโจทย์ไว้ที่รูป+เสียง */
+.set-card .toggle input[type="checkbox"]:disabled { cursor: not-allowed; }
 .set-card .toggle input[type="checkbox"]:focus-visible { outline: 2px solid var(--cyan); outline-offset: 2px; }
 
 /* "ชุดที่ 3 จาก 12" — ตัวเลขบอกตำแหน่งในคลัง ไม่ใช่คำอธิบายชุด จึงเน้นสีต่างจาก .deck-info */
@@ -1253,6 +1261,20 @@ td.en { font-weight: 700; }
    ทางแก้คือ "แยกไปอยู่คนละมุม" แทนที่จะซ้อนกันตรงกลาง:
    พายุมุมซ้ายล่าง / ปุ่มมุมขวาล่าง / ตรงกลางเว้นว่างไว้ให้ตัวละคร */
 @media (max-height: 480px) {
+  /* คำใบ้ปุ่มคีย์บอร์ดถูกเปิดด้วย @media (min-width: 620px) ซึ่งดู "ความกว้าง" อย่างเดียว
+     มือถือแนวนอนจึงเข้าเงื่อนไขนั้นไปด้วยทั้งที่ไม่มีคีย์บอร์ด — และมันกินความสูง ~59px
+     จนแถบไอคอนล่างเมนู (ร้านค้า/สถิติ/⚙️ ตั้งค่า) ตกใต้ขอบจอทั้งแถบ
+     ⚠️ ⚙️ คือประตูเดียวของหน้าตั้งค่า การซ่อนมันจึงไม่ใช่แค่เรื่องความสวย */
+  .desktop-only { display: none; }
+
+  /* ปุ่มรองสองตัวเรียงแถวเดียว — ทรงเดียวกับ .row ในเมนู
+     ย่อฟอนต์ลงเพราะช่องละ ~160px ถ้าไม่ย่อ "ไปซ้อมคำที่พลาด" จะขึ้นสองบรรทัด
+     แล้วปุ่มจะสูงกว่าเดิม = เสียความสูงที่เพิ่งประหยัดมาทิ้งไปเปล่า ๆ
+     ⚠️ ต้องอยู่ในบล็อก "เตี้ย" ล้วน ไม่ใช่ "เตี้ย+กว้าง" — จอเตี้ยที่แคบ (เช่น
+     568×320) คือจอที่คับความสูงที่สุด ถ้าไปผูกกับความกว้างมันจะไม่เคยได้แถวนี้เลย */
+  .dead-actions { display: flex; gap: 8px; }
+  .dead-actions .btn { flex: 1 1 0; min-width: 0; font-size: 13px; padding: 10px 8px; }
+
   /* จอเตี้ยกว้าง: กล่องโจทย์ต้องแคบลงด้วย ไม่ใช่แค่เตี้ยลง
      ไม่งั้นขอบซ้าย/ขวาของมันจะไปคร่อมแถวคะแนนที่อยู่มุมบนทั้งสองข้าง */
   #hud-prompt { top: calc(26px + var(--sa-top)); padding: 5px 14px 7px; width: min(52vw, 460px); }
@@ -1355,7 +1377,11 @@ td.en { font-weight: 700; }
 
    ⚠️ min-width:620px ไม่ใช่ของประดับ — จอเตี้ยที่แคบด้วย (เช่น 480×360) แบ่งสองคอลัมน์
    แล้วจะได้คอลัมน์ละ ~210px ซึ่งคำศัพท์ยาว ๆ จะขึ้นบรรทัดใหม่ทุกคำ กลับแย่กว่าเดิม */
-@media (max-height: 480px) and (min-width: 620px) {
+/* 520px ไม่ใช่ 620px: จอเตี้ยที่ "แคบ" คือจอที่คับความสูงที่สุด (iPhone SE รุ่นแรก
+   แนวนอน = 568×320) การกันมันออกจากเลย์เอาต์สองคอลัมน์เท่ากับทิ้งเครื่องที่ต้องการ
+   มันมากที่สุด — วัดที่ 568×320 แล้ว: หนึ่งคอลัมน์แผงสูง 467px (ปุ่มเล่นอีกครั้งตกจอ)
+   สองคอลัมน์เหลือ 315px พอดีจอ 320px และคอลัมน์ยังกว้างข้างละ 242px */
+@media (max-height: 480px) and (min-width: 520px) {
   .panel-dead {
     display: flex;
     align-items: flex-start;
@@ -1396,11 +1422,6 @@ td.en { font-weight: 700; }
 
   .panel-dead .btn { min-height: 48px; margin-top: 6px; }
 
-  /* ปุ่มรองสองตัวเรียงแถวเดียว — ทรงเดียวกับ .row ในเมนู
-     ย่อฟอนต์ลงเพราะช่องละ ~160px ถ้าไม่ย่อ "ไปซ้อมคำที่พลาด" จะขึ้นสองบรรทัด
-     แล้วปุ่มจะสูงกว่าเดิม = เสียความสูงที่เพิ่งประหยัดมาทิ้งไปเปล่า ๆ */
-  .dead-actions { display: flex; gap: 8px; }
-  .dead-actions .btn { flex: 1 1 0; min-width: 0; font-size: 13px; padding: 10px 8px; }
 }
 
 /* ── จอกว้าง: เมนูสไตล์ Fortnite — แผงเลื่อนไปซ้าย ตัวละครโชว์ฝั่งขวา ── */

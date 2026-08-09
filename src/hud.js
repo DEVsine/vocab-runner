@@ -39,9 +39,11 @@ function makeBoostChip({ icon, label, color }) {
   node.className = 'boost-chip';
   // ชื่อเต็มอยู่ใน aria-label ตามธรรมเนียมของแถวนี้ — #hud ปิด pointer-events
   // ทั้งผืน tooltip จึงไม่มีวันโผล่ แต่ screen reader ยังอ่านได้
-  node.setAttribute('role', 'img');
-  node.setAttribute('aria-label', label);
-  node.innerHTML = `<span class="boost-icon">${icon}</span>`
+  //
+  // ⚠️ role="img" ต้องอยู่ที่ <span> อีโมจิ ไม่ใช่ที่กล่องนอก (ทรงเดียวกับชิปเหรียญ/ดาว
+  // ใน index.html) เพราะ role=img ตัดลูกหลานทั้งกิ่งออกจาก accessibility tree
+  // ถ้าไปใส่ที่กล่องนอก ตัวเลขเวลาที่เหลือจะไม่มีวันถูกอ่าน — เหลือแค่ชื่อไอเทมค้างอยู่
+  node.innerHTML = `<span class="boost-icon" role="img" aria-label="${label}">${icon}</span>`
     + '<span class="boost-time"></span>'
     + '<span class="boost-bar"><i></i></span>';
   node.querySelector('.boost-bar i').style.background = color;

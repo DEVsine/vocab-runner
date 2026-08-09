@@ -331,16 +331,21 @@
          ส่วนตัวคอนโทรลกับ event listener ใน src/ui.js ยังเป็นชุดเดิมเป๊ะ -->
     <section id="screen-settings" class="screen hidden">
       <div class="panel panel-wide panel-settings">
-        <!-- หัวแถบเป็น sticky เพราะหน้านี้ยาวกว่าจอมือถือแน่นอน
-             ถ้าทางออกอยู่ล่างสุดอย่างเดียว ผู้เล่นต้องเลื่อนผ่านทุกอย่างเพื่อจะ "ไม่ตั้งค่าอะไรเลย" -->
+        <!-- หัวแถบ *ไม่* sticky โดยตั้งใจ (เหตุผลอยู่ใน style.css ตรงกฎ .settings-head)
+             จึงมีทางออกสองทางแทน: ✕ บนสุด กับปุ่ม "กลับเมนู" ล่างสุด
+             ข้อแลกเปลี่ยนที่รู้ตัว: บนมือถือแนวนอนหน้านี้ยาวราว 2.3 เท่าของจอ
+             คนที่เลื่อนอยู่กลางหน้าจะไม่เห็นทางออกทั้งสองทาง ต้องเลื่อนสุดทางใดทางหนึ่งก่อน -->
         <div class="settings-head">
           <h2>⚙️ ตั้งค่า &amp; ชุดคำศัพท์</h2>
           <button id="btn-settings-close" class="settings-x" type="button" aria-label="ปิดหน้าตั้งค่า">✕</button>
         </div>
 
         <div class="set-card">
-          <div class="set-title">ชุดคำศัพท์</div>
-          <select id="deck-select"></select>
+          <!-- aria-labelledby ไม่ใช่ของประดับ: <div> ที่เป็นแค่พี่น้องกับ <select> ไม่ผูกชื่อ
+               ให้เองเหมือน <label> ที่ครอบอยู่ (ซึ่งเป็นทรงที่ธีม/ความเร็วยังใช้อยู่)
+               ถ้าไม่มีบรรทัดนี้ screen reader จะอ่านได้แค่ชื่อชุดที่เลือกอยู่ ไม่รู้ว่าช่องนี้คุมอะไร -->
+          <div class="set-title" id="deck-select-label">ชุดคำศัพท์</div>
+          <select id="deck-select" aria-labelledby="deck-select-label"></select>
           <!-- ตำแหน่งในคลัง ("ชุดที่ 3 จาก 12") — ui.js นับจาก <option> จริงเสมอ
                ห้ามฝังจำนวนไว้ที่นี่ ไม่งั้นวันที่เพิ่มชุดใหม่ตัวเลขจะโกหกโดยไม่มีอะไรพัง -->
           <p id="deck-count" class="set-sub"></p>

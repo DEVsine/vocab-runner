@@ -348,9 +348,13 @@ export function createUI(handlers) {
      (เดิมต้องสั่ง details.open=true แล้ว scrollIntoView ตามไปหา เพราะกล่องที่เพิ่งกาง
      ในแผงเมนูมักอยู่นอกจอ = กดแล้วเหมือนไม่มีอะไรเกิดขึ้น — ปัญหานั้นหมดไปเองเมื่อเป็นหน้าเต็มจอ)
 
-     ปิดได้สองทางโดยตั้งใจ: ✕ บนแถบหัวที่ sticky (เอื้อมถึงตลอดแม้เลื่อนอยู่กลางหน้า)
-     กับปุ่ม "กลับเมนู" ล่างสุด (ปลายทางของคนที่ไล่อ่านจนจบ) — ทั้งคู่ไปที่เดียวกัน */
-  $('btn-menu-settings').addEventListener('click', () => show('settings'));
+     ปิดได้สองทางโดยตั้งใจ: ✕ บนแถบหัว (ปลายทางของคนที่เปิดมาผิด) กับปุ่ม "กลับเมนู"
+     ล่างสุด (ปลายทางของคนที่ไล่อ่านจนจบ) — ทั้งคู่ไปที่เดียวกัน
+
+     ⚠️ ต้องเรียก onOpenSettings ไม่ใช่ show('settings') ตรง ๆ เพราะ main.js เก็บ state
+     ของตัวเองไว้ต่างหาก ถ้าไม่บอกมัน state จะค้างที่ 'menu' แล้วปุ่ม Space/Enter
+     (ท่ามาตรฐานของการเปิด dropdown) จะกลายเป็น "เริ่มเล่น" ทั้งที่ยังอยู่หน้าตั้งค่า */
+  $('btn-menu-settings').addEventListener('click', () => handlers.onOpenSettings());
   $('btn-settings-close').addEventListener('click', () => handlers.onMenu());
   $('btn-settings-back').addEventListener('click', () => handlers.onMenu());
 
