@@ -43,6 +43,7 @@ export function createUI(handlers) {
     pause: $('screen-pause'),
     multiplayer: $('screen-mp'),
     shop: $('screen-shop'),
+    settings: $('screen-settings'),
     practice: $('screen-practice'),
     practiceDone: $('screen-practice-done'),
   };
@@ -66,6 +67,15 @@ export function createUI(handlers) {
 
   const deckSelect = $('deck-select');
   const deckInfo = $('deck-info');
+  const deckCount = $('deck-count');
+
+  /* "ชุดที่ 3 จาก 12" — บอกว่ายืนอยู่ตรงไหนของคลัง อ่านจำนวนจาก <option> จริงเสมอ
+     เพราะรายการ deck มาจากไฟล์ index ตอนรันไทม์ ตัวเลขที่ฝังไว้จะโกหกเงียบ ๆ วันที่มีชุดเพิ่ม */
+  function updateDeckCount() {
+    const total = deckSelect.options.length;
+    const at = deckSelect.selectedIndex;
+    deckCount.textContent = total && at >= 0 ? `ชุดที่ ${at + 1} จาก ${total}` : '';
+  }
 
   function fillDeckList(index) {
     deckSelect.innerHTML = '';
@@ -79,6 +89,7 @@ export function createUI(handlers) {
       ? prefs.deckFile
       : index.decks[0].file;
     deckSelect.value = preferred;
+    updateDeckCount();
     return preferred;
   }
 
@@ -93,6 +104,7 @@ export function createUI(handlers) {
   deckSelect.addEventListener('change', () => {
     prefs.deckFile = deckSelect.value;
     savePrefs(prefs);
+    updateDeckCount();
     handlers.onDeckChange(deckSelect.value);
   });
 
@@ -330,6 +342,17 @@ export function createUI(handlers) {
   $('btn-quit').addEventListener('click', () => handlers.onMenu());
   $('btn-stats').addEventListener('click', () => handlers.onOpenStats());
   $('btn-stats-close').addEventListener('click', () => handlers.onMenu());
+
+  /* ไอคอน ⚙️ ในแถบล่างของเมนู = ประตูเดียวของหน้าตั้งค่า
+     ตอนนี้ตั้งค่าเป็นหน้าเต็มจอของตัวเองแล้ว จึงใช้ show() เหมือนร้านค้า/สถิติ
+     (เดิมต้องสั่ง details.open=true แล้ว scrollIntoView ตามไปหา เพราะกล่องที่เพิ่งกาง
+     ในแผงเมนูมักอยู่นอกจอ = กดแล้วเหมือนไม่มีอะไรเกิดขึ้น — ปัญหานั้นหมดไปเองเมื่อเป็นหน้าเต็มจอ)
+
+     ปิดได้สองทางโดยตั้งใจ: ✕ บนแถบหัวที่ sticky (เอื้อมถึงตลอดแม้เลื่อนอยู่กลางหน้า)
+     กับปุ่ม "กลับเมนู" ล่างสุด (ปลายทางของคนที่ไล่อ่านจนจบ) — ทั้งคู่ไปที่เดียวกัน */
+  $('btn-menu-settings').addEventListener('click', () => show('settings'));
+  $('btn-settings-close').addEventListener('click', () => handlers.onMenu());
+  $('btn-settings-back').addEventListener('click', () => handlers.onMenu());
 
   /* ── เล่นหลายคน (lobby) ─────────────────────────────────── */
 
