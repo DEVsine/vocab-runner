@@ -22,6 +22,23 @@ import { CFG } from './config.js';
 
 const EMPTY = { version: 1, decks: {}, best: {} };
 
+/**
+ * กุญแจถาวรของ "หนึ่งข้อ" ในชุดใด ๆ
+ *
+ * ⚠️ ทำไมไม่ตั้งฟิลด์ `id` ให้ deck คำศัพท์เดิมแล้วเขียน migration:
+ * สถิติของผู้เล่นอยู่ใน localStorage ของเครื่องเขา ไม่ใช่ในไฟล์ที่เราคุมได้
+ * ถ้าเปลี่ยนกุญแจ ผู้เล่นเดิมจะ "เปิดมาแล้วสถิติหายหมด" ซึ่งเป็นความเสียหาย
+ * ที่กู้คืนไม่ได้และมองไม่เห็นตอนรีวิวโค้ด
+ * → กติกาจึงเป็น "ใช้ id ถ้ามี ไม่มีก็ใช้ en" ทำให้ deck ศัพท์เดิมได้กุญแจ
+ *   ชุดเดิมเป๊ะโดยไม่ต้อง migrate อะไรเลย ส่วน deck วิชาใช้ id ของตัวเอง
+ *
+ * รับได้ทั้ง string (โค้ดเก่าที่ส่ง en มาตรง ๆ) และ object ของข้อ
+ */
+export function itemId(item) {
+  if (typeof item === 'string') return item;
+  return item?.id ?? item?.en ?? '';
+}
+
 let state = null;
 
 function load() {
@@ -52,19 +69,20 @@ function deckStats(deckId) {
   return s.decks[deckId];
 }
 
-/** สถิติของคำหนึ่งคำ (คำที่ยังไม่เคยเจอจะได้ box 1 และ seen 0) */
-export function statOf(deckId, en) {
-  return deckStats(deckId)[en] || { box: 1, seen: 0, correct: 0, wrong: 0, last: 0 };
+/** สถิติของหนึ่งข้อ (ข้อที่ยังไม่เคยเจอจะได้ box 1 และ seen 0) */
+export function statOf(deckId, item) {
+  return deckStats(deckId)[itemId(item)] || { box: 1, seen: 0, correct: 0, wrong: 0, last: 0 };
 }
 
-export function isUnseen(deckId, en) {
-  return !deckStats(deckId)[en];
+export function isUnseen(deckId, item) {
+  return !deckStats(deckId)[itemId(item)];
 }
 
 /** บันทึกผลการตอบ 1 ครั้ง แล้วขยับกล่อง */
-export function record(deckId, en, correct) {
+export function record(deckId, item, correct) {
+  const key = itemId(item);
   const stats = deckStats(deckId);
-  const cur = stats[en] || { box: 1, seen: 0, correct: 0, wrong: 0, last: 0 };
+  const cur = stats[key] || { box: 1, seen: 0, correct: 0, wrong: 0, last: 0 };
 
   cur.seen += 1;
   cur.last = Date.now();
@@ -76,7 +94,7 @@ export function record(deckId, en, correct) {
     cur.box = 1;   // ผิดทีเดียวตกลงกล่องแรกเสมอ — ความแม่นต้องพิสูจน์ใหม่
   }
 
-  stats[en] = cur;
+  stats[key] = cur;
   persist();
   return cur;
 }
@@ -104,8 +122,10 @@ export function submitScore(deckId, score, gates) {
 export function summarize(deck) {
   const stats = deckStats(deck.id);
   const rows = deck.words.map(word => {
-    const st = stats[word.en];
+    const st = stats[itemId(word)];
     return {
+      // deck วิชาไม่มีคำอังกฤษ — ตัว normalize ใน deck.js จึงเติม en/th ให้เป็น
+      // "โจทย์/ใบความรู้" เพื่อให้หน้าสถิติเดิมอ่านได้โดยไม่ต้องมีสองเส้นทาง
       en: word.en,
       th: word.th,
       box: st ? st.box : 0,          // 0 = ยังไม่เคยเจอ

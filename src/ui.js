@@ -43,7 +43,6 @@ export function createUI(handlers) {
     pause: $('screen-pause'),
     multiplayer: $('screen-mp'),
     shop: $('screen-shop'),
-    settings: $('screen-settings'),
     practice: $('screen-practice'),
     practiceDone: $('screen-practice-done'),
   };
@@ -67,44 +66,62 @@ export function createUI(handlers) {
 
   const deckSelect = $('deck-select');
   const deckInfo = $('deck-info');
-  const deckCount = $('deck-count');
 
-  /* "ชุดที่ 3 จาก 12" — บอกว่ายืนอยู่ตรงไหนของคลัง อ่านจำนวนจาก <option> จริงเสมอ
-     เพราะรายการ deck มาจากไฟล์ index ตอนรันไทม์ ตัวเลขที่ฝังไว้จะโกหกเงียบ ๆ วันที่มีชุดเพิ่ม */
-  function updateDeckCount() {
-    const total = deckSelect.options.length;
-    const at = deckSelect.selectedIndex;
-    deckCount.textContent = total && at >= 0 ? `ชุดที่ ${at + 1} จาก ${total}` : '';
-  }
-
+  /**
+   * รายการ deck — จัดกลุ่มด้วย <optgroup> เมื่อ index.json ประกาศ `groups` ไว้
+   *
+   * ⚠️ deck ที่ไม่ระบุ `group` ต้องตกไปอยู่กลุ่มแรกเสมอ (คำศัพท์)
+   * นี่ไม่ใช่แค่ความสะดวก แต่เป็นสัญญาเดียวกับ `type` ที่หายไป = vocab:
+   * ไฟล์เดิม 9 อันต้องทำงานต่อได้โดยไม่ต้องแก้ และถ้าวันหนึ่งมีคนเพิ่ม deck
+   * โดยลืมใส่ group มันต้องยังโผล่ในรายการ ไม่ใช่หายเงียบไปจาก dropdown
+   */
   function fillDeckList(index) {
     deckSelect.innerHTML = '';
-    for (const entry of index.decks) {
-      const opt = document.createElement('option');
-      opt.value = entry.file;
-      opt.textContent = entry.name;
-      deckSelect.appendChild(opt);
+    const groups = Array.isArray(index.groups) && index.groups.length ? index.groups : null;
+
+    if (!groups) {
+      for (const entry of index.decks) deckSelect.appendChild(deckOption(entry));
+    } else {
+      const fallback = groups[0].id;
+      const known = new Set(groups.map(g => g.id));
+      for (const g of groups) {
+        const members = index.decks.filter(
+          d => (known.has(d.group) ? d.group : fallback) === g.id,
+        );
+        if (!members.length) continue;
+        const box = document.createElement('optgroup');
+        box.label = g.name;
+        for (const entry of members) box.appendChild(deckOption(entry));
+        deckSelect.appendChild(box);
+      }
     }
+
     const preferred = index.decks.some(d => d.file === prefs.deckFile)
       ? prefs.deckFile
       : index.decks[0].file;
     deckSelect.value = preferred;
-    updateDeckCount();
     return preferred;
+  }
+
+  function deckOption(entry) {
+    const opt = document.createElement('option');
+    opt.value = entry.file;
+    opt.textContent = entry.name;
+    return opt;
   }
 
   function setDeckInfo(deck) {
     const best = srs.getBest(deck.id);
     const s = srs.summarize(deck);
+    const unit = deck.type === 'subject' ? 'ข้อ' : 'คำ';
     deckInfo.textContent =
-      `${deck.words.length} คำ · เจอแล้ว ${s.seen} · แม่นแล้ว ${s.mastered}` +
+      `${deck.words.length} ${unit} · เจอแล้ว ${s.seen} · แม่นแล้ว ${s.mastered}` +
       (best.score ? ` · สถิติสูงสุด ${best.score}` : '');
   }
 
   deckSelect.addEventListener('change', () => {
     prefs.deckFile = deckSelect.value;
     savePrefs(prefs);
-    updateDeckCount();
     handlers.onDeckChange(deckSelect.value);
   });
 
@@ -218,16 +235,30 @@ export function createUI(handlers) {
   let prIdx = 0;
   let prMissed = new Set();
 
+  /**
+   * ใบสอน 1 ใบ
+   *
+   * deck ศัพท์ = "เห็นคำ + คำแปล + รูป"   → สิ่งที่ต้องจำคือการจับคู่คำกับความหมาย
+   * deck วิชา  = "ใบความรู้"              → สิ่งที่ต้องจำคือข้อเท็จจริง (fact)
+   *   ตั้งใจ *ไม่* โชว์ตัวคำถามในใบสอน — ถ้าโชว์ ผู้เรียนจะจำคู่ "คำถามนี้ตอบข้อนี้"
+   *   แทนที่จะจำความรู้ แล้วพอเจอคำถามที่ถามมุมอื่นก็ตอบไม่ได้
+   *   (fact ถูกเขียนให้ "ครอบคลุมคำตอบ" ตามสเปกของไฟล์ deck ด้วยเหตุผลนี้)
+   */
   function prRender() {
     const w = prWords[prIdx];
     if (!w) return;
     $('pr-index').textContent = prIdx + 1;
     $('pr-total').textContent = prWords.length;
-    $('pr-emoji').textContent = w.emoji || '📝';
-    $('pr-en').textContent = w.en;
-    $('pr-th').textContent = w.th;
+    $('pr-unit').textContent = w.subject ? 'ข้อ' : 'คำ';
+    $('pr-emoji').textContent = w.subject ? '💡' : (w.emoji || '📝');
+    $('pr-en').textContent = w.subject ? w.fact : w.en;
+    $('pr-en').classList.toggle('subject', !!w.subject);
+    $('pr-th').textContent = w.subject
+      ? (w.page ? `📖 หน้า ${w.page}` : '')
+      : w.th;
     // ป้าย "เคยพลาด" ทำให้ผู้เล่นเห็นว่าชุดนี้ไม่ได้สุ่มมั่ว แต่มาจากความผิดพลาดของเขาเอง
-    $('pr-tag').classList.toggle('hidden', !prMissed.has(w.en));
+    $('pr-tag').textContent = w.subject ? '🔁 ข้อที่เคยพลาด' : '🔁 คำที่เคยพลาด';
+    $('pr-tag').classList.toggle('hidden', !prMissed.has(srs.itemId(w)));
     $('btn-pr-prev').disabled = prIdx === 0;
     const last = prIdx === prWords.length - 1;
     $('btn-pr-next').classList.toggle('hidden', last);
@@ -254,7 +285,9 @@ export function createUI(handlers) {
 
   function showPracticeDone(words) {
     $('pr-done-words').innerHTML = words.map(w =>
-      `<span class="chip">${escapeHtml(w.en)} = ${escapeHtml(w.th)}</span>`).join('');
+      w.subject
+        ? `<span class="chip">${escapeHtml(w.choices?.[w.answer] ?? '')}</span>`
+        : `<span class="chip">${escapeHtml(w.en)} = ${escapeHtml(w.th)}</span>`).join('');
     refreshIdentity();
     show('practiceDone');
   }
@@ -342,21 +375,6 @@ export function createUI(handlers) {
   $('btn-quit').addEventListener('click', () => handlers.onMenu());
   $('btn-stats').addEventListener('click', () => handlers.onOpenStats());
   $('btn-stats-close').addEventListener('click', () => handlers.onMenu());
-
-  /* ไอคอน ⚙️ ในแถบล่างของเมนู = ประตูเดียวของหน้าตั้งค่า
-     ตอนนี้ตั้งค่าเป็นหน้าเต็มจอของตัวเองแล้ว จึงใช้ show() เหมือนร้านค้า/สถิติ
-     (เดิมต้องสั่ง details.open=true แล้ว scrollIntoView ตามไปหา เพราะกล่องที่เพิ่งกาง
-     ในแผงเมนูมักอยู่นอกจอ = กดแล้วเหมือนไม่มีอะไรเกิดขึ้น — ปัญหานั้นหมดไปเองเมื่อเป็นหน้าเต็มจอ)
-
-     ปิดได้สองทางโดยตั้งใจ: ✕ บนแถบหัว (ปลายทางของคนที่เปิดมาผิด) กับปุ่ม "กลับเมนู"
-     ล่างสุด (ปลายทางของคนที่ไล่อ่านจนจบ) — ทั้งคู่ไปที่เดียวกัน
-
-     ⚠️ ต้องเรียก onOpenSettings ไม่ใช่ show('settings') ตรง ๆ เพราะ main.js เก็บ state
-     ของตัวเองไว้ต่างหาก ถ้าไม่บอกมัน state จะค้างที่ 'menu' แล้วปุ่ม Space/Enter
-     (ท่ามาตรฐานของการเปิด dropdown) จะกลายเป็น "เริ่มเล่น" ทั้งที่ยังอยู่หน้าตั้งค่า */
-  $('btn-menu-settings').addEventListener('click', () => handlers.onOpenSettings());
-  $('btn-settings-close').addEventListener('click', () => handlers.onMenu());
-  $('btn-settings-back').addEventListener('click', () => handlers.onMenu());
 
   /* ── เล่นหลายคน (lobby) ─────────────────────────────────── */
 
@@ -466,12 +484,29 @@ export function createUI(handlers) {
     quit: 'ออกจากรอบกลางคัน — คะแนนถูกล็อกไว้เท่าที่ทำได้',
   };
 
+  /**
+   * จอตายคือ "ที่เดียว" ที่ผู้เล่นได้อ่านเฉลยแบบไม่ต้องรีบ
+   * deck ศัพท์เฉลยด้วยคำ+คำแปล · deck วิชาเฉลยด้วยคำตอบที่ถูก + ใบความรู้ (fact)
+   * ที่ต้องมี fact ตรงนี้เพราะ toast ระหว่างวิ่งหายไปใน 2–3 วินาที
+   * ซึ่งสั้นเกินกว่าจะอ่านประโยคความรู้จบ — เฉลยที่อ่านไม่ทันเท่ากับไม่มีเฉลย
+   */
   function showDeath(info) {
-    $('dead-word').textContent = info.word ? info.word.en : '—';
-    $('dead-meaning').textContent = info.word ? info.word.th : '';
-    $('dead-chose').textContent = info.chosen
-      ? `คุณอยู่เลน "${escapeHtml(info.chosen.en)}" = ${escapeHtml(info.chosen.th)}`
-      : (DEATH_NOTE[info.cause] || '');
+    const w = info.word;
+    const subject = !!w?.subject;
+    $('dead-word').textContent = w ? (subject ? (w.choices?.[w.answer] ?? '—') : w.en) : '—';
+    $('dead-word').classList.toggle('subject', subject);
+    $('dead-meaning').textContent = w ? (subject ? w.fact : w.th) : '';
+    document.querySelector('.missed-label').textContent = subject ? 'คำตอบที่ถูก' : 'คำที่พลาด';
+
+    if (info.chosen) {
+      // ตัวเลือกของ deck วิชาไม่มีคำแปล — ห้ามต่อ " = undefined" ท้ายข้อความ
+      $('dead-chose').textContent = info.chosen.th
+        ? `คุณอยู่เลน "${info.chosen.en}" = ${info.chosen.th}`
+        : `คุณอยู่เลน "${info.chosen.en}"`;
+    } else {
+      $('dead-chose').textContent = DEATH_NOTE[info.cause] || '';
+    }
+    if (subject && w.q) $('dead-chose').textContent += `\nโจทย์: ${w.q}`;
     document.querySelector('.dead-tag').textContent = DEATH_TAG[info.cause] || DEATH_TAG.lane;
     $('dead-score').textContent = info.score;
     $('dead-dist').textContent = formatDistance(info.distance ?? 0);
@@ -485,8 +520,16 @@ export function createUI(handlers) {
 
   function renderStats(deck) {
     const s = srs.summarize(deck);
+    const subject = deck.type === 'subject';
+    // หัวตารางต้องเปลี่ยนตามชนิด ไม่งั้น deck วิชาจะได้หัวคอลัมน์ว่า "คำ / ความหมาย"
+    // ทับข้อมูลที่จริง ๆ แล้วคือ "โจทย์ / ใบความรู้"
+    const head = document.querySelector('#stats-table thead tr');
+    if (head) {
+      head.children[0].textContent = subject ? 'โจทย์' : 'คำ';
+      head.children[1].textContent = subject ? 'ใบความรู้' : 'ความหมาย';
+    }
     $('stats-summary').innerHTML = `
-      <div class="chip">ทั้งหมด <b>${s.total}</b> คำ</div>
+      <div class="chip">ทั้งหมด <b>${s.total}</b> ${subject ? 'ข้อ' : 'คำ'}</div>
       <div class="chip">เคยเจอ <b>${s.seen}</b></div>
       <div class="chip">แม่นแล้ว (กล่อง 3) <b>${s.mastered}</b></div>
       <div class="chip">ต้องซ้อม (กล่อง 1) <b>${s.struggling}</b></div>

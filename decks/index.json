@@ -1,13 +1,71 @@
 {
+  "groups": [
+    {
+      "id": "vocab",
+      "name": "คำศัพท์"
+    },
+    {
+      "id": "subject",
+      "name": "วิชาเรียน"
+    }
+  ],
   "decks": [
-    { "file": "core-a2b1.json", "id": "core-a2b1", "name": "ศัพท์พื้นฐาน A2–B1 (178 คำ)" },
-    { "file": "animals.json", "id": "animals", "name": "🐘 สัตว์ (204 คำ)" },
-    { "file": "fruits.json", "id": "fruits", "name": "🍎 ผลไม้ (64 คำ · มีรูปจริงทุกคำ)" },
-    { "file": "vegetables.json", "id": "vegetables", "name": "🥬 ผัก (84 คำ · มีรูปจริงทุกคำ)" },
-    { "file": "clothes.json", "id": "clothes", "name": "👕 เสื้อผ้าและเครื่องแต่งกาย (205 คำ)" },
-    { "file": "verbs.json", "id": "verbs", "name": "🏃 กริยาที่ใช้บ่อย (204 คำ)" },
-    { "file": "nouns.json", "id": "nouns", "name": "📦 คำนามในชีวิตประจำวัน (203 คำ)" },
-    { "file": "awl-cutep.json", "id": "awl-cutep", "name": "🎓 เตรียมสอบ CU-TEP — Academic Word List (570 คำ / 10 ระดับ)" },
-    { "file": "finance-basics.json", "id": "finance-basics", "name": "💰 ตัวอย่าง: ศัพท์การเงิน (19 คำ)" }
+    {
+      "file": "core-a2b1.json",
+      "id": "core-a2b1",
+      "name": "ศัพท์พื้นฐาน A2–B1 (178 คำ)"
+    },
+    {
+      "file": "animals.json",
+      "id": "animals",
+      "name": "🐘 สัตว์ (204 คำ)"
+    },
+    {
+      "file": "fruits.json",
+      "id": "fruits",
+      "name": "🍎 ผลไม้ (64 คำ · มีรูปจริงทุกคำ)"
+    },
+    {
+      "file": "vegetables.json",
+      "id": "vegetables",
+      "name": "🥬 ผัก (84 คำ · มีรูปจริงทุกคำ)"
+    },
+    {
+      "file": "clothes.json",
+      "id": "clothes",
+      "name": "👕 เสื้อผ้าและเครื่องแต่งกาย (205 คำ)"
+    },
+    {
+      "file": "verbs.json",
+      "id": "verbs",
+      "name": "🏃 กริยาที่ใช้บ่อย (204 คำ)"
+    },
+    {
+      "file": "nouns.json",
+      "id": "nouns",
+      "name": "📦 คำนามในชีวิตประจำวัน (203 คำ)"
+    },
+    {
+      "file": "awl-cutep.json",
+      "id": "awl-cutep",
+      "name": "🎓 เตรียมสอบ CU-TEP — Academic Word List (570 คำ / 10 ระดับ)"
+    },
+    {
+      "file": "finance-basics.json",
+      "id": "finance-basics",
+      "name": "💰 ตัวอย่าง: ศัพท์การเงิน (19 คำ)"
+    },
+    {
+      "file": "th-history-sk12024.json",
+      "id": "th-history-sk12024",
+      "group": "subject",
+      "name": "📜 ประวัติศาสตร์ชาติไทย (สค12024)"
+    },
+    {
+      "file": "digital-tech-2.json",
+      "id": "digital-tech-2",
+      "group": "subject",
+      "name": "💻 เทคโนโลยีดิจิทัล 2 (ม.ต้น)"
+    }
   ]
 }

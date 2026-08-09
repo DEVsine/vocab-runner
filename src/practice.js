@@ -23,7 +23,7 @@
  */
 
 import { CFG } from './config.js';
-import { statOf, isUnseen } from './srs.js';
+import { statOf, isUnseen, itemId } from './srs.js';
 import { pending as inboxPending } from './inbox.js';
 
 export const PRACTICE_BATCH = CFG.practice.batch;
@@ -38,8 +38,8 @@ function shuffle(arr) {
 }
 
 /** 0 = ยังไม่เคยเจอ, 1–3 = กล่อง Leitner */
-function boxOf(deckId, en) {
-  return isUnseen(deckId, en) ? 0 : statOf(deckId, en).box;
+function boxOf(deckId, item) {
+  return isUnseen(deckId, item) ? 0 : statOf(deckId, item).box;
 }
 
 /**
@@ -53,21 +53,21 @@ function boxOf(deckId, en) {
  * ถ้าไม่มีคำต้องทวนเลย (ผู้เล่นใหม่) ชุดจะกลายเป็นคำใหม่ล้วนโดยอัตโนมัติ
  */
 export function pickPracticeWords(deck, n = PRACTICE_BATCH) {
-  const byEn = new Map(deck.words.map(w => [w.en, w]));
+  const byId = new Map(deck.words.map(w => [itemId(w), w]));
 
-  // 1) คำที่พลาดล่าสุดจากเกมจริง (เรียงตามลำดับที่พลาด ล่าสุดก่อน)
-  const fromInbox = inboxPending(deck.id).map(en => byEn.get(en)).filter(Boolean);
+  // 1) ข้อที่พลาดล่าสุดจากเกมจริง (เรียงตามลำดับที่พลาด ล่าสุดก่อน)
+  const fromInbox = inboxPending(deck.id).map(id => byId.get(id)).filter(Boolean);
 
-  const inInbox = new Set(fromInbox.map(w => w.en));
-  const seen = deck.words.filter(w => !inInbox.has(w.en) && !isUnseen(deck.id, w.en));
-  const fresh = shuffle(deck.words.filter(w => !inInbox.has(w.en) && isUnseen(deck.id, w.en)));
+  const inInbox = new Set(fromInbox.map(w => itemId(w)));
+  const seen = deck.words.filter(w => !inInbox.has(itemId(w)) && !isUnseen(deck.id, w));
+  const fresh = shuffle(deck.words.filter(w => !inInbox.has(itemId(w)) && isUnseen(deck.id, w)));
 
-  // 2) คำที่เคยเจอแต่ยังไม่แม่น — ผิดเยอะสุดก่อน แล้วกล่องต่ำสุด
+  // 2) ข้อที่เคยเจอแต่ยังไม่แม่น — ผิดเยอะสุดก่อน แล้วกล่องต่ำสุด
   const review = seen
-    .filter(w => statOf(deck.id, w.en).box < CFG.srs.boxCount)
+    .filter(w => statOf(deck.id, w).box < CFG.srs.boxCount)
     .sort((a, b) => {
-      const sa = statOf(deck.id, a.en);
-      const sb = statOf(deck.id, b.en);
+      const sa = statOf(deck.id, a);
+      const sb = statOf(deck.id, b);
       return (sb.wrong - sa.wrong) || (sa.box - sb.box) || (sa.last - sb.last);
     });
 
@@ -76,7 +76,7 @@ export function pickPracticeWords(deck, n = PRACTICE_BATCH) {
   const take = (list, count) => {
     for (const w of list) {
       if (out.length >= n || count <= 0) break;
-      if (out.some(x => x.en === w.en)) continue;
+      if (out.some(x => itemId(x) === itemId(w))) continue;
       out.push(w);
       count -= 1;
     }
@@ -86,7 +86,7 @@ export function pickPracticeWords(deck, n = PRACTICE_BATCH) {
   take(fresh, n - out.length);                                 // แล้วเติมคำใหม่
   take(reviewQueue, n - out.length);                           // คำใหม่หมดแล้ว → ทวนเพิ่ม
   // 3) เกมมาถึงตรงนี้แปลว่า deck เล็กมาก — เติมด้วยอะไรก็ได้ที่เหลือ
-  take(shuffle(deck.words.filter(w => statOf(deck.id, w.en).box >= CFG.srs.boxCount)), n - out.length);
+  take(shuffle(deck.words.filter(w => statOf(deck.id, w).box >= CFG.srs.boxCount)), n - out.length);
 
   return out;
 }
@@ -104,9 +104,15 @@ export function pickPracticeWords(deck, n = PRACTICE_BATCH) {
  */
 export function buildPracticeQueue(words, { speechOk = false, deckId = '' } = {}) {
   const plan = words.map(w => {
-    const box = boxOf(deckId, w.en);
+    const box = boxOf(deckId, w);
     const reps = CFG.practice.repsByBox[box] ?? 2;
-    const modes = shuffle(['text', ...(w.emoji ? ['image'] : []), ...(speechOk ? ['audio'] : [])]);
+    /* ⚠️ deck วิชามีรูปแบบโจทย์เดียว — ห้ามสลับ text/image/audio
+     * เพราะสามโหมดนั้นแปลว่า "เห็นคำแปล / เห็นรูป / ได้ยินคำ" ซึ่งเป็นการ
+     * มองคำศัพท์จากหลายช่องทาง แต่โจทย์วิชาคือคำถามหนึ่งคำถามที่มีตัวเลือกตายตัว
+     * ถ้าถูกตั้งเป็นโหมด image มันจะไม่มีรูปให้ดู = โจทย์ว่างเปล่าที่ตอบไม่ได้ */
+    const modes = w.subject
+      ? ['subject']
+      : shuffle(['text', ...(w.emoji ? ['image'] : []), ...(speechOk ? ['audio'] : [])]);
     return { word: w, reps, modes };
   });
 

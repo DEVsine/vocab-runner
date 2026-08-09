@@ -705,11 +705,23 @@ const PREFERRED_VOICES = ['Samantha', 'Alex', 'Ava', 'Allison', 'Karen', 'Daniel
 
 let speechHealthy = true;      // false เมื่อพิสูจน์แล้วว่าเครื่องยนต์พูดไม่ได้
 let speechWatchdog = null;
+let thaiVoice = null;          // เสียงไทยสำหรับโจทย์ deck วิชา (อาจไม่มีในเครื่องนั้น)
+let voicesScanned = false;
 
+/**
+ * เลือกเสียงของทั้งสองภาษา
+ *
+ * ⚠️ เดิมฟังก์ชันนี้ออกทันทีเมื่อได้เสียงอังกฤษแล้ว (`if (englishVoice) return`)
+ * ถ้าเพิ่มเสียงไทยเข้าไปโดยไม่แก้เงื่อนไขนี้ เครื่องที่หาเสียงอังกฤษเจอก่อน
+ * จะไม่มีวันสแกนหาเสียงไทยเลย — และมันจะพังแบบ "เงียบสนิท" คือโจทย์วิชา
+ * ไม่มีเสียงโดยไม่มี error ให้เห็น จึงต้องเปลี่ยนเป็นธง `voicesScanned`
+ * ที่ล้างพร้อมกันตอน onvoiceschanged
+ */
 function pickVoice() {
-  if (englishVoice || !window.speechSynthesis) return;
+  if (voicesScanned || !window.speechSynthesis) return;
   const voices = window.speechSynthesis.getVoices();
   if (!voices.length) return;   // บางเบราว์เซอร์โหลด voice แบบ async
+  voicesScanned = true;
 
   const en = voices.filter(v => /^en/i.test(v.lang));
   const local = en.filter(v => v.localService !== false && !NOVELTY_VOICES.has(v.name));
@@ -720,15 +732,49 @@ function pickVoice() {
     local[0] ||
     en.find(v => !NOVELTY_VOICES.has(v.name)) ||
     null;
+
+  /* เสียงไทย: ต้องกรองด้วย lang เท่านั้น ห้ามเดาจากชื่อ
+   * ชื่อเสียงไทยต่างกันทุกแพลตฟอร์ม (macOS "Kanya", Windows "Pattara"/"Premwadee",
+   * Android "th-th-x-…") — บัญชีรายชื่อจะล้าสมัยทันทีที่ OS ออกรุ่นใหม่
+   * ส่วน NOVELTY_VOICES ไม่ต้องใช้ตรงนี้ เพราะเสียงล้อเล่นของ macOS เป็น en-US ทั้งหมด */
+  const th = voices.filter(v => /^th/i.test(v.lang));
+  thaiVoice = th.find(v => v.localService !== false) || th[0] || null;
 }
 
 if (window.speechSynthesis) {
-  window.speechSynthesis.onvoiceschanged = () => { englishVoice = null; pickVoice(); };
+  window.speechSynthesis.onvoiceschanged = () => {
+    voicesScanned = false;
+    englishVoice = null;
+    thaiVoice = null;
+    pickVoice();
+  };
 }
 
 /** ใช้ตัดสินว่าจะสุ่ม "โหมดฟัง" ให้เป็นโจทย์ได้ไหม */
 export function isSpeechUsable() {
   return speechEnabled && speechHealthy && !!window.speechSynthesis && !document.hidden;
+}
+
+/**
+ * เครื่องนี้มีเสียงภาษาไทยไหม
+ *
+ * ⚠️ อย่าใช้ตัวนี้เป็น "ด่านหน้า" ก่อนเรียก speak() — speak() รู้เงื่อนไข
+ * ที่ทำให้พูดไม่ได้ครบกว่านี้ (สวิตช์เสียง/แท็บถูกซ่อน/เครื่องยนต์ค้าง)
+ * และแจ้งกลับทาง onFail อยู่แล้ว การมีเงื่อนไขสองชุดคือที่มาของบั๊ก
+ * "บางข้อเงียบ บางข้อดัง" ตัวนี้มีไว้สำหรับ *แสดงสถานะ* ให้ผู้ใช้เห็นเท่านั้น
+ */
+export function hasThaiVoice() {
+  pickVoice();
+  return !!thaiVoice;
+}
+
+/**
+ * ตอนนี้เครื่องยนต์กำลังพูดอยู่ไหม (รวมของที่ต่อคิวรออยู่)
+ * ใช้ตัดสินว่า "ควรอ่านซ้ำ" ไหม — ถ้ายังพูดอยู่ ผู้เล่นก็กำลังได้ยินอยู่แล้ว
+ */
+export function isSpeaking() {
+  const ss = window.speechSynthesis;
+  return !!ss && (ss.speaking || ss.pending);
 }
 
 /** หรี่เสียงเพลงลงระหว่างอ่านคำ ไม่งั้นคำจะจมหายไปในเสียงเครื่องยนต์ */
@@ -738,19 +784,21 @@ function duckMusic(on) {
   musicBus.gain.setTargetAtTime(Math.max(0.0001, target), ctx.currentTime, 0.08);
 }
 
-function makeUtterance(text, rate) {
+function makeUtterance(text, rate, lang) {
   const utter = new SpeechSynthesisUtterance(text);
-  utter.lang = CFG.audio.speechLang;
-  utter.rate = rate ?? CFG.audio.speechRate;
-  if (englishVoice) utter.voice = englishVoice;
+  const thai = lang === 'th';
+  utter.lang = thai ? CFG.audio.speechLangTh : CFG.audio.speechLang;
+  utter.rate = rate ?? (thai ? CFG.audio.speechRateTh : CFG.audio.speechRate);
+  const voice = thai ? thaiVoice : englishVoice;
+  if (voice) utter.voice = voice;
   return utter;
 }
 
 /**
- * @param {string} text คำที่จะอ่าน
- * @param {{rate?:number, onStart?:Function, onFail?:Function}} opts
+ * @param {string} text ข้อความที่จะอ่าน
+ * @param {{rate?:number, lang?:'en'|'th', onStart?:Function, onFail?:Function}} opts
  */
-export function speak(text, { rate, onStart, onFail } = {}) {
+export function speak(text, { rate, lang = 'en', onStart, onFail } = {}) {
   if (!text) return;
   // ทุกทางที่ "พูดไม่ได้" ต้องแจ้ง onFail เสมอ ไม่ใช่เงียบหายไป
   // ไม่งั้นโจทย์โหมดฟังจะค้างเป็นโจทย์ที่ไม่มีทางตอบได้
@@ -760,10 +808,26 @@ export function speak(text, { rate, onStart, onFail } = {}) {
   const ss = window.speechSynthesis;
   pickVoice();
 
+  /* ไม่มีเสียงไทยในเครื่อง = ไม่ต้องลองด้วยซ้ำ
+   * ⚠️ ห้ามปล่อยให้ตกไปพูดด้วยเสียงอังกฤษ: บางเครื่องจะอ่านตัวอักษรไทยเป็น
+   * เสียงประหลาดหรือสะกดทีละตัว ซึ่งแย่กว่าเงียบมาก (เด็กจะสับสนว่าโจทย์ผิด)
+   * และห้ามตั้ง speechHealthy = false ด้วย — เครื่องยนต์ยังดีอยู่ แค่ไม่มีเสียงภาษานี้
+   * ถ้าตั้งไป โหมดฟังของ deck คำศัพท์จะถูกปิดตามไปทั้งเซสชันโดยไม่มีเหตุผล */
+  if (lang === 'th' && !thaiVoice) { onFail?.(); return; }
+
   // cancel เฉพาะตอนที่มีอะไรค้างอยู่จริง — การ cancel รัว ๆ คือสาเหตุอันดับหนึ่ง
   // ที่ทำให้เครื่องยนต์ของ Chrome/WebKit ค้างจนเงียบไปทั้งเซสชัน
-  if (ss.speaking || ss.pending) ss.cancel();
+  const didCancel = ss.speaking || ss.pending;
+  if (didCancel) ss.cancel();
   ss.resume();
+
+  /* ⚠️ ห้ามสั่ง speak() ติดกับ cancel() ในทิกเดียวกัน
+   * cancel() ของ Chrome/WebKit ไม่ได้จบทันทีที่คืนค่า — เครื่องยนต์ยังรื้อ
+   * utterance เก่าอยู่ ของใหม่ที่ยัดเข้าไปตอนนั้นจะถูกกลืนหายเงียบ ๆ
+   * (ไม่มี error ไม่มี onend — เหมือนไม่เคยสั่งพูด) นี่คือสาเหตุของอาการ
+   * "โจทย์บางข้อไม่อ่าน" ที่โผล่เฉพาะตอนมีเสียงก่อนหน้าค้างอยู่
+   * ถ้าไม่ได้ cancel อะไรเลย ก็ไม่ต้องหน่วง — ยิงได้ทันทีตามเดิม */
+  const kickoff = didCancel ? CFG.audio.speakAfterCancelMs : 0;
 
   let started = false;
   clearTimeout(speechWatchdog);
@@ -786,16 +850,20 @@ export function speak(text, { rate, onStart, onFail } = {}) {
     return utter;
   };
 
-  const first = attach(makeUtterance(text, rate));
-  setTimeout(() => ss.speak(first), 0);
+  const first = attach(makeUtterance(text, rate, lang));
+  setTimeout(() => ss.speak(first), kickoff);
 
   // watchdog: ไม่เริ่มพูดใน 450ms = เครื่องยนต์ค้าง → กู้แล้วลองใหม่ครั้งเดียว
+  // (นับจากตอนที่ยิงจริง จึงต้องบวก kickoff ไม่งั้นตอนหน่วงหลัง cancel
+  //  watchdog จะตัดสินว่า "ค้าง" ทั้งที่ยังไม่ทันได้เริ่มพูดด้วยซ้ำ)
   speechWatchdog = setTimeout(() => {
     if (started) return;
     ss.cancel();
     ss.resume();
-    const retry = attach(makeUtterance(text, rate));
-    setTimeout(() => ss.speak(retry), 0);
+    const retry = attach(makeUtterance(text, rate, lang));
+    // ลองใหม่ต้องหน่วงเสมอ — รอบนี้เพิ่ง cancel() ไปหมาด ๆ ถ้ายิงติดกันอีก
+    // ก็จะโดนกลืนด้วยเหตุผลเดิม แล้ว "การลองใหม่" จะไม่มีความหมายเลย
+    setTimeout(() => ss.speak(retry), CFG.audio.speakAfterCancelMs);
 
     speechWatchdog = setTimeout(() => {
       if (started) return;

@@ -14,7 +14,7 @@
  * ความรู้สึกตอนไล่เก็บจึงเหมือนเดิมตลอดเกม ไม่ว่าจะวิ่งเร็วแค่ไหน
  */
 
-import { CFG, answerWindowFor, obstacleRuleFor } from './config.js';
+import { CFG, answerWindowFor, obstacleRuleFor, replayDecision } from './config.js';
 import { createScene } from './scene.js';
 import { createPlayer } from './player.js';
 import { createGatePool } from './gates.js';
@@ -33,7 +33,7 @@ import { wallet } from './wallet.js';
 import { cheats } from './cheats.js';
 import { characterById } from './characters.js';
 import { pickPracticeWords, buildPracticeQueue } from './practice.js';
-import { loadDeckIndex, loadDeck, pickWord, pickWordSeeded, buildQuestion, zoneDeck, kidsDeck } from './deck.js';
+import { loadDeckIndex, loadDeck, pickWord, pickWordSeeded, buildQuestion, zoneDeck, kidsDeck, isSubjectDeck } from './deck.js';
 import { stormLevel, stormPhase, drainOver } from './storm.js';
 import { AMMO, AMMO_ORDER, ammoById } from './weapons.js';
 import { addMissed, clearWords, pending as inboxPending, pendingCount } from './inbox.js';
@@ -41,8 +41,59 @@ import { mulberry32 } from './rng.js';
 import * as srs from './srs.js';
 import {
   unlockAudio, sfx, speak, stopSpeaking, setSfxEnabled, setSpeechEnabled,
-  setSfxStyle, isSpeechUsable, startAmbience, updateAmbience, stopAmbience,
+  setSfxStyle, isSpeechUsable, hasThaiVoice, isSpeaking, startAmbience, updateAmbience, stopAmbience,
 } from './audio.js';
+
+/* ══ ตัวช่วยสำหรับ deck สองชนิด ═══════════════════════════════
+ *
+ * เกมทั้งเกมทำงานกับ object "หนึ่งข้อ" ที่ deck.js แปลงร่างมาให้แล้ว
+ * เหลือแค่ 3 เรื่องที่ *ต้อง* รู้ว่าข้อนี้เป็นวิชาหรือคำศัพท์:
+ *   1) จะอ่านออกเสียงเป็นภาษาอะไร และอ่านข้อความไหน
+ *   2) หน้าต่างเวลาตอบกว้างแค่ไหน
+ *   3) ตอนเฉลยต้องโชว์อะไรเพิ่ม (ใบความรู้)
+ * นอกจากนี้โค้ดส่วนอื่นไม่ต้องรู้เลย
+ */
+
+/** กุญแจสถิติของข้อ — deck คำศัพท์ใช้คำอังกฤษเป็น id โดยปริยาย */
+const idOf = srs.itemId;
+
+/** อ่าน "ตัวโจทย์" ของข้อนี้ให้ถูกภาษา */
+function speakPrompt(word, opts = {}) {
+  if (!word) return;
+  if (word.subject) speak(word.q, { ...opts, lang: 'th' });
+  else speak(word.en, opts);
+}
+
+/**
+ * อ่าน "คำตอบที่ถูก" ตอนเฉลย
+ * deck วิชาอ่านเฉพาะข้อความตัวเลือกที่ถูก (ไม่อ่านใบความรู้ที่ยาว 120 ตัวอักษร
+ * เพราะระหว่างวิ่งจะทับกับโจทย์ข้อถัดไปที่กำลังจะมา)
+ */
+function speakAnswer(question, opts = {}) {
+  const word = question?.word;
+  if (!word) return;
+  if (word.subject) speak(question.options?.[question.correctIndex]?.en, { ...opts, lang: 'th' });
+  else speak(word.en, opts);
+}
+
+/** ข้อความเฉลยสั้น ๆ สำหรับ toast ระหว่างวิ่ง */
+function answerLine(question) {
+  const word = question.word;
+  if (!word.subject) return `"${word.en}" = ${word.th}`;
+  const right = question.options?.[question.correctIndex]?.en ?? '';
+  return word.fact ? `${right} — ${word.fact}` : right;
+}
+
+/**
+ * หน้าต่างเวลาตอบของ deck ที่เลือกอยู่
+ * แยกออกมาเป็นจุดเดียวเพราะมีคนอ่านค่านี้ 7 จุด (ตั้งด่านแรก / จองด่านถัดไป /
+ * คิดระยะเกิด / คำนวณเวลาที่เหลือ / กลับจากโบนัส …) ถ้าคูณตัวคูณเฉพาะบางจุด
+ * ด่านจะเกิดคนละระยะกับที่ตัวจับเวลาคิดไว้ = แถบเวลาเดินไม่ตรงกับความจริง
+ */
+function gateWindow(pacePassed) {
+  const scale = isSubjectDeck(deck) ? CFG.question.subject.windowScale : 1;
+  return answerWindowFor(pacePassed) * scale;
+}
 
 /* ── ตั้งฉาก ─────────────────────────────────────────────── */
 
@@ -116,7 +167,14 @@ const ui = createUI({
   onDeckChange: (file) => selectDeck(file),
   onThemeChange: (id) => applyTheme(id),
   onCharacterChange: (id) => equipSkin(id),
-  onSpeakWord: (w) => { unlockAudio(); if (w) speak(w.en, { rate: 0.9 }); },
+  // ใบสอนของ deck ศัพท์อ่าน "คำอังกฤษ" · ใบความรู้ของ deck วิชาอ่าน "ประโยคความรู้"
+  // (fact คือสิ่งที่ต้องจำไปตอบ ไม่ใช่ตัวคำถาม — อ่านคำถามในใบสอนจะเป็นการถามก่อนสอน)
+  onSpeakWord: (w) => {
+    unlockAudio();
+    if (!w) return;
+    if (w.subject) speak(w.fact, { lang: 'th', rate: CFG.question.subject.speechRate });
+    else speak(w.en, { rate: 0.9 });
+  },
   onPracticeRun: (words) => startPracticeRun(words),
   onPracticeAgain: () => openPracticeTeach(),
   onCheatsChanged: () => hud.setCheatVisible(cheats.enabled()),
@@ -126,17 +184,11 @@ const ui = createUI({
   onMPStart: () => mpStart(),
   onMPLeave: () => leaveToMenu(),
   onOpenStats: () => {
+    if (!deck) return;
     stopAmbience();
     ui.renderStats(deck);
     ui.show('stats');
     state = 'stats';
-  },
-  /* หน้าตั้งค่าต้องมี state ของตัวเองเหมือนหน้าสถิติ ไม่ใช่แค่สลับ DOM
-     ไม่งั้น input handler ข้างล่างยังเห็น state === 'menu' แล้ว Space/Enter
-     ที่ผู้ใช้กดเพื่อเปิด <select> จะสั่ง startRun() ทิ้งหน้าตั้งค่าไปเลย */
-  onOpenSettings: () => {
-    ui.show('settings');
-    state = 'settings';
   },
   onStatsChanged: () => {
     ui.renderStats(deck);
@@ -188,7 +240,15 @@ function testSpeech() {
     rate: 0.9,
     onStart: () => {
       clearTimeout(speechTestTimer);
-      ui.setSpeechStatus('✓ ใช้งานได้ — ถ้ายังไม่ได้ยิน ให้เช็กระดับเสียงของเครื่อง', 'ok');
+      /* บอกเรื่องเสียงไทยตรงนี้ด้วย เพราะครูที่แจกเครื่องให้เด็กต้องรู้ *ก่อน* คาบเรียน
+       * ว่าเครื่องเครื่องนี้อ่านโจทย์วิชาได้ไหม — ถ้าไปรู้เอาตอนเด็กเล่นแล้ว
+       * มันสายเกินไปและแยกไม่ออกจาก "เกมพัง" */
+      ui.setSpeechStatus(
+        hasThaiVoice()
+          ? '✓ ใช้งานได้ ทั้งเสียงอังกฤษและเสียงไทย (วิชาเรียนจะมีเสียงอ่านโจทย์)'
+          : '✓ เสียงอังกฤษใช้ได้ · แต่เครื่องนี้ไม่มีเสียงไทย — deck วิชาเรียนจะเป็นตัวหนังสือเงียบ ๆ',
+        'ok',
+      );
     },
     onFail: () => {
       clearTimeout(speechTestTimer);
@@ -222,11 +282,6 @@ createInput(canvas, (action) => {
       break;
     case 'stats':
       if (action === ACTIONS.BACK || action === ACTIONS.CONFIRM) toMenu();
-      break;
-    /* ต่างจาก 'stats' ตรงที่ไม่รับ CONFIRM — หน้านี้เต็มไปด้วยคอนโทรลที่ใช้ Space/Enter
-       เป็นท่าปกติของมันเอง (เปิด <select>, สลับสวิตช์) เอาไว้แค่ Esc = ออก */
-    case 'settings':
-      if (action === ACTIONS.BACK) toMenu();
       break;
     case 'teach':
     case 'practiceDone':
@@ -390,7 +445,7 @@ function startRun() {
     bonus: null,
     recent: [],
     events: [],
-    nextGateArrival: answerWindowFor(0) + 0.9,   // เว้นจังหวะตั้งตัวก่อนด่านแรก
+    nextGateArrival: gateWindow(0) + 0.9,   // เว้นจังหวะตั้งตัวก่อนด่านแรก
     gateSpawned: false,
     forcedWord: pendingRetryWord,                 // คำที่พลาดรอบก่อน มาเป็นด่านแรก
     invuln: 0,
@@ -398,6 +453,7 @@ function startRun() {
     lastCoinAt: -10,
     activeQuestion: null,
     audioReplayed: false,
+    subjectSpeechWarned: false,   // เตือน "ไม่มีเสียงไทย" ครั้งเดียวต่อรอบ
 
     // ── Battle Royale ─────────────────────────────────────
     // rng: ปกติคือ Math.random — จะถูกสลับเป็นตัวสุ่มจากเมล็ดร่วมตอนเข้ารอบชิง
@@ -546,9 +602,22 @@ function setupNet() {
     if (!deck) return null;
     const word = pickWord(deck, []);
     const q = buildQuestion(deck, word, { speechEnabled: false });
+    /* ⚠️ ต้องส่ง `id` ไปด้วย ไม่ใช่พึ่ง `en` เป็นกุญแจเหมือนเดิม
+     * ศึกชิงคำเป็นทางเดียวที่สถิติถูกบันทึกจาก "ข้อที่มาจากสายเน็ต" ไม่ใช่จาก deck ในเครื่อง
+     * ถ้าไม่ส่ง id ข้อของ deck วิชาจะถูกบันทึกด้วย "ข้อความโจทย์" กลายเป็นกุญแจคนละอัน
+     * กับตอนเล่นเดี่ยว → สถิติของข้อเดียวกันแตกเป็นสองก้อนโดยไม่มีอะไรฟ้อง
+     *
+     * `th` คือข้อความที่จอศึกชิงคำเอาไปโชว์ — deck วิชาต้องโชว์ "โจทย์"
+     * ห้ามส่ง word.th (ซึ่งเป็นใบความรู้) ไป เพราะมันเฉลยคำตอบตั้งแต่ยังไม่ทันตอบ */
+    /* ⚠️ ชื่อฟิลด์ต้องเป็น `itemId` ห้ามใช้ `id` เด็ดขาด
+     * net.js ประกอบข้อความว่า `{ t:'contest', id, ...q }` — `id` ตรงนั้นคือ
+     * "หมายเลขรอบดวล" ที่ทุกเครื่องใช้จับคู่คำถามกับผลลัพธ์ ถ้าเราส่ง `id` มาด้วย
+     * มันจะทับหมายเลขรอบ แล้วศึกชิงคำจะพังทั้งเกม (ทุก deck ไม่ใช่แค่ deck วิชา) */
     return {
-      th: word.th,
-      en: word.en,
+      itemId: idOf(word),
+      lang: word.subject ? 'th' : 'en',
+      th: word.subject ? word.q : word.th,
+      en: word.subject ? word.q : word.en,
       options: q.options.map(o => ({ en: o.en, th: o.th })),
       correctIndex: q.correctIndex,
     };
@@ -784,7 +853,7 @@ function remainingAnswerSeconds() {
   const pending = gates.pending();
   if (!pending || !pending.spawnZ) return 0;
   const ratio = Math.max(0, Math.min(1, pending.z() / pending.spawnZ));
-  return ratio * answerWindowFor(pace());
+  return ratio * gateWindow(pace());
 }
 
 /**
@@ -843,6 +912,9 @@ function onContestStart(msg) {
     correctIndex: msg.correctIndex,
     th: msg.th,
     en: msg.en,
+    // กุญแจสถิติของข้อนี้ — ห้องเก่าที่ยังไม่ส่ง itemId มา ให้ถอยไปใช้ en เหมือนเดิม
+    itemId: msg.itemId ?? msg.en,
+    lang: msg.lang === 'th' ? 'th' : 'en',
     t: CFG.br.contest.answerSeconds,
     picked: null,
     sent: false,
@@ -873,7 +945,7 @@ function endContest() {
   hud.clearQuestion();
   // ให้โลกเร่งกลับแล้วค่อยส่งด่านถัดไป — ไม่งั้นด่านจะโผล่มาตอนภาพยังนิ่งอยู่
   run.events = [];
-  run.nextGateArrival = run.time + answerWindowFor(pace()) + 1.2;
+  run.nextGateArrival = run.time + gateWindow(pace()) + 1.2;
   run.gateSpawned = false;
 }
 
@@ -967,7 +1039,7 @@ function enterFinalRound(msg) {
   run.stormLvl = CFG.br.final.stormLevel;
   run.oxy = Math.max(run.oxy, CFG.br.final.oxygenFloor);
   run.stars = 0;
-  run.nextGateArrival = answerWindowFor(CFG.br.final.pace) + 1.4;
+  run.nextGateArrival = gateWindow(CFG.br.final.pace) + 1.4;
   run.gateSpawned = false;
 
   gates.reset();
@@ -1247,7 +1319,7 @@ function spawnGate(windowSeconds) {
   const word = question.word;
   gates.spawn(question, -distanceOver(windowSeconds));
 
-  run.recent.push(word.en);
+  run.recent.push(idOf(word));
   if (run.recent.length > CFG.srs.recentBlock) run.recent.shift();
 
   run.activeQuestion = question;
@@ -1268,6 +1340,33 @@ function spawnGate(windowSeconds) {
       },
     });
   }
+
+  /* โจทย์วิชา: อ่านโจทย์ไทยทันทีที่โผล่ (อ่านเฉพาะโจทย์ ไม่อ่านตัวเลือก)
+   *
+   * ⚠️ ห้ามเช็ก "เครื่องนี้มีเสียงไทยไหม" เองก่อนเรียก speak()
+   * เหตุผลไม่ใช่ความสั้นของโค้ด แต่เพราะ "พูดไม่ได้" มีหลายสาเหตุที่เกิดคนละเวลา
+   * (ไม่มี voice / ผู้เล่นปิดสวิตช์ / แท็บถูกซ่อน / เครื่องยนต์ค้างกลางคัน)
+   * และ speak() คือที่เดียวที่รู้ครบทุกสาเหตุ ถ้าเราตั้งด่านของตัวเองไว้ข้างหน้า
+   * เงื่อนไขสองชุดจะเริ่มไม่ตรงกันทันทีที่มีสาเหตุใหม่ — แล้วจะได้บั๊กแบบ
+   * "โจทย์แรกเงียบแต่โจทย์อ่านซ้ำดัง" ซึ่งไล่หายากมากเพราะไม่มี error ให้เห็น
+   * → เส้นทางเดียวคือ onFail ตามสัญญาเดิมของ speak()
+   *
+   * ต่างจากโหมดฟังตรงที่ *ไม่ต้องเปลี่ยนโจทย์* เมื่อพูดไม่ได้ — ตัวโจทย์เป็น
+   * ตัวหนังสืออยู่บนจอตลอดเวลาอยู่แล้ว เสียงเป็นตัวช่วย ไม่ใช่ตัวโจทย์ */
+  if (question.mode === 'subject') {
+    speak(word.q, {
+      lang: 'th',
+      rate: CFG.question.subject.speechRate,
+      onFail: notifySilentSubject,
+    });
+  }
+}
+
+/** บอกครั้งเดียวต่อรอบว่าเครื่องนี้ไม่มีเสียงไทย — โจทย์ยังอ่านจากจอได้ปกติ */
+function notifySilentSubject() {
+  if (!run || run.subjectSpeechWarned) return;
+  run.subjectSpeechWarned = true;
+  hud.toast('เครื่องนี้ยังไม่มีเสียงอ่านภาษาไทย — อ่านโจทย์จากบนจอได้เลย', 3000);
 }
 
 /**
@@ -1428,7 +1527,7 @@ function scheduleBreather(gateArrival) {
 
 function runDirector() {
   // โหมดฝึก: เวลาคิดกว้างสุดตลอด (ระดับความยากของเกมจริงไม่เกี่ยวกับการสอนคำใหม่)
-  const windowSeconds = answerWindowFor(pace());
+  const windowSeconds = gateWindow(pace());
 
   // โหมดฝึก: คิวหมดชั่วคราว (ทุกข้อกำลังรอตัดสิน/รอวนกลับ) → เว้นการ spawn ด่านไว้ก่อน
   const gateReady = !run.gateSpawned && run.time >= run.nextGateArrival - windowSeconds
@@ -1440,7 +1539,7 @@ function runDirector() {
     scheduleBreather(arrival);
 
     // จองคิวด่านถัดไป: [เวลามาถึงของด่านนี้] + [ช่วงพัก] + [เวลาคิดของด่านหน้า]
-    run.nextGateArrival = arrival + CFG.pacing.breatherSeconds + answerWindowFor(pace() + 1);
+    run.nextGateArrival = arrival + CFG.pacing.breatherSeconds + gateWindow(pace() + 1);
     run.gateSpawned = false;
   }
 
@@ -1560,7 +1659,7 @@ function exitBonus() {
 
   // เว้นเวลาให้ร่อนลงถึงพื้นก่อน แล้วค่อยเริ่มด่านคำศัพท์ถัดไป
   run.events = [];
-  run.nextGateArrival = run.time + CFG.bonus.landSeconds + answerWindowFor(pace()) + 0.7;
+  run.nextGateArrival = run.time + CFG.bonus.landSeconds + gateWindow(pace()) + 0.7;
   run.gateSpawned = false;
 }
 
@@ -1580,15 +1679,15 @@ function addScore(points) {
 
 function passGate(gate) {
   const q = gate.question;
-  srs.record(deck.id, q.word.en, true);
-  clearWords(deck.id, [q.word.en]);   // ตอบถูกแล้ว → ปลดออกจากคิว "คำที่ต้องทวน"
+  srs.record(deck.id, q.word, true);
+  clearWords(deck.id, [idOf(q.word)]);   // ตอบถูกแล้ว → ปลดออกจากคิว "ข้อที่ต้องทวน"
 
   run.gates += 1;
   addScore(CFG.score.perGate * run.combo * (run.br ? run.zone.reward : 1));
   run.combo = Math.min(CFG.score.comboMax, run.combo + 1);
 
   sfx.correct(run.combo);
-  speak(q.word.en);            // dual coding: เห็น/ได้ยินคำเดียวกันซ้ำอีกครั้ง
+  speakAnswer(q);              // dual coding: เห็น/ได้ยินคำตอบเดียวกันซ้ำอีกครั้ง
 
   // ⭐ หัวใจของ Battle Royale: ตอบถูก = ได้หายใจ (ไม่ใช่แค่ได้แต้ม)
   // โซนที่ยากกว่าคืนออกซิเจนมากกว่า — นี่คือสิ่งที่ทำให้ "เลือกโซนโหด" คุ้มค่าจริง
@@ -1600,9 +1699,10 @@ function passGate(gate) {
   hud.setScore(run.score, run.gates, run.combo);
 }
 
-/** ทุกครั้งที่พลาดคำ ให้หย่อนคำนั้นลงคิวฝึกทันที — ตายเร็ว = ได้ซ้อมตรงจุดมากขึ้น */
+/** ทุกครั้งที่พลาดข้อไหน ให้หย่อนข้อนั้นลงคิวฝึกทันที — ตายเร็ว = ได้ซ้อมตรงจุดมากขึ้น */
 function noteMiss(word) {
-  if (word?.en) addMissed(deck.id, [word.en]);
+  const id = idOf(word);
+  if (id) addMissed(deck.id, [id]);
 }
 
 /**
@@ -1640,17 +1740,17 @@ function saveWithJet(gate) {
   run.combo = 1;
   run.invuln = CFG.powerup.invulnMs / 1000;
 
-  srs.record(deck.id, q.word.en, false);   // เชิงเกมรอด แต่เชิงการเรียนรู้ไม่รอด
+  srs.record(deck.id, q.word, false);   // เชิงเกมรอด แต่เชิงการเรียนรู้ไม่รอด
   noteMiss(q.word);
   pendingRetryWord = q.word;
 
   player.boost();
   sfx.jetUse();
-  speak(q.word.en);
+  speakAnswer(q);
 
   syncGear();
   hud.setScore(run.score, run.gates, run.combo);
-  hud.toast(`${armorEmoji()} ${armorName()}ช่วยไว้! คำที่ถูกคือ "${q.word.en}" = ${q.word.th}`, 2200);
+  hud.toast(`${armorEmoji()} ${armorName()}ช่วยไว้! เฉลย: ${answerLine(q)}`, 2600);
 }
 
 function die(cause, word, chosen) {
@@ -1667,7 +1767,7 @@ function die(cause, word, chosen) {
   if (cause === 'storm') sfx.horn();
 
   // ชนสิ่งกีดขวางไม่ใช่ความผิดเรื่องคำศัพท์ → ไม่นับว่าตอบผิด
-  if (cause === 'lane' && word) srs.record(deck.id, word.en, false);
+  if (cause === 'lane' && word) srs.record(deck.id, word, false);
   // แต่ "ออกซิเจนหมด" คือความผิดเรื่องคำศัพท์เต็ม ๆ — คำที่ค้างอยู่ตอนนั้นควรได้ซ้อม
   if ((cause === 'lane' || cause === 'storm') && word) noteMiss(word);
 
@@ -1695,8 +1795,12 @@ function die(cause, word, chosen) {
     });
   }
 
-  // ให้เสียงระเบิดดังจบก่อน แล้วค่อยอ่านคำที่ถูกต้อง (ไม่งั้นทับกันจนฟังไม่รู้เรื่อง)
-  if (word) setTimeout(() => speak(word.en), 430);
+  // ให้เสียงระเบิดดังจบก่อน แล้วค่อยอ่านคำตอบที่ถูก (ไม่งั้นทับกันจนฟังไม่รู้เรื่อง)
+  if (word?.subject) {
+    setTimeout(() => speak(word.choices?.[word.answer], { lang: 'th' }), 430);
+  } else if (word) {
+    setTimeout(() => speak(word.en), 430);
+  }
 }
 
 function resolveJokeGate(gate, lane) {
@@ -1753,15 +1857,15 @@ function checkGates() {
         hud.setPracticeProgress(run.practice.total - run.practice.remaining, run.practice.total);
         if (run.practice.remaining <= 0) { practiceDone(); return; }
       } else {
-        srs.record(deck.id, q.word.en, false);
+        srs.record(deck.id, q.word, false);
         run.combo = 1;
         run.invuln = 1.2;
         // วนกลับไปท้ายคิว — remaining ต้อง "คงเดิม" เพราะมันนับ *จำนวนครั้งที่ต้องตอบถูก*
         // ไม่ใช่จำนวนใบในคิว (ตอบผิดคือทำงานเพิ่ม ไม่ใช่เพิ่มเป้าหมาย)
         run.practice.queue.push(q.practiceEntry);
         noteMiss(q.word);
-        speak(q.word.en);
-        hud.toast(`ยังไม่ใช่ — "${q.word.en}" = ${q.word.th} (เดี๋ยวเจอกันอีกรอบ)`, 2400);
+        speakAnswer(q);
+        hud.toast(`ยังไม่ใช่ — ${answerLine(q)} (เดี๋ยวเจอกันอีกรอบ)`, 2800);
         hud.setScore(run.score, run.gates, run.combo);
       }
       hud.setPracticeProgress(run.practice.total - run.practice.remaining, run.practice.total);
@@ -2058,11 +2162,24 @@ function update(dt) {
     const ratio = pending && pending.spawnZ ? pending.z() / pending.spawnZ : 0;
     hud.setTimer(ratio);
 
-    // โหมดฟัง: เล่นซ้ำอีกครั้งตอนเวลาเหลือครึ่ง — ครั้งเดียวไม่พอสำหรับคำที่ไม่คุ้น
-    if (pending && !run.audioReplayed && pending.question.mode === 'audio'
-        && ratio < CFG.question.audioReplayAt) {
-      run.audioReplayed = true;
-      speak(pending.question.word.en, { rate: 0.8 });
+    // อ่านโจทย์ซ้ำ — ครั้งเดียวไม่พอสำหรับคำ/ประโยคที่ไม่คุ้น
+    // การตัดสินใจอยู่ใน replayDecision() ทั้งหมด เพราะเงื่อนไข "ยังพูดอยู่ไหม"
+    // สำคัญพอที่จะต้องเทสต์ได้ (ดูคำอธิบายเต็มที่นั่น)
+    if (pending) {
+      const { replay, consume } = replayDecision({
+        mode: pending.question.mode,
+        ratio,
+        speaking: isSpeaking(),
+        alreadyReplayed: run.audioReplayed,
+      });
+      if (consume) run.audioReplayed = true;
+      if (replay) {
+        if (pending.question.mode === 'subject') {
+          speak(pending.question.word.q, { lang: 'th', rate: CFG.question.subject.speechRate });
+        } else {
+          speak(pending.question.word.en, { rate: 0.8 });
+        }
+      }
     }
 
     // 🔀 กระสุน "สลับธง" ทำงานใน "ช่วงเวลาหนึ่ง" เท่านั้น ไม่ใช่ทุกจังหวะที่เร็วกว่าเกณฑ์
@@ -2193,8 +2310,23 @@ function applySpeedMode(id) {
 
 /* ── เริ่มระบบ ───────────────────────────────────────────── */
 
+/**
+ * ⚠️ ต้องจับ error เอง ห้ามปล่อยให้ promise พัง
+ * ตอนบูตมี try/catch ครอบอยู่ แต่ตอนผู้เล่น "เปลี่ยน deck จาก dropdown" ไม่มี
+ * → ถ้าไฟล์นั้นหาย/พัง จะได้ unhandled rejection แล้วเมนูค้างอยู่กับ deck เก่า
+ * โดยที่ dropdown โชว์ชื่อใหม่ = ผู้เล่นกดเล่นแล้วเจอชุดคำที่ไม่ได้เลือก
+ * (เคสจริงที่จะเกิดแน่: ไฟล์เนื้อหาของทีมยังไม่ถูก merge เข้ามา)
+ */
 async function selectDeck(file) {
-  deck = await loadDeck(file);
+  try {
+    deck = await loadDeck(file);
+  } catch (err) {
+    console.error(err);
+    document.getElementById('deck-info').innerHTML =
+      `<span style="color:var(--danger)">โหลดชุดนี้ไม่ได้: ${err.message}</span>`;
+    deck = null;
+    return;
+  }
   pendingRetryWord = null;
   ui.setDeckInfo(deck);
   ui.setPracticeBadge(pendingCount(deck.id));

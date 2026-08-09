@@ -64,11 +64,8 @@ export function createInput(target, onAction) {
   function handleKey(e) {
     // ⚠️ ถ้ากำลังพิมพ์ในช่องข้อความ (ชื่อ/รหัสห้อง) ต้องปล่อยผ่าน
     // ไม่งั้น e.code='KeyA' จะถูกแมปเป็น "เลี้ยวซ้าย" แล้ว preventDefault() บล็อกการพิมพ์
-    // SELECT ก็ต้องปล่อยผ่านด้วย: Space/↑↓ คือวิธีเปิดและเลื่อนตัวเลือกในกล่อง
-    // ถ้าดักไว้ ช่องเลือกชุดคำศัพท์/ธีม/ความเร็วจะใช้คีย์บอร์ดไม่ได้เลย
-    // (SELECT ไม่เคยอยู่บนจอตอนวิ่ง จึงไม่มีทางไปกินคีย์ควบคุมของเกม)
     const t = e.target;
-    if (t && (t.tagName === 'INPUT' || t.tagName === 'TEXTAREA' || t.tagName === 'SELECT' || t.isContentEditable)) return;
+    if (t && (t.tagName === 'INPUT' || t.tagName === 'TEXTAREA' || t.isContentEditable)) return;
 
     const action = CODE_MAP[e.code] || KEY_FALLBACK[e.key];
     if (!action) return;

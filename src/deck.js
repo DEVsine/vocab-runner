@@ -16,7 +16,7 @@
  */
 
 import { CFG } from './config.js';
-import { statOf, isUnseen } from './srs.js';
+import { statOf, isUnseen, itemId } from './srs.js';
 
 /* ── โหลดไฟล์ ───────────────────────────────────────────────── */
 
@@ -35,7 +35,79 @@ export async function loadDeckIndex() {
 export async function loadDeck(file) {
   const res = await fetch(`./decks/${file}`, NO_CACHE);
   if (!res.ok) throw new Error(`โหลด deck "${file}" ไม่ได้ (HTTP ${res.status})`);
-  const deck = await res.json();
+  return normalizeDeck(await res.json(), file);
+}
+
+/* ── ชนิดของ deck ───────────────────────────────────────────
+ *
+ * มีสองชนิด และ "ไม่มี field type" = คำศัพท์ (vocab) เสมอ
+ * ตั้งใจให้ค่าโดยปริยายคือของเดิม เพราะ deck ศัพท์ 9 อันที่ผู้เล่นใช้อยู่
+ * ต้องทำงานเหมือนเดิมเป๊ะโดยไม่ต้องแก้ไฟล์แม้แต่ตัวอักษรเดียว
+ *
+ *   vocab   → { words: [{en, th, pos, level, topic, emoji?, img?}] }  ตัวลวงถูกปั้นจากคำอื่นในชุด
+ *   subject → { type:"subject", items: [{id, q, options[3], answer, fact, page}] }
+ *             ตัวเลือกเขียนตายตัวมากับไฟล์ ไม่ผ่านตัวปั้นตัวลวงเลย
+ */
+export function isSubjectDeck(deck) {
+  return deck?.type === 'subject';
+}
+
+/**
+ * แปลง "ข้อของวิชา" ให้เป็น object หน้าตาเดียวกับ "คำ" ของ deck ศัพท์
+ *
+ * ⚠️ นี่คือการตัดสินใจเชิงสถาปัตยกรรมที่สำคัญที่สุดของฟีเจอร์นี้
+ * ทางเลือกที่พิจารณา:
+ *   (ก) ให้ทุกจุดที่แตะ word เช็ก `if (subject)` เอง — เกมมีจุดแบบนั้นราว 25 จุด
+ *       (HUD, จอตาย, หน้าสถิติ, ห้องซ้อม, inbox, ผู้ชมในโหมดแข่ง) ทุกจุดที่ลืม
+ *       จะกลายเป็น "undefined" โผล่บนจอ และไม่มีเทสต์ไหนจับได้
+ *   (ข) แปลงร่างที่ "ปากทางเข้า" ครั้งเดียว ให้ข้างในเห็นของหน้าตาเดียวกันหมด
+ * เลือก (ข) — โค้ดที่แสดงผลจึงไม่ต้องรู้จักคำว่า subject เลย ยกเว้นจุดที่
+ * *ตั้งใจ* ให้ต่าง (ตัวโจทย์บน HUD / เสียงอ่านภาษาไทย / คำอธิบายตอนเฉลย)
+ *
+ * การจับคู่ช่องเดิม:
+ *   en ← q     "หน้าตาของข้อ" ที่หน้าสถิติและจอตายใช้อ้างถึงข้อนี้
+ *   th ← fact  "ความหมาย" ที่ระบบเดิมเผยตอนเฉลย = ใบความรู้ของข้อนี้พอดี
+ * ทั้งคู่เป็นแค่ช่องสำหรับ *แสดงผล* — กุญแจสถิติใช้ `id` เสมอ (ดู srs.itemId)
+ */
+export function toSubjectWord(item) {
+  return {
+    id: item.id,
+    subject: true,
+    q: item.q,
+    fact: item.fact ?? '',
+    page: item.page,
+    choices: item.options,
+    answer: item.answer,
+    en: item.q,
+    th: item.fact ?? '',
+  };
+}
+
+/**
+ * ตรวจไฟล์ deck แล้วคืนรูปแบบภายในที่เกมใช้ได้ทันที (โค้ดบริสุทธิ์ — เทสต์ได้)
+ * @param {object} deck ข้อมูลดิบจากไฟล์ JSON
+ * @param {string} file ชื่อไฟล์ (ใช้ในข้อความ error เท่านั้น)
+ */
+export function normalizeDeck(deck, file = deck?.id ?? '?') {
+  if (isSubjectDeck(deck)) {
+    if (!Array.isArray(deck.items) || deck.items.length < 4) {
+      throw new Error(`deck วิชา "${file}" ต้องมีอย่างน้อย 4 ข้อ`);
+    }
+    const seen = new Set();
+    for (const item of deck.items) {
+      if (!item.id) throw new Error(`deck วิชา "${file}": มีข้อที่ไม่มี id`);
+      if (seen.has(item.id)) throw new Error(`deck วิชา "${file}": id ซ้ำ "${item.id}"`);
+      seen.add(item.id);
+      if (!Array.isArray(item.options) || item.options.length !== 3) {
+        throw new Error(`deck วิชา "${file}" ข้อ "${item.id}": ต้องมีตัวเลือก 3 ตัวพอดี`);
+      }
+      if (!Number.isInteger(item.answer) || item.answer < 0 || item.answer > 2) {
+        throw new Error(`deck วิชา "${file}" ข้อ "${item.id}": answer ต้องเป็น 0–2`);
+      }
+    }
+    return { ...deck, words: deck.items.map(toSubjectWord) };
+  }
+
   if (!Array.isArray(deck.words) || deck.words.length < 4) {
     throw new Error(`deck "${file}" ต้องมีคำอย่างน้อย 4 คำ`);
   }
@@ -108,12 +180,12 @@ function shuffle(arr, rand) {
  */
 export function pickWord(deck, recentQueue, rand = Math.random) {
   const recent = new Set(recentQueue);
-  const pool = deck.words.filter(w => !recent.has(w.en));
+  const pool = deck.words.filter(w => !recent.has(itemId(w)));
   const candidates = pool.length >= 4 ? pool : deck.words;
 
   const weights = candidates.map(w => {
-    if (isUnseen(deck.id, w.en)) return CFG.srs.unseenWeight;
-    return CFG.srs.boxWeights[statOf(deck.id, w.en).box] ?? 1;
+    if (isUnseen(deck.id, w)) return CFG.srs.unseenWeight;
+    return CFG.srs.boxWeights[statOf(deck.id, w).box] ?? 1;
   });
 
   const total = weights.reduce((sum, x) => sum + x, 0);
@@ -135,7 +207,7 @@ export function pickWord(deck, recentQueue, rand = Math.random) {
  */
 export function pickWordSeeded(deck, recentQueue, rand) {
   const recent = new Set(recentQueue);
-  const pool = deck.words.filter(w => !recent.has(w.en));
+  const pool = deck.words.filter(w => !recent.has(itemId(w)));
   const candidates = pool.length >= 4 ? pool : deck.words;
   return candidates[Math.floor(rand() * candidates.length)];
 }
@@ -197,6 +269,9 @@ export function chooseMode(word, { speechEnabled = true, allow = null } = {}, ra
  * ไม่ควรถูกบีบจนตัวลวงวนซ้ำคำเดิมทุกข้อ ยอมให้โหมดเด็กไม่มีผลดีกว่าเกมพัง
  */
 export function kidsDeck(deck) {
+  // deck วิชาไม่มีแกน "ระดับ/ความยาวคำอังกฤษ" ให้กรอง — คืนทั้งชุดไปตรง ๆ
+  // (โหมดเด็กยังมีผลกับความเร็ว ซึ่งเป็นส่วนที่ช่วยได้จริงสำหรับโจทย์ยาว)
+  if (isSubjectDeck(deck)) return deck;
   const { tiers, minWords } = CFG.kids;
   let best = null;
   for (const { maxLevel, maxLetters } of tiers) {
@@ -212,6 +287,7 @@ export function kidsDeck(deck) {
 }
 
 export function zoneDeck(deck, levels) {
+  if (isSubjectDeck(deck)) return deck;      // ไม่มีระดับให้แบ่งโซน
   if (!Array.isArray(levels) || !levels.length) return deck;
   const words = deck.words.filter(w => levels.includes(w.level ?? 2));
   if (words.length < 12) return deck;
@@ -224,8 +300,33 @@ export function zoneDeck(deck, levels) {
  *   box — บังคับกลยุทธ์ตัวลวง (ใช้ตอน "รอบชิง" ที่ทุกเครื่องต้องได้โจทย์เหมือนกันเป๊ะ
  *         ถ้าปล่อยให้อ่านจากสถิติของแต่ละคน ตัวลวงจะไม่ตรงกันแม้เมล็ดสุ่มจะเดียวกัน)
  */
+/**
+ * ปั้นโจทย์ของ deck วิชา — ตัวเลือกมากับไฟล์ ไม่มีการปั้นตัวลวงเลย
+ *
+ * ทำไมไม่ให้ระบบปั้นตัวลวงเหมือนคำศัพท์? เพราะ "ความใกล้เคียง" ของคำตอบวิชา
+ * ไม่ได้อยู่ที่รูปคำหรือชนิดคำ แต่อยู่ที่มโนทัศน์ที่ผู้เรียนมักสับสน (เช่น
+ * "อยุธยา" กับ "ธนบุรี") ซึ่งเป็นความรู้ของคนออกข้อสอบ ไม่ใช่สิ่งที่ edit distance รู้
+ * → ตัวเลือกจึงเป็นส่วนหนึ่งของ "เนื้อหา" ไม่ใช่ของ "เอนจิน"
+ *
+ * สิ่งเดียวที่สุ่มคือ *ลำดับเลน* เพื่อไม่ให้จำได้ว่าข้อนี้คำตอบอยู่เลนไหน
+ */
+export function buildSubjectQuestion(deck, answer, opts = {}, rand = Math.random) {
+  const slots = shuffle(
+    answer.choices.map((text, i) => ({ en: text, correct: i === answer.answer })),
+    rand,
+  );
+  return {
+    word: answer,
+    options: slots.map(s => ({ en: s.en })),
+    correctIndex: slots.findIndex(s => s.correct),
+    mode: 'subject',
+  };
+}
+
 export function buildQuestion(deck, answer, opts = {}, rand = Math.random) {
-  const box = opts.box ?? (isUnseen(deck.id, answer.en) ? 1 : statOf(deck.id, answer.en).box);
+  if (isSubjectDeck(deck)) return buildSubjectQuestion(deck, answer, opts, rand);
+
+  const box = opts.box ?? (isUnseen(deck.id, answer) ? 1 : statOf(deck.id, answer).box);
 
   // 1) ตั้งต้นจากคำชนิดเดียวกัน (คำนาม/กริยา/คุณศัพท์/กริยาวิเศษณ์)
   //    เพราะถ้าปนชนิดคำ ผู้เล่นจะเดาถูกจากไวยากรณ์แทนความหมาย
