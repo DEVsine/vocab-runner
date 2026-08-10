@@ -26,30 +26,6 @@ import { stormPhase } from './storm.js';
 
 const $ = id => document.getElementById(id);
 
-/* ไอคอน/ชื่อ/สีของไอเทมจับเวลา — config.js เก็บแต่ค่าที่ใช้วาดวัตถุ 3D
-   สีตรงกับสีลูกบาศก์/เพชรที่เพิ่งวิ่งชนเก็บมา เพื่อให้ "ของที่เก็บได้"
-   กับ "ชิปบน HUD" เป็นชิ้นเดียวกันในสายตาผู้เล่นโดยไม่ต้องอ่านตัวหนังสือ */
-const BOOST_META = {
-  magnet: { icon: '🧲', label: 'แม่เหล็กดูดเหรียญ', color: '#ef4444' },
-  x2:     { icon: '✨', label: 'คะแนน ×2',        color: '#a78bfa' },
-};
-
-function makeBoostChip({ icon, label, color }) {
-  const node = document.createElement('div');
-  node.className = 'boost-chip';
-  // ชื่อเต็มอยู่ใน aria-label ตามธรรมเนียมของแถวนี้ — #hud ปิด pointer-events
-  // ทั้งผืน tooltip จึงไม่มีวันโผล่ แต่ screen reader ยังอ่านได้
-  //
-  // ⚠️ role="img" ต้องอยู่ที่ <span> อีโมจิ ไม่ใช่ที่กล่องนอก (ทรงเดียวกับชิปเหรียญ/ดาว
-  // ใน index.html) เพราะ role=img ตัดลูกหลานทั้งกิ่งออกจาก accessibility tree
-  // ถ้าไปใส่ที่กล่องนอก ตัวเลขเวลาที่เหลือจะไม่มีวันถูกอ่าน — เหลือแค่ชื่อไอเทมค้างอยู่
-  node.innerHTML = `<span class="boost-icon" role="img" aria-label="${label}">${icon}</span>`
-    + '<span class="boost-time"></span>'
-    + '<span class="boost-bar"><i></i></span>';
-  node.querySelector('.boost-bar i').style.background = color;
-  return { node, time: node.querySelector('.boost-time'), fill: node.querySelector('.boost-bar i') };
-}
-
 export function createHUD(handlers = {}) {
   const el = {
     root: $('hud'),
@@ -63,7 +39,6 @@ export function createHUD(handlers = {}) {
     stars: $('hud-stars'),
     starsBox: document.querySelector('.stat.stars'),
     collect: $('hud-collect'),
-    boosts: $('hud-boosts'),
     jets: $('hud-jets'),
     bonusBanner: $('bonus-banner'),
     bonusTimer: $('bonus-timer'),
@@ -137,8 +112,7 @@ export function createHUD(handlers = {}) {
   let toastTimer = null;
   let lastDistText = '';
   let bannerTimer = null;
-  let activeBoosts = [];   // สถานะไอเทมจับเวลาเฟรมล่าสุด (EZL-71)
-  const boostChips = new Map();   // type → ชิปที่สร้างไว้แล้ว (ดูเหตุผลที่ setBoosts)
+  let activeBoosts = [];   // สถานะไอเทมจับเวลาเฟรมล่าสุด (EZL-71) — EZL-70 อ่านไปวาด
   let contestCursor = 1;
   let contestLocked = false;
 
@@ -478,39 +452,11 @@ export function createHUD(handlers = {}) {
 
     /**
      * สถานะไอเทมจับเวลา (EZL-71): [{ type: 'magnet'|'x2', remainingMs }]
-     *
-     * main ป้อนเข้ามา "ทุกเฟรม" — จึงต้องอัปเดตชิปตัวเดิม ไม่ใช่สร้าง DOM ใหม่
-     * (สร้างใหม่ 60 ครั้ง/วินาทีคือการโยนงานให้ GC ฟรี ๆ และทำให้ชิปกระพริบ)
-     * ชิปจึงถูกจำไว้ใน boostChips แล้วลบเฉพาะตัวที่หมดเวลาไปแล้วจริง ๆ
+     * main ป้อนเข้ามาทุกเฟรม — ใบนี้แค่ "เปิดสถานะ" ให้พร้อมใช้
+     * การวาดนับถอยหลังเป็นงานของใบ EZL-70 (HUD มือถือ) มาเติมในฟังก์ชันนี้
+     * ระหว่างนี้เก็บค่าล่าสุดไว้ให้อ่านผ่าน getBoosts() (QA/เดโม่ใช้ส่องได้)
      */
-    setBoosts(list) {
-      activeBoosts = list;
-      const alive = new Set();
-
-      for (const { type, remainingMs } of list) {
-        const meta = BOOST_META[type];
-        if (!meta) continue;          // ไอเทมใหม่ที่ยังไม่มีหน้าตา — เงียบไว้ดีกว่าพัง
-        alive.add(type);
-
-        let chip = boostChips.get(type);
-        if (!chip) {
-          chip = makeBoostChip(meta);
-          boostChips.set(type, chip);
-          el.boosts.appendChild(chip.node);
-        }
-
-        chip.time.textContent = `${Math.max(0, remainingMs / 1000).toFixed(1)} วิ`;
-        // active() ส่งมาแต่เวลาที่เหลือ — สัดส่วนหลอดต้องหารด้วยเวลาเต็มจาก config เอง
-        const totalMs = CFG.boosts.items[type].durationSeconds * 1000;
-        chip.fill.style.transform = `scaleX(${Math.max(0, Math.min(1, remainingMs / totalMs))})`;
-      }
-
-      for (const [type, chip] of boostChips) {
-        if (alive.has(type)) continue;
-        chip.node.remove();
-        boostChips.delete(type);
-      }
-    },
+    setBoosts(list) { activeBoosts = list; },
     getBoosts: () => activeBoosts,
 
     /** @param {number} n เกราะในคลัง (ยังไม่ใส่) @param {boolean} armed ใส่อยู่ = pip เรืองแสงพิเศษ */

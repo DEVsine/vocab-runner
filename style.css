@@ -90,11 +90,8 @@ button { touch-action: manipulation; -webkit-tap-highlight-color: transparent; }
            calc(10px + var(--sa-bottom)) calc(12px + var(--sa-left));
   /* ความสูงจริงของสถิติสองแถว + padding บน + ระยะหายใจ — วัดจากจอจริง
      กล่องโจทย์ใช้ค่านี้เป็น top เพื่อให้ "แก้ที่เดียว" เวลาสถิติเปลี่ยนขนาด
-     (breakpoint จอใหญ่ทับค่านี้ใหม่ ส่วนจอเตี้ยกำหนด top เองเพราะจงใจให้คร่อมกัน)
-     ⚠️ ต้องวัดจาก "กรณีที่แน่นที่สุด" ไม่ใช่กรณีว่างที่สุด: 80px พอดีเป๊ะกับสถิติ
-     สองแถวเปล่า ๆ แต่แถวล่างสูงขึ้นอีก ~4px ทันทีที่ชิปไอเทมจับเวลาโผล่มา
-     (ชิปสูงกว่าชิปของสะสมเพราะมีหลอดเวลาแนบขอบล่าง) แล้วขอบชิปจะมุดใต้กล่องโจทย์ */
-  --hud-prompt-top: 92px;
+     (breakpoint จอใหญ่ทับค่านี้ใหม่ ส่วนจอเตี้ยกำหนด top เองเพราะจงใจให้คร่อมกัน) */
+  --hud-prompt-top: 80px;
 }
 
 /* ── สถิติสองแถวบนสุด (สไตล์ Subway Surfers) ─────────────────
@@ -116,31 +113,6 @@ button { touch-action: manipulation; -webkit-tap-highlight-color: transparent; }
 /* แถวของสะสมชิดขวา — ฝั่งซ้ายเว้นว่างไว้ให้เห็นเลนวิ่งต่อเนื่องจากใต้คะแนน */
 .stats-sub { justify-content: flex-end; align-items: center; }
 #hud-collect { display: flex; align-items: center; gap: 6px; }
-
-/* ── ไอเทมจับเวลาที่กำลังทำงาน (แม่เหล็ก / คะแนน ×2) ──────────
-   ก่อนหน้านี้สถานะนี้ไม่ถูกวาดเลย ผู้เล่นจึงไม่มีทางรู้ว่าไอเทมยังทำงานอยู่ไหม
-   margin-right:auto ดันตัวเองไปกินช่องว่างฝั่งซ้ายที่แถวนี้เว้นไว้อยู่แล้ว
-   — ได้ตำแหน่ง "ชิดซ้าย" โดยไม่ต้อง absolute ไปแย่งที่ใครที่ขอบล่าง */
-#hud-boosts { display: flex; align-items: center; gap: 6px; margin-right: auto; }
-.boost-chip {
-  position: relative; overflow: hidden;
-  display: flex; align-items: center; gap: 5px;
-  padding: 2px 9px 4px;
-  border-radius: 999px;
-  background: rgba(6, 10, 24, .62);
-  border: 1px solid rgba(255, 255, 255, .12);
-}
-.boost-icon { font-size: 13px; line-height: 1; }
-/* nowrap สำคัญกว่าที่คิด: ถ้า "8.4 วิ" ตกบรรทัด ชิปจะสูงขึ้นเกือบเท่าตัว
-   แล้วดันแถวชิปทั้งแถวมุดใต้กล่องโจทย์ที่ปักไว้ด้วย --hud-prompt-top */
-.boost-time { font-size: 13px; font-weight: 800; font-variant-numeric: tabular-nums; color: var(--ink); white-space: nowrap; }
-/* หลอดเวลาแนบขอบล่างของชิป — เห็น "เหลือน้อยแล้ว" ได้โดยไม่ต้องอ่านตัวเลข */
-.boost-bar { position: absolute; left: 0; right: 0; bottom: 0; height: 2px; background: rgba(255, 255, 255, .12); }
-.boost-bar i {
-  display: block; height: 100%;
-  transform-origin: left center;
-  transition: transform .12s linear;   /* เท่ากับหลอดออกซิเจน — ไหลลื่นแม้เฟรมตก */
-}
 
 .stat { display: flex; flex-direction: column; line-height: 1.1; }
 .stat-label { font-size: 9px; letter-spacing: .1em; color: var(--dim); text-transform: uppercase; white-space: nowrap; }
@@ -639,161 +611,28 @@ select {
 .row { display: flex; gap: 8px; margin-top: 8px; }
 .row .btn { margin-top: 0; }
 
-/* ── หน้าตั้งค่า (เต็มจอ) ─────────────────────────────────────
-   เดิมเป็น <details> ที่กางอยู่ในแผงเมนู — พอกางแล้วเมนูยาวขึ้นเท่าตัว
-   ปุ่ม "เริ่มเล่น" ถูกดันพ้นจอ และหัวกล่อง (ซึ่งเป็นทางปิด) ก็เลื่อนพ้นจอไปด้วย
-   ปัญหาทั้งคู่หายไปเองเมื่อยกออกมาเป็นหน้าของตัวเอง: เมนูสั้นเท่าเดิมเสมอ
-   และหน้าตั้งค่ามีพื้นที่ของมันเองให้ยาวได้โดยไม่รบกวนใคร */
-.panel-settings { text-align: left; }
+/* ตั้งค่าถูกพับไว้ — บนมือถือ ตัวเลือกที่แทบไม่เคยเปลี่ยนไม่ควรกินพื้นที่เหนือปุ่มเล่น */
+#menu-settings {
+  margin-top: 12px; text-align: left;
+  border: 1px solid rgba(255,255,255,.1); border-radius: 13px; overflow: hidden;
+}
+#menu-settings > summary {
+  padding: 13px 14px; font-size: 14px; font-weight: 600; color: var(--dim);
+  cursor: pointer; list-style: none; min-height: 46px; display: flex; align-items: center;
+}
+#menu-settings > summary::-webkit-details-marker { display: none; }
+#menu-settings[open] > summary { border-bottom: 1px solid rgba(255,255,255,.08); color: var(--ink); }
+.settings-body { padding: 12px 14px 14px; }
 
-/* แถบหัวไม่ sticky โดยตั้งใจ — ลองแล้วและถอยออกมา
-   ตัวที่เลื่อนคือ .screen ซึ่งมี padding รอบแผงอยู่ เนื้อหาจึงไหลผ่าน "ช่องว่าง"
-   เหนือแถบหัวให้เห็นแวบ ๆ ตอน scroll (เหมือนแถบรั่ว) และการดึงแถบออกไปชนขอบแผง
-   ด้วย margin ติดลบก็ผูกกับ padding ของ .panel ซึ่งเปลี่ยนค่าที่ breakpoint 620px
-   = เลขวิเศษที่พังเงียบ ๆ เมื่อมีคนแก้ padding ทีหลัง
-   ทางออกจึงยึดแบบเดียวกับ #screen-shop / #screen-stats: ✕ บนหัว + ปุ่มกลับเมนูล่างสุด
-   (หน้านี้ยาวราว 1.4 เท่าของจอมือถือ ทางออกจึงไม่เคยไกลอยู่แล้ว) */
-.settings-head {
-  display: flex; align-items: center; gap: 10px;
-  margin-bottom: 14px; padding-bottom: 12px;
-  border-bottom: 1px solid rgba(255,255,255,.08);
-}
-.settings-head h2 { margin: 0; font-size: 17px; }
-.settings-x {
-  margin-left: auto; flex: 0 0 auto;
-  display: flex; align-items: center; justify-content: center;
-  width: 44px; height: 44px;      /* เป้าแตะขั้นต่ำ — ✕ ตัวเล็กแต่พื้นที่กดต้องไม่เล็กตาม */
-  border-radius: 999px;
-  background: rgba(6, 10, 24, .62);
-  border: 1px solid rgba(255,255,255,.12);
-  color: var(--dim);
-  font-family: inherit; font-size: 15px; font-weight: 700;
-  cursor: pointer;
-  transition: color .15s ease, border-color .15s ease;
-}
-.settings-x:hover { color: var(--ink); border-color: rgba(255,255,255,.3); }
-.settings-x:active { transform: scale(.94); }
-
-/* การ์ดหนึ่งใบ = หนึ่งเรื่องที่ตัดสินใจแยกกันได้ — พื้น/ขอบชุดเดียวกับชิปและไทล์ที่อื่น */
-.set-card {
-  margin-bottom: 10px;
-  padding: 12px 14px 14px;
-  border-radius: 16px;
-  background: rgba(6, 10, 24, .62);
-  border: 1px solid rgba(255,255,255,.12);
-}
-.set-title { margin-bottom: 9px; font-size: 11px; letter-spacing: .12em; color: var(--dim); }
-.set-card .field { margin-bottom: 10px; }
-.set-card .field:last-child { margin-bottom: 0; }
-.set-card .deck-info { margin: 8px 0 0; }
-/* .deck-info มี min-height ไว้กันบรรทัดกระตุกตอนข้อความเปลี่ยน แต่ #qmode-note
-   ว่างเปล่าเป็นค่าเริ่มต้น ในการ์ดมันจึงกลายเป็นช่องว่างลอย ๆ ที่ไม่มีเหตุผล */
-.set-card .deck-info:empty { display: none; }
-.set-card > .btn { margin-top: 10px; }
-
-/* ในการ์ด สวิตช์เรียงเป็น "แถวเต็มความกว้าง" ไม่ใช่กองกลางแบบ .toggles เดิม
-   แถวเต็มความกว้างทำให้ทั้งบรรทัดเป็นเป้าแตะ (label ครอบ input อยู่แล้ว)
-   ซึ่งบนมือถือต่างกันมากกับการต้องเล็งจิ้มกล่องเช็ก 18px */
-.set-card .toggles { display: block; margin: 0; }
-.set-card .toggle {
-  display: flex; align-items: center; justify-content: space-between; gap: 10px;
-  width: 100%; min-height: 48px; padding: 2px 0;
-  color: var(--ink); font-size: 14px;
-  border-bottom: 1px solid rgba(255,255,255,.07);
-}
-.set-card .toggle:last-child { border-bottom: none; }
-/* order:2 ดันสวิตช์ไปขวาสุดโดยไม่ต้องสลับลำดับใน HTML —
-   ต้องคงลำดับเดิมไว้เพราะ <input> มาก่อน <span> คือสิ่งที่ screen reader ใช้จับคู่ป้ายกับตัวควบคุม
-
-   สวิตช์เลื่อน: appearance:none แล้ววาดเอง แต่ยังเป็น <input type=checkbox> ตัวจริง
-   ⚠️ ห้ามเปลี่ยนไปใช้ display:none แล้วเสก <span> มาแทน — checkbox จะหลุดจาก tab order
-   และ listener ที่ผูกไว้ตาม id ใน src/ui.js จะไม่มีทางรู้ว่าค่าเปลี่ยน */
-.set-card .toggle input[type="checkbox"] {
-  order: 2; flex: none; position: relative;
-  appearance: none; -webkit-appearance: none;
-  width: 48px; height: 28px;
-  border-radius: 999px;
-  background: rgba(255,255,255,.12);
-  border: 1px solid rgba(255,255,255,.16);
-  cursor: pointer;
-  transition: background .18s ease, border-color .18s ease;
-}
-.set-card .toggle input[type="checkbox"]::after {
-  content: '';
-  position: absolute; top: 2px; left: 2px;
-  width: 22px; height: 22px;
-  border-radius: 50%;
-  background: var(--ink);
-  box-shadow: 0 1px 3px rgba(0, 0, 0, .5);
-  transition: transform .18s ease;
-}
-.set-card .toggle input[type="checkbox"]:checked {
-  background: rgba(34, 211, 238, .55);
-  border-color: rgba(34, 211, 238, .85);
-}
-.set-card .toggle input[type="checkbox"]:checked::after { transform: translateX(20px); }
-/* ⚠️ ห้ามใส่ opacity ตรงนี้ — .panel-settings .toggle:has(input:disabled) หรี่ทั้งแถวให้แล้ว
-   opacity ที่ซ้อนกันจะ "คูณกัน" (.45 × .4 = .18) จนแยกไม่ออกว่าสวิตช์ที่ถูกล็อกอยู่
-   เปิดหรือปิด ซึ่งสำคัญมากตอนโหมดเด็กล็อกประเภทโจทย์ไว้ที่รูป+เสียง */
-.set-card .toggle input[type="checkbox"]:disabled { cursor: not-allowed; }
-.set-card .toggle input[type="checkbox"]:focus-visible { outline: 2px solid var(--cyan); outline-offset: 2px; }
-
-/* "ชุดที่ 3 จาก 12" — ตัวเลขบอกตำแหน่งในคลัง ไม่ใช่คำอธิบายชุด จึงเน้นสีต่างจาก .deck-info */
-.set-sub { margin: 8px 0 0; font-size: 12.5px; font-weight: 700; color: var(--cyan); }
-
-/* ── เมนู: แถบสถานะผู้เล่น (ตัวละครที่ใส่อยู่ + เหรียญในกระเป๋า) ──
-   ไม่ใช่ปุ่ม แต่เป็น "ค่าสดในเกม" จึงใช้ทรงชิปเดียวกับของสะสมใน HUD ตอนวิ่ง
-   (มน 999px / พื้น rgba(6,10,24,.62) / ขอบขาวจาง 1px)
-   ภาษาเดียวกันสองที่ = ผู้เล่นเรียนรู้ครั้งเดียวแล้วอ่านออกทั้งเกม */
+/* ── เมนู: แถวตัวละคร + กระเป๋าเหรียญ ───────────────────────── */
 #menu-char-row {
-  display: flex; justify-content: space-between; align-items: center; gap: 8px;
-  margin-bottom: 14px;
-  font-size: 13px;
+  display: flex; justify-content: space-between; align-items: center;
+  margin-top: 12px; padding: 10px 13px; border-radius: 12px;
+  background: rgba(255,255,255,.04); border: 1px solid rgba(255,255,255,.09);
+  font-size: 14px;
 }
-#menu-char, #menu-wallet {
-  display: flex; align-items: center; gap: 6px;
-  min-width: 0; padding: 5px 12px;
-  border-radius: 999px;
-  background: rgba(6, 10, 24, .62);
-  border: 1px solid rgba(255,255,255,.12);
-}
-#menu-char { min-width: 0; overflow: hidden; }
-#menu-char-name { overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
-#menu-char-emoji { font-size: 17px; line-height: 1; flex: 0 0 auto; }
-#menu-wallet { flex: 0 0 auto; font-weight: 800; color: var(--gold); }
-
-/* ── เมนู: แถบไอคอนล่างจอ ────────────────────────────────────
-   เดิมร้านค้า/สถิติ/ตั้งค่า/ตัวละคร เป็นแถวปุ่มเต็มความกว้างเหมือนปุ่ม "เริ่มเล่น"
-   ซึ่งบอกผู้เล่นว่าทุกอย่างสำคัญเท่ากัน — ทั้งที่ 95% ของครั้งที่เปิดเกมคือมาเล่น
-   ยุบเป็นไอคอนแถวเดียวคือการ "ลดน้ำหนัก" ไม่ใช่การซ่อน: ยังเห็นครบ ยังแตะถึงในทีเดียว
-
-   ⚠️ flex ธรรมดาใน flow ของแผง ไม่ใช้ position:absolute เด็ดขาด
-   (บทเรียนจาก HUD ตอนวิ่ง — ดูคอมเมนต์ #hud-stats: ของที่ตรึงตามมุมจอ
-   จะทับกันเองทันทีที่จอแคบ/เตี้ยลง และเราจะไม่เห็นบนจอเดสก์ท็อป) */
-#menu-nav {
-  display: flex; gap: 8px;
-  margin-top: 14px; padding-top: 12px;
-  border-top: 1px solid rgba(255,255,255,.08);
-}
-.nav-item {
-  /* flex:1 1 0 + min-width:0 = ทุกช่องกว้างเท่ากันและ "หดได้จริง"
-     ถ้าลืม min-width:0 ช่องจะหดไม่ต่ำกว่าความกว้างข้อความ → แถวล้นขอบบนจอ 320px */
-  flex: 1 1 0; min-width: 0;
-  display: flex; flex-direction: column; align-items: center; justify-content: center; gap: 3px;
-  min-height: 56px;            /* ≥44px ตามเกณฑ์เป้าแตะของ Apple/Google */
-  padding: 8px 4px;
-  border-radius: 14px;         /* ทรงเดียวกับปุ่ม .act ในแถบแอ็กชันตอนวิ่ง */
-  border: 1px solid rgba(255,255,255,.12);
-  background: rgba(6, 10, 24, .62);
-  color: var(--dim);
-  font-family: inherit; font-size: 10.5px; font-weight: 700;
-  cursor: pointer;
-  transition: transform .08s ease, background .15s ease, border-color .15s ease, color .15s ease;
-}
-.nav-item:hover { background: rgba(34,211,238,.14); border-color: rgba(34,211,238,.45); color: var(--ink); }
-.nav-item:active { transform: translateY(1px) scale(.97); }
-.nav-icon { font-size: 20px; line-height: 1; }
-.nav-label { max-width: 100%; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+#menu-char-emoji { font-size: 19px; }
+#menu-wallet { font-weight: 800; color: var(--gold); }
 
 .desktop-only { display: none; }
 
@@ -827,67 +666,9 @@ select {
 .requeue-note { margin: 10px 0 14px; font-size: 12px; color: var(--dim); line-height: 1.6; }
 .requeue-note b { color: var(--cyan); }
 
-/* ── จอตาย: หัวเรื่องคะแนน ────────────────────────────────────
-   เดิมสถิติ 5 ตัวเรียงเท่ากันหมดในแถวเดียว = ไม่มีตัวไหนเด่น
-   แต่คำถามแรกในหัวคนที่เพิ่งตายมีข้อเดียวเสมอ: "รอบนี้ได้เท่าไร"
-   การให้ทุกอย่างน้ำหนักเท่ากันจึงบังคับให้ตาไล่อ่านป้ายจิ๋ว 5 ป้ายก่อนตอบคำถามนั้นได้
-   ทางแก้ไม่ใช่ตัดสถิติทิ้ง (ทุกตัวเป็นข้อมูลจริงของรอบ) แต่คือ "จัดลำดับ":
-   ดันตัวเดียวที่ตอบคำถามแรกให้ใหญ่กว่าเพื่อนเท่าตัว ที่เหลือลดลงเป็นรายละเอียด
-
-   ยืมทรง .hud-num จาก HUD ตอนวิ่งมาใช้ทั้งดุ้น (ขอบทึบ + paint-order)
-   เพราะตัวเลขบนจอตายกับตัวเลขตอนวิ่งคือ "ของชิ้นเดียวกัน" ในสายตาผู้เล่น
-   ถ้าทำสองสไตล์ ผู้เล่นต้องเรียนรู้ใหม่ว่าเลขไหนคืออะไรทั้งที่เพิ่งอ่านมาเมื่อกี้ */
-.dead-headline { margin: 14px 0 12px; }
-.dead-score-label { display: block; font-size: 10px; letter-spacing: .14em; color: var(--dim); }
-.dead-score {
-  font-size: clamp(46px, 15vw, 68px);
-  line-height: 1.05;
-  color: var(--ink);
-  /* ขอบต้องหนาขึ้นตามขนาดตัวอักษร — 4px ของ HUD (ฟอนต์ 22px) บางเกินไปที่ 68px
-     จนเอฟเฟกต์ "เป็นเกม" หายไปเฉย ๆ */
-  -webkit-text-stroke-width: 6px;
-}
-/* สูงสุดอยู่ติดคะแนนเพราะสองตัวนี้ถูกอ่าน "เทียบกัน" เสมอ ไม่มีใครอ่านสูงสุดเดี่ยว ๆ
-   ใช้ทรงชิป (มน 999px / พื้นทึบ / ขอบขาวจาง) เดียวกับของสะสมใน HUD และแถบสถานะในเมนู */
-.dead-best {
-  display: inline-flex; align-items: center; gap: 7px;
-  margin-top: 9px; padding: 4px 13px;
-  border-radius: 999px;
-  background: rgba(6, 10, 24, .62);
-  border: 1px solid rgba(255,255,255,.12);
-}
-.dead-best strong { font-size: 16px; color: var(--dim); -webkit-text-stroke-width: 3px; }
-
-/* ── จอตาย: รายละเอียดรอบ 3 ช่อง ──────────────────────────────
-   grid 3 คอลัมน์ตายตัว ไม่ใช่ flex-wrap: สามช่องต้องอยู่แถวเดียวกันเสมอ
-   ถ้าปล่อยให้ wrap บนจอแคบ จะได้ 2+1 ซึ่งอ่านเหมือน "ช่องสุดท้ายสำคัญกว่า" โดยไม่ตั้งใจ
-   สีตัวเลขล็อกกับ HUD ตอนวิ่ง (ระยะ=ฟ้า / เหรียญ=ทอง / ด่าน=ขาว) — เรียนรู้ครั้งเดียวอ่านออกทั้งเกม */
-.dead-scores {
-  display: grid;
-  grid-template-columns: repeat(3, 1fr);
-  gap: 8px;
-  margin-bottom: 14px;
-}
-.dead-stat {
-  /* min-width:0 คือตัวกันล้นของ grid — ค่าปริยาย min-width:auto ทำให้ช่อง
-     "หดไม่ต่ำกว่าเนื้อใน" แล้วกริดจะดันทะลุขอบแผงบนจอ 320px แทนที่จะบีบตัวเอง */
-  min-width: 0;
-  display: flex; flex-direction: column; align-items: center; gap: 2px;
-  padding: 9px 6px;
-  border-radius: 14px;          /* ทรงไทล์เดียวกับ .nav-item ในเมนู และ .act ตอนวิ่ง */
-  background: rgba(6, 10, 24, .62);
-  border: 1px solid rgba(255,255,255,.12);
-}
-.dead-stat-icon { font-size: 15px; line-height: 1; }
-.dead-stat strong {
-  max-width: 100%;
-  font-size: clamp(15px, 4.6vw, 19px);
-  -webkit-text-stroke-width: 3px;
-  white-space: nowrap; overflow: hidden; text-overflow: ellipsis;
-}
-.dead-stat.dist strong { color: var(--cyan); }
-.dead-stat.coins strong { color: var(--gold); }
-.dead-stat .stat-label { max-width: 100%; overflow: hidden; text-overflow: ellipsis; }
+.dead-scores { display: flex; justify-content: space-around; margin-bottom: 14px; flex-wrap: wrap; gap: 8px; }
+.dead-scores div { display: flex; flex-direction: column; gap: 2px; }
+.dead-scores strong { font-size: 21px; font-variant-numeric: tabular-nums; }
 
 /* ── สถิติ ─────────────────────────────────────────────────── */
 .stats-summary { display: flex; flex-wrap: wrap; gap: 8px; margin-bottom: 12px; font-size: 12.5px; color: var(--dim); }
@@ -978,11 +759,11 @@ td.en { font-weight: 700; }
 /* ── ช่องตั้งค่าที่ถูกโหมดเด็กคุมอยู่ ──────────────────────────
    disabled ที่ไม่มีสัญญาณทางสายตา = ผู้ใช้กดแล้วไม่มีอะไรเกิดขึ้นโดยไม่รู้ว่าทำไม
    ต้องเห็นได้ว่า "ปิดอยู่" ก่อนจะกด ไม่ใช่หลังจากกดแล้วสงสัยว่าพัง */
-.panel-settings select:disabled {
+.settings-body select:disabled {
   opacity: .45;
   cursor: not-allowed;
 }
-.panel-settings .toggle:has(input:disabled) {
+.settings-body .toggle:has(input:disabled) {
   opacity: .45;
   cursor: not-allowed;
 }
@@ -1270,20 +1051,6 @@ td.en { font-weight: 700; }
    ทางแก้คือ "แยกไปอยู่คนละมุม" แทนที่จะซ้อนกันตรงกลาง:
    พายุมุมซ้ายล่าง / ปุ่มมุมขวาล่าง / ตรงกลางเว้นว่างไว้ให้ตัวละคร */
 @media (max-height: 480px) {
-  /* คำใบ้ปุ่มคีย์บอร์ดถูกเปิดด้วย @media (min-width: 620px) ซึ่งดู "ความกว้าง" อย่างเดียว
-     มือถือแนวนอนจึงเข้าเงื่อนไขนั้นไปด้วยทั้งที่ไม่มีคีย์บอร์ด — และมันกินความสูง ~59px
-     จนแถบไอคอนล่างเมนู (ร้านค้า/สถิติ/⚙️ ตั้งค่า) ตกใต้ขอบจอทั้งแถบ
-     ⚠️ ⚙️ คือประตูเดียวของหน้าตั้งค่า การซ่อนมันจึงไม่ใช่แค่เรื่องความสวย */
-  .desktop-only { display: none; }
-
-  /* ปุ่มรองสองตัวเรียงแถวเดียว — ทรงเดียวกับ .row ในเมนู
-     ย่อฟอนต์ลงเพราะช่องละ ~160px ถ้าไม่ย่อ "ไปซ้อมคำที่พลาด" จะขึ้นสองบรรทัด
-     แล้วปุ่มจะสูงกว่าเดิม = เสียความสูงที่เพิ่งประหยัดมาทิ้งไปเปล่า ๆ
-     ⚠️ ต้องอยู่ในบล็อก "เตี้ย" ล้วน ไม่ใช่ "เตี้ย+กว้าง" — จอเตี้ยที่แคบ (เช่น
-     568×320) คือจอที่คับความสูงที่สุด ถ้าไปผูกกับความกว้างมันจะไม่เคยได้แถวนี้เลย */
-  .dead-actions { display: flex; gap: 8px; }
-  .dead-actions .btn { flex: 1 1 0; min-width: 0; font-size: 13px; padding: 10px 8px; }
-
   /* จอเตี้ยกว้าง: กล่องโจทย์ต้องแคบลงด้วย ไม่ใช่แค่เตี้ยลง
      ไม่งั้นขอบซ้าย/ขวาของมันจะไปคร่อมแถวคะแนนที่อยู่มุมบนทั้งสองข้าง */
   #hud-prompt { top: calc(26px + var(--sa-top)); padding: 5px 14px 7px; width: min(52vw, 460px); }
@@ -1298,8 +1065,6 @@ td.en { font-weight: 700; }
   .stat.coins #hud-coins { font-size: 13px; }
   .stat.stars #hud-stars { font-size: 12px; }
   .chip-icon { font-size: 11px; }
-  .boost-chip { padding: 1px 7px 3px; gap: 4px; }
-  .boost-icon, .boost-time { font-size: 11px; }
   #hud-prompt-word { font-size: clamp(18px, 4.4vh, 28px); }
   #hud-prompt-emoji { font-size: clamp(30px, 9vh, 52px); }
   #hud-prompt-image { width: 56px; height: 56px; }
@@ -1328,109 +1093,10 @@ td.en { font-weight: 700; }
   #bonus-timer { bottom: calc(66px + var(--sa-bottom)); width: min(300px, 46vw); }
 
   #hud-toast { top: calc(24% + var(--sa-top)); }
-
-  /* จอเตี้ยมาก: แผงเมนูสูงกว่าจอเสมอ → บีบส่วนที่ "ยอมเล็กลงได้"
-     แถบไอคอนล่างเป็นตัวแรกที่ควรบีบ เพราะมันคือเมนูรอง ไม่ใช่ปุ่มที่คนมากด
-     (ยังคุมให้ ≥44px ตามเกณฑ์เป้าแตะ — ห้ามลดต่ำกว่านี้เพื่อประหยัดที่) */
-  #menu-char-row { margin-bottom: 10px; }
-  #menu-nav { margin-top: 10px; padding-top: 9px; gap: 6px; }
-  .nav-item { min-height: 46px; padding: 6px 3px; font-size: 10px; }
-  .nav-icon { font-size: 17px; }
-
-  /* ── จอตายบนจอเตี้ย: กับดัก clamp ที่อิง vw ──────────────────
-     clamp(…, 15vw, …) อ่านแต่ "ความกว้าง" — บนจอ 740×380 มันเห็นว่ากว้างตั้ง 740
-     เลยขยายตัวอักษรจนสุดเพดาน ทั้งที่ทรัพยากรที่ขาดจริง ๆ ตรงนั้นคือความสูง
-
-     กติกาที่ได้จากเรื่องนี้: ตัวอักษรก้อนใหญ่ที่ "กินความสูง" ต้อง clamp ด้วย vh
-     ในโหมดจอเตี้ยเสมอ ไม่ใช่แค่ตัวที่เราเพิ่งเพิ่ม — คำที่พลาดก็ติดกับดักเดียวกัน
-     มาก่อนแล้ว (9vw → เพดาน 40px) แค่ไม่มีใครเห็นเพราะไม่เคยเทียบกับความสูงจอ */
-  .dead-tag { margin-bottom: 8px; }
-  .missed-card { padding: 10px 14px; }
-  .missed-word { font-size: clamp(22px, 7vh, 32px); }
-  .missed-meaning { font-size: 15px; }
-  .missed-chose { margin-top: 5px; font-size: 12px; }
-  .requeue-note { margin: 8px 0 10px; font-size: 11.5px; }
-  /* ปุ่มบีบได้แต่ห้ามต่ำกว่า 44px — ที่เหลือประหยัดจากระยะห่างระหว่างปุ่มแทน */
-  .panel-dead .btn { min-height: 46px; margin-top: 6px; }
-
-  /* จอกว้างแต่เตี้ยยังเข้าเงื่อนไข min-width:620px ด้วย จึงได้ padding ของ "จอใหญ่"
-     (28/24) มาเต็ม ๆ ทั้งที่ความสูงคือของที่ขาด — ทับคืนเฉพาะจอตายที่เนื้อหายาวสุด */
-  .panel-dead { padding: 16px 18px 14px; }
-
-  .dead-headline { margin: 8px 0 8px; }
-  .dead-score { font-size: clamp(30px, 10vh, 40px); -webkit-text-stroke-width: 5px; }
-  .dead-best { margin-top: 6px; padding: 3px 11px; }
-  .dead-best strong { font-size: 14px; }
-  .dead-scores { gap: 6px; margin-bottom: 10px; }
-  .dead-stat { padding: 6px 4px; }
-  .dead-stat strong { font-size: clamp(14px, 4.4vh, 17px); }
-  /* ไอคอนเป็นของประดับล้วน (aria-hidden อยู่แล้ว) — บนจอเตี้ยมันคือหนึ่งบรรทัดเต็ม
-     ที่แลกมาด้วยการดันปุ่ม "เล่นอีกครั้ง" ให้ไกลออกไปอีก ตัดทิ้งได้โดยไม่เสียข้อมูล */
-  .dead-stat-icon { display: none; }
-
   #contest-word { margin: 8px 0 8px; font-size: clamp(20px, 6vh, 32px); }
   #contest-options button { min-height: 44px; font-size: 15px; }
   .contest-card { padding: 12px 14px 12px; }
   .contest-sub { font-size: 10.5px; }
-}
-
-/* ── จอเตี้ยแต่กว้างพอ: จอตายแตกเป็นสองคอลัมน์ ─────────────────
-   จอ 740×380 ไม่ได้ "ขาดที่" มันขาดที่ผิดแกน — สูงเหลือ 380 แต่กว้างเหลือ 740
-   แผงคอลัมน์เดียวกว้าง 440px จึงทิ้งพื้นที่ว่างซ้าย-ขวาข้างละ ~150px
-   แล้วไปดันเนื้อหาลงล่างจนปุ่ม "เล่นอีกครั้ง" หลุดขอบจอ
-
-   การบีบตัวอักษรลงเรื่อย ๆ คือการยอมแพ้ต่อแกนที่ผิด: ยิ่งบีบยิ่งอ่านยาก
-   และสุดท้ายก็ยังไม่พอ ทางที่ถูกคือย้ายของไปแกนที่ยังมีที่เหลือ
-   ซ้าย = สิ่งที่ต้องเรียนรู้ (คำที่พลาด) / ขวา = ผลของรอบ + ทางไปต่อ
-   หลักเดียวกับที่ HUD ตอนวิ่งใช้ในไฟล์นี้อยู่แล้ว: "แยกไปคนละมุม ดีกว่าซ้อนกันตรงกลาง"
-
-   ⚠️ min-width:620px ไม่ใช่ของประดับ — จอเตี้ยที่แคบด้วย (เช่น 480×360) แบ่งสองคอลัมน์
-   แล้วจะได้คอลัมน์ละ ~210px ซึ่งคำศัพท์ยาว ๆ จะขึ้นบรรทัดใหม่ทุกคำ กลับแย่กว่าเดิม */
-/* 520px ไม่ใช่ 620px: จอเตี้ยที่ "แคบ" คือจอที่คับความสูงที่สุด (iPhone SE รุ่นแรก
-   แนวนอน = 568×320) การกันมันออกจากเลย์เอาต์สองคอลัมน์เท่ากับทิ้งเครื่องที่ต้องการ
-   มันมากที่สุด — วัดที่ 568×320 แล้ว: หนึ่งคอลัมน์แผงสูง 467px (ปุ่มเล่นอีกครั้งตกจอ)
-   สองคอลัมน์เหลือ 315px พอดีจอ 320px และคอลัมน์ยังกว้างข้างละ 242px */
-@media (max-height: 480px) and (min-width: 520px) {
-  .panel-dead {
-    display: flex;
-    align-items: flex-start;
-    gap: 18px;
-    width: min(760px, 100%);
-  }
-  /* flex:1 1 0 + min-width:0 — เหตุผลเดียวกับ .nav-item ในเมนู:
-     ถ้าลืม min-width:0 คอลัมน์จะหดไม่ต่ำกว่าคำที่ยาวที่สุดข้างใน แล้วดันแผงล้นขอบจอ */
-  .dead-col { flex: 1 1 0; min-width: 0; }
-
-  /* พอไม่ต้องแย่งความสูงกันแล้ว ของที่บีบไว้ตอนคอลัมน์เดียวก็คืนขนาดได้หมด
-     — นี่คือกำไรจริงของการย้ายแกน ไม่ใช่แค่ "พอดีจอ" แต่กลับมาอ่านง่ายด้วย */
-  .missed-word { font-size: clamp(24px, 9vh, 34px); }
-  .missed-meaning { font-size: 16px; }
-  .missed-card { padding: 12px 14px; }
-  .dead-score { font-size: clamp(32px, 11vh, 42px); }
-  .dead-stat { padding: 8px 5px; }
-  /* ไอคอนสถิติยังปิดอยู่ตามกฎคอลัมน์เดียวด้านบน — ไม่เปิดคืนแม้จะมีที่ว่างทางกว้าง
-     เพราะมันกินความสูงหนึ่งบรรทัดในคอลัมน์ขวาซึ่งเป็นตัวที่คับที่สุด (ดูย่อหน้าถัดไป) */
-
-  /* คอลัมน์ขวายาวกว่าซ้ายเสมอ (ปุ่ม 3 ตัวกินไป ~160px) มันจึงเป็นตัวกำหนดความสูงแผง
-     เก็บระยะคืนจาก "ช่องไฟ" เป็นหลัก ไม่แตะ min-height ของปุ่มซึ่งต้อง ≥44px
-
-     ⚠️ ต้องเผื่อที่ไว้ให้เกินพอดี ห้ามจูนให้ "พอดีเป๊ะ 380px"
-     เพราะ .screen บวก env(safe-area-inset-bottom) เข้าไปอีก ~21px บน iPhone แนวนอนจริง
-     ซึ่งในเบราว์เซอร์เดสก์ท็อปเป็น 0 เสมอ — จูนพอดีบนเครื่องเรา = ล้นบนเครื่องผู้เล่น */
-  .panel-dead { padding: 12px 16px 12px; }
-  .dead-headline { margin: 6px 0 6px; }
-  .dead-best { margin-top: 5px; }
-  .dead-scores { margin-bottom: 8px; }
-  /* หน้าตั้งค่าก็ติดกับดักแกนเดียวกับจอตาย: การ์ดเรียงลงมาทีละใบเต็มความกว้าง 720px
-     บนจอที่สูงแค่ 380px = เลื่อนยาวมากทั้งที่ครึ่งจอด้านข้างว่างเปล่า
-     ให้การ์ดไหลเป็นสองคอลัมน์แทน — ไม่ต้องแตะ DOM เลย เพราะ .set-card เป็นลูกตรง
-     ของแผงอยู่แล้ว เหลือแค่สั่งให้หัวแถบกับปุ่มล่างกินเต็มความกว้างสองคอลัมน์
-     align-items:start กันไม่ให้การ์ดเตี้ยถูกยืดตามการ์ดสูงในแถวเดียวกัน */
-  .panel-settings { display: grid; grid-template-columns: 1fr 1fr; gap: 0 14px; align-items: start; }
-  .settings-head, .panel-settings > .btn { grid-column: 1 / -1; }
-
-  .panel-dead .btn { min-height: 48px; margin-top: 6px; }
-
 }
 
 /* ── จอกว้าง: เมนูสไตล์ Fortnite — แผงเลื่อนไปซ้าย ตัวละครโชว์ฝั่งขวา ── */

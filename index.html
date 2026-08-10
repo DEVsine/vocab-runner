@@ -59,10 +59,6 @@
           <button id="btn-hud-pause" type="button" title="พัก / ออก">⏸</button>
         </div>
         <div class="stats-row stats-sub">
-          <!-- ไอเทมจับเวลาที่กำลังทำงาน (แม่เหล็ก / คะแนน ×2) — hud.js เป็นคนเติมชิป
-               อยู่ชิดซ้ายซึ่งเป็นช่องที่แถวนี้เว้นว่างไว้อยู่แล้ว จึงไม่ต้องวาง absolute
-               ทับใคร และไม่ไปชนกับแถบพายุ/โบนัสที่ออกันอยู่ขอบล่าง -->
-          <div id="hud-boosts"></div>
           <!-- ป้ายความหมายอยู่ใน aria-label ไม่ใช่ title — #hud ปิด pointer-events
                ทั้งผืน tooltip จึงไม่มีวันโผล่ แต่ screen reader ยังอ่าน aria ได้ปกติ -->
           <div id="hud-collect">
@@ -154,27 +150,75 @@
     <!-- ══ เมนูหลัก ══ -->
     <section id="screen-menu" class="screen">
       <div class="panel">
-        <!-- แถบสถานะผู้เล่นอยู่บนสุด — เป็น "ของจริงในเกม" (ตัวละครที่ใส่อยู่ + เหรียญที่มี)
-             ไม่ใช่ปุ่ม จึงไม่ควรไปแย่งน้ำหนักกับแถวปุ่มด้านล่าง
-             ใช้ทรงชิปชุดเดียวกับ HUD ตอนวิ่ง เพื่อให้เมนูกับตอนเล่นเป็นเกมเดียวกัน -->
+        <h1 class="title">VOCAB<span class="title-accent">RUNNER</span></h1>
+        <p class="subtitle">อ่านโจทย์ไทย แล้ววิ่งเข้าเลนคำอังกฤษที่ถูกต้อง</p>
+
+        <!-- ปุ่มหลักอยู่ "บนสุด" บนมือถือ — คนเปิดเกมมาเพื่อเล่น ไม่ใช่เพื่อตั้งค่า
+             การให้ตัวเลือกมาก่อนปุ่มเล่นคือการบังคับให้ทุกคนเลื่อนหาปุ่มทุกครั้ง -->
+        <button id="btn-start" class="btn btn-primary btn-hero">▶ เริ่มเล่น</button>
+        <div class="row">
+          <button id="btn-practice" class="btn">📖 โหมดฝึก<span id="practice-badge" class="badge hidden">0</span></button>
+          <button id="btn-multiplayer" class="btn">🎮 เล่นหลายคน</button>
+        </div>
+
         <div id="menu-char-row">
           <div id="menu-char"><span id="menu-char-emoji">🧑‍🚀</span> <span id="menu-char-name">นักบินอวกาศ</span></div>
           <div id="menu-wallet">🪙 <span id="menu-wallet-coins">0</span></div>
         </div>
 
-        <h1 class="title">VOCAB<span class="title-accent">RUNNER</span></h1>
-        <p class="subtitle">อ่านโจทย์ไทย แล้ววิ่งเข้าเลนคำอังกฤษที่ถูกต้อง</p>
+        <details id="menu-settings">
+          <summary>⚙️ ตั้งค่า &amp; ชุดคำศัพท์</summary>
+          <div class="settings-body">
+            <label class="field">
+              <span>ชุดคำศัพท์</span>
+              <select id="deck-select"></select>
+            </label>
+            <p id="deck-info" class="deck-info">กำลังโหลด…</p>
 
-        <!-- ปุ่มหลักอยู่ "บนสุด" บนมือถือ — คนเปิดเกมมาเพื่อเล่น ไม่ใช่เพื่อตั้งค่า
-             การให้ตัวเลือกมาก่อนปุ่มเล่นคือการบังคับให้ทุกคนเลื่อนหาปุ่มทุกครั้ง
+            <label class="field">
+              <span>ธีมของโลก</span>
+              <select id="theme-select"></select>
+            </label>
 
-             ลำดับความสำคัญมีแค่ 3 ชั้น: ปุ่มใหญ่ 1 → ปุ่มรอง 2 → แถบไอคอนล่างจอ
-             เดิมเป็นปุ่มขนาดใกล้เคียงกัน 7 อันเรียงลงมา ซึ่งแปลว่า "ไม่มีอะไรสำคัญกว่ากัน"
-             ผลคือผู้เล่นต้องอ่านทุกปุ่มใหม่ทุกครั้งที่เปิดเกม เพื่อหาปุ่มที่เขาใช้จริง 95% ของเวลา -->
-        <button id="btn-start" class="btn btn-primary btn-hero">▶ เริ่มเล่น</button>
+            <label class="field">
+              <span>ความเร็ว</span>
+              <select id="speed-select">
+                <option value="ramp">เริ่มช้า แล้วค่อย ๆ เร็วขึ้น</option>
+                <option value="fast">เร็วตั้งแต่ต้น</option>
+                <option value="calm">ช้าตลอด (สำหรับเด็ก)</option>
+              </select>
+            </label>
+
+            <div class="field">
+              <span>ประเภทโจทย์</span>
+              <div class="toggles">
+                <label class="toggle"><input type="checkbox" id="qmode-text" checked> <span>🔤 ตัวอักษร</span></label>
+                <label class="toggle"><input type="checkbox" id="qmode-image" checked> <span>🖼️ รูปภาพ</span></label>
+                <label class="toggle"><input type="checkbox" id="qmode-audio" checked> <span>🔊 เสียง</span></label>
+              </div>
+              <p id="qmode-note" class="deck-info"></p>
+            </div>
+
+            <div class="toggles">
+              <label class="toggle"><input type="checkbox" id="toggle-kids"> <span>👶 โหมดเด็ก (Phonics)</span></label>
+            </div>
+            <p id="kids-note" class="deck-info">คำสั้นระดับต้น · วิ่งช้า · โจทย์รูปกับเสียงเท่านั้น</p>
+
+            <div class="toggles">
+              <label class="toggle"><input type="checkbox" id="toggle-sfx" checked> <span>เสียงประกอบ</span></label>
+              <label class="toggle"><input type="checkbox" id="toggle-speech" checked> <span>อ่านออกเสียงคำ</span></label>
+            </div>
+
+            <!-- ปุ่มตรวจเครื่องอ่านออกเสียงของเบราว์เซอร์ — โหมดฟังพึ่งพาสิ่งนี้ทั้งหมด
+                 และมันพังเงียบ ๆ ได้หลายทาง จึงต้องมีวิธีตรวจที่ให้คำตอบชัด ๆ -->
+            <button id="btn-test-speech" class="btn btn-small">🔊 ทดสอบเสียงอ่าน</button>
+            <p id="speech-status" class="speech-status"></p>
+          </div>
+        </details>
+
         <div class="row">
-          <button id="btn-practice" class="btn">📖 โหมดฝึก<span id="practice-badge" class="badge hidden">0</span></button>
-          <button id="btn-multiplayer" class="btn">🎮 เล่นหลายคน</button>
+          <button id="btn-shop" class="btn">🛒 ร้านค้า</button>
+          <button id="btn-stats" class="btn">📊 สถิติ</button>
         </div>
 
         <p class="hint desktop-only">
@@ -182,92 +226,34 @@
           <kbd>Space</kbd> ใส่เกราะ · <kbd>Q</kbd>/<kbd>F</kbd> เลือก/ยิงอาวุธ
         </p>
         <p class="hint touch-only">ปัดนิ้วเพื่อเปลี่ยนเลน/กระโดด/สไลด์ · ปุ่มด้านล่างจอสำหรับเกราะและอาวุธ</p>
-
-        <!-- แถบไอคอนล่างจอ — บ้านใหม่ของทุกอย่างที่ "นาน ๆ เปิดที"
-             ไม่มีไอคอน "ตัวละคร" แยกโดยตั้งใจ: หน้าร้านค้า *คือ* หน้าเลือกตัวละคร
-             (#shop-grid เรนเดอร์ตารางตัวละครล้วน ๆ) สองไอคอนไปที่เดียวกันคือความรก
-             ไม่ใช่ทางลัด — ส่วนตัวละครที่ใส่อยู่ก็เห็นได้จากชิปบนสุดของแผงอยู่แล้ว
-             ⚠️ อยู่ใน flow ปกติของแผง ไม่ได้ตรึงด้วย position:absolute โดยตั้งใจ
-             ด้วยเหตุผลเดียวกับ HUD ตอนวิ่ง (ดูคอมเมนต์แถวสถิติด้านบน):
-             ของที่ตรึงตามมุมจอจะไปกองทับกันเองทันทีที่จอแคบหรือเตี้ยลง -->
-        <nav id="menu-nav" aria-label="เมนูรอง">
-          <button id="btn-shop" class="nav-item" type="button">
-            <span class="nav-icon" aria-hidden="true">🛒</span><span class="nav-label">ร้านค้า</span>
-          </button>
-          <button id="btn-stats" class="nav-item" type="button">
-            <span class="nav-icon" aria-hidden="true">📊</span><span class="nav-label">สถิติ</span>
-          </button>
-          <button id="btn-menu-settings" class="nav-item" type="button" aria-controls="screen-settings">
-            <span class="nav-icon" aria-hidden="true">⚙️</span><span class="nav-label">ตั้งค่า</span>
-          </button>
-        </nav>
       </div>
     </section>
 
     <!-- ══ จอตาย (มินิมอล — ต้องกลับเข้าเกมได้ใน ~0.3 วิ) ══ -->
     <section id="screen-dead" class="screen hidden">
-      <!-- แบ่งเป็นสองกลุ่มด้วย .dead-col ตั้งแต่ใน DOM เลย ไม่ใช่แค่ตอนจอแนวนอน
-           เพราะลำดับการอ่านต้องเหมือนกันทุกจอ: "พลาดคำอะไร" มาก่อน "ได้เท่าไร" เสมอ
-           บนจอแนวตั้ง div สองอันนี้เป็นบล็อกเต็มความกว้างซ้อนกัน = ไม่เปลี่ยนหน้าตาอะไรเลย
-           พอจอเตี้ยค่อยกลายเป็นสองคอลัมน์ (ดู @media max-height:480px ใน style.css)
-           ⚠️ ห้ามใช้ display:contents แทนวิธีนี้ — Safari รุ่นเก่าถอดลูกหลานของมัน
-           ออกจาก accessibility tree ทั้งกิ่ง ซึ่งบนเกมที่เป้าหมายคือ iPhone คือความเสี่ยงฟรี ๆ -->
       <div class="panel panel-dead">
-        <div class="dead-col dead-col-learn">
-          <div class="dead-tag">ชนกำแพง</div>
+        <div class="dead-tag">ชนกำแพง</div>
 
-          <div class="missed-card">
-            <div class="missed-label">คำที่พลาด</div>
-            <div id="dead-word" class="missed-word">—</div>
-            <div id="dead-meaning" class="missed-meaning">—</div>
-            <div id="dead-chose" class="missed-chose"></div>
-          </div>
-
-          <p class="requeue-note">คำนี้ถูกส่งเข้าคิว <b>โหมดฝึก</b> แล้ว — และจะเป็นด่านแรกของรอบถัดไป</p>
+        <div class="missed-card">
+          <div class="missed-label">คำที่พลาด</div>
+          <div id="dead-word" class="missed-word">—</div>
+          <div id="dead-meaning" class="missed-meaning">—</div>
+          <div id="dead-chose" class="missed-chose"></div>
         </div>
 
-        <div class="dead-col dead-col-result">
-          <!-- สถิติ 5 ตัวเดิมครบ แต่แบ่งเป็นสองชั้นตามคำถามที่ผู้เล่นถามจริง
-               ชั้นบน = "รอบนี้ได้เท่าไร / ดีที่สุดเท่าไร" (คะแนน + สูงสุด อยู่คู่กันเพราะเทียบกันเสมอ)
-               ชั้นล่าง = รายละเอียดของรอบ 3 ช่อง — เดิมทั้ง 5 ตัวขนาดเท่ากันหมด
-               ตาเลยต้องไล่อ่านป้ายทีละอันกว่าจะเจอคะแนน ทั้งที่มันคือตัวเดียวที่คนอยากรู้ทันที -->
-          <div class="dead-headline">
-            <span class="dead-score-label">คะแนนรอบนี้</span>
-            <div id="dead-score" class="dead-score hud-num">0</div>
-            <div class="dead-best"><span class="stat-label">สูงสุด</span><strong id="dead-best" class="hud-num">0</strong></div>
-          </div>
+        <p class="requeue-note">คำนี้ถูกส่งเข้าคิว <b>โหมดฝึก</b> แล้ว — และจะเป็นด่านแรกของรอบถัดไป</p>
 
-          <!-- ไอคอนที่นี่ aria-hidden ต่างจากชิปใน HUD ตอนวิ่งที่ต้องมี aria-label
-               เพราะกล่องพวกนี้มีป้ายข้อความกำกับอยู่แล้ว ถ้าใส่ aria-label ซ้ำ
-               โปรแกรมอ่านหน้าจอจะอ่านชื่อสถิติสองรอบติดกัน -->
-          <div class="dead-scores">
-            <div class="dead-stat dist">
-              <span class="dead-stat-icon" aria-hidden="true">🏃</span>
-              <strong id="dead-dist" class="hud-num">0 ม.</strong>
-              <span class="stat-label">ระยะทาง</span>
-            </div>
-            <div class="dead-stat coins">
-              <span class="dead-stat-icon" aria-hidden="true">🪙</span>
-              <strong id="dead-coins" class="hud-num">0</strong>
-              <span class="stat-label">เหรียญ</span>
-            </div>
-            <div class="dead-stat gates">
-              <span class="dead-stat-icon" aria-hidden="true">🚪</span>
-              <strong id="dead-gates" class="hud-num">0</strong>
-              <span class="stat-label">ด่านผ่าน</span>
-            </div>
-          </div>
-
-          <button id="btn-retry" class="btn btn-primary">เล่นอีกครั้ง</button>
-          <!-- ปุ่มรองสองตัวมีกล่องครอบไว้เฉย ๆ ตอนจอแนวตั้ง (div ธรรมดา = ปุ่มยังซ้อนกันเต็มความกว้างเหมือนเดิม)
-               พอจอเตี้ยค่อยกลายเป็นแถวเดียวกัน — ได้ความสูงคืนมาทั้งแถว (~55px)
-               ซึ่งคุ้มกว่าไปบีบช่องไฟทีละ 2-3px หลายจุดจนอ่านอึดอัด
-               เป็นกติกาเดียวกับเมนู: 1 ปุ่มใหญ่ + 2 รอง (ดู .row ใน style.css) -->
-          <div class="dead-actions">
-            <button id="btn-dead-practice" class="btn">📖 ไปซ้อมคำที่พลาด</button>
-            <button id="btn-to-menu" class="btn">กลับเมนู</button>
-          </div>
+        <div class="dead-scores">
+          <div><span class="stat-label">คะแนน</span><strong id="dead-score">0</strong></div>
+          <div><span class="stat-label">ระยะทาง</span><strong id="dead-dist">0 ม.</strong></div>
+          <div><span class="stat-label">ด่านผ่าน</span><strong id="dead-gates">0</strong></div>
+          <div><span class="stat-label">เหรียญ</span><strong id="dead-coins">0</strong></div>
+          <div><span class="stat-label">สูงสุด</span><strong id="dead-best">0</strong></div>
         </div>
+
+        <button id="btn-retry" class="btn btn-primary">เล่นอีกครั้ง</button>
+        <button id="btn-dead-practice" class="btn">📖 ไปซ้อมคำที่พลาด</button>
+        <button id="btn-to-menu" class="btn">กลับเมนู</button>
       </div>
     </section>
 
@@ -315,93 +301,6 @@
         <p class="hint">เก็บเหรียญจากการวิ่งทุกโหมด — จบรอบแล้วเหรียญเข้ากระเป๋าอัตโนมัติ<br>
         ตัวละครทุกตัวเก่งเท่ากัน ต่างแค่ความเท่และอาวุธประจำตัว</p>
         <button id="btn-shop-close" class="btn btn-primary">กลับเมนู</button>
-      </div>
-    </section>
-
-    <!-- ══ ตั้งค่า & ชุดคำศัพท์ ══
-         เดิมเป็น <details> ที่กางอยู่ "ในแผงเมนู" ซึ่งบนมือถือแปลว่า:
-         พอกางแล้วแผงเมนูยืดยาวขึ้นเท่าตัว ปุ่ม "เริ่มเล่น" ถูกดันหนีขึ้นไปนอกจอ
-         และทางปิดอยู่ที่หัวกล่องซึ่งตอนนั้นก็เลื่อนพ้นจอไปแล้วเหมือนกัน
-         ยกออกมาเป็นหน้าเต็มจอตามแบบเดียวกับร้านค้า/สถิติ (section.screen + ปุ่มปิดของตัวเอง)
-         → แผงเมนูกลับไปสั้นเท่าเดิม "เสมอ" ไม่ว่าตั้งค่าจะเปิดอยู่หรือไม่
-
-         ⚠️ คอนโทรลทุกตัวข้างในคือของเดิมทั้งหมดและใช้ id เดิมทุกตัว — ห้ามตัดทิ้งแม้แต่ตัวเดียว
-         ม็อกอัปโชว์แค่ 4 ก้อนเพราะมันไม่รู้จักฟีเจอร์ที่เหลือ การตัดตามม็อกอัป
-         จึงไม่ใช่ "ทำให้เรียบง่าย" แต่คือการถอดฟีเจอร์ทิ้ง งานนี้เปลี่ยนแค่เปลือก
-         ส่วนตัวคอนโทรลกับ event listener ใน src/ui.js ยังเป็นชุดเดิมเป๊ะ -->
-    <section id="screen-settings" class="screen hidden">
-      <div class="panel panel-wide panel-settings">
-        <!-- หัวแถบ *ไม่* sticky โดยตั้งใจ (เหตุผลอยู่ใน style.css ตรงกฎ .settings-head)
-             จึงมีทางออกสองทางแทน: ✕ บนสุด กับปุ่ม "กลับเมนู" ล่างสุด
-             ข้อแลกเปลี่ยนที่รู้ตัว: บนมือถือแนวนอนหน้านี้ยาวราว 2.3 เท่าของจอ
-             คนที่เลื่อนอยู่กลางหน้าจะไม่เห็นทางออกทั้งสองทาง ต้องเลื่อนสุดทางใดทางหนึ่งก่อน -->
-        <div class="settings-head">
-          <h2>⚙️ ตั้งค่า &amp; ชุดคำศัพท์</h2>
-          <button id="btn-settings-close" class="settings-x" type="button" aria-label="ปิดหน้าตั้งค่า">✕</button>
-        </div>
-
-        <div class="set-card">
-          <!-- aria-labelledby ไม่ใช่ของประดับ: <div> ที่เป็นแค่พี่น้องกับ <select> ไม่ผูกชื่อ
-               ให้เองเหมือน <label> ที่ครอบอยู่ (ซึ่งเป็นทรงที่ธีม/ความเร็วยังใช้อยู่)
-               ถ้าไม่มีบรรทัดนี้ screen reader จะอ่านได้แค่ชื่อชุดที่เลือกอยู่ ไม่รู้ว่าช่องนี้คุมอะไร -->
-          <div class="set-title" id="deck-select-label">ชุดคำศัพท์</div>
-          <select id="deck-select" aria-labelledby="deck-select-label"></select>
-          <!-- ตำแหน่งในคลัง ("ชุดที่ 3 จาก 12") — ui.js นับจาก <option> จริงเสมอ
-               ห้ามฝังจำนวนไว้ที่นี่ ไม่งั้นวันที่เพิ่มชุดใหม่ตัวเลขจะโกหกโดยไม่มีอะไรพัง -->
-          <p id="deck-count" class="set-sub"></p>
-          <p id="deck-info" class="deck-info">กำลังโหลด…</p>
-        </div>
-
-        <div class="set-card">
-          <div class="set-title">โลกและความเร็ว</div>
-          <label class="field">
-            <span>ธีมของโลก</span>
-            <select id="theme-select"></select>
-          </label>
-          <label class="field">
-            <span>ความเร็ว</span>
-            <select id="speed-select">
-              <option value="ramp">เริ่มช้า แล้วค่อย ๆ เร็วขึ้น</option>
-              <option value="fast">เร็วตั้งแต่ต้น</option>
-              <option value="calm">ช้าตลอด (สำหรับเด็ก)</option>
-            </select>
-          </label>
-        </div>
-
-        <div class="set-card">
-          <div class="set-title">ประเภทโจทย์</div>
-          <div class="toggles">
-            <label class="toggle"><input type="checkbox" id="qmode-text" checked> <span>🔤 ตัวอักษร</span></label>
-            <label class="toggle"><input type="checkbox" id="qmode-image" checked> <span>🖼️ รูปภาพ</span></label>
-            <label class="toggle"><input type="checkbox" id="qmode-audio" checked> <span>🔊 เสียง</span></label>
-          </div>
-          <p id="qmode-note" class="deck-info"></p>
-        </div>
-
-        <!-- โหมดเด็กแยกเป็นก้อนของตัวเอง ไม่ยุบรวมกับ "ระดับผู้เล่น" แบบในม็อกอัป
-             เพราะมันเปลี่ยนความยากของเกมจริง (คำสั้นลง วิ่งช้าลง บังคับโจทย์รูป/เสียง)
-             ไม่ใช่ป้ายระดับเฉย ๆ — ยุบรวมเมื่อไหร่ผู้เล่นจะเปลี่ยนกติกาเกมโดยไม่รู้ตัว -->
-        <div class="set-card">
-          <div class="set-title">ระดับผู้เล่น</div>
-          <div class="toggles">
-            <label class="toggle"><input type="checkbox" id="toggle-kids"> <span>👶 โหมดเด็ก (Phonics)</span></label>
-          </div>
-          <p id="kids-note" class="deck-info">คำสั้นระดับต้น · วิ่งช้า · โจทย์รูปกับเสียงเท่านั้น</p>
-        </div>
-
-        <div class="set-card">
-          <div class="set-title">เสียง</div>
-          <div class="toggles">
-            <label class="toggle"><input type="checkbox" id="toggle-sfx" checked> <span>เสียงประกอบ</span></label>
-            <label class="toggle"><input type="checkbox" id="toggle-speech" checked> <span>อ่านออกเสียงคำ</span></label>
-          </div>
-          <!-- ปุ่มตรวจเครื่องอ่านออกเสียงของเบราว์เซอร์ — โหมดฟังพึ่งพาสิ่งนี้ทั้งหมด
-               และมันพังเงียบ ๆ ได้หลายทาง จึงต้องมีวิธีตรวจที่ให้คำตอบชัด ๆ -->
-          <button id="btn-test-speech" class="btn btn-small">🔊 ทดสอบเสียงอ่าน</button>
-          <p id="speech-status" class="speech-status"></p>
-        </div>
-
-        <button id="btn-settings-back" class="btn btn-primary">กลับเมนู</button>
       </div>
     </section>
 

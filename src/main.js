@@ -190,13 +190,6 @@ const ui = createUI({
     ui.show('stats');
     state = 'stats';
   },
-  /* หน้าตั้งค่าต้องมี state ของตัวเองเหมือนหน้าสถิติ ไม่ใช่แค่สลับ DOM
-     ไม่งั้น input handler ข้างล่างยังเห็น state === 'menu' แล้ว Space/Enter
-     ที่ผู้ใช้กดเพื่อเปิด <select> จะสั่ง startRun() ทิ้งหน้าตั้งค่าไปเลย */
-  onOpenSettings: () => {
-    ui.show('settings');
-    state = 'settings';
-  },
   onStatsChanged: () => {
     ui.renderStats(deck);
     ui.setDeckInfo(deck);
@@ -289,11 +282,6 @@ createInput(canvas, (action) => {
       break;
     case 'stats':
       if (action === ACTIONS.BACK || action === ACTIONS.CONFIRM) toMenu();
-      break;
-    /* ต่างจาก 'stats' ตรงที่ไม่รับ CONFIRM — หน้านี้เต็มไปด้วยคอนโทรลที่ใช้ Space/Enter
-       เป็นท่าปกติของมันเอง (เปิด <select>, สลับสวิตช์) เอาไว้แค่ Esc = ออก */
-    case 'settings':
-      if (action === ACTIONS.BACK) toMenu();
       break;
     case 'teach':
     case 'practiceDone':

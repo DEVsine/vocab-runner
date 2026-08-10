@@ -175,15 +175,6 @@ const STYLE_LAYERS = {
     lane() { noise({ duration: 0.2, gain: 0.1, filterFrom: 320, filterTo: 140, type: 'bandpass', delay: 0.02 }); },
     jump() { tone({ freq: 70, endFreq: 45, duration: 0.3, type: 'sine', gain: 0.12 }); },
   },
-  skeleton: {
-    /* กระดูกกระทบกัน — เสียงสั้นมากและแห้ง ตรงข้ามกับลมหายใจยาวของลอร์ดมืด
-     * ใช้ noise ย่านสูงแบบ highpass สองจังหวะติดกัน = "แคร่ก-แคร่ก" ไม่ใช่เสียงเดียวยาว ๆ */
-    lane() {
-      noise({ duration: 0.05, gain: 0.2, filterFrom: 3200, filterTo: 5200, type: 'highpass', delay: 0.02 });
-      noise({ duration: 0.05, gain: 0.14, filterFrom: 2600, filterTo: 4400, type: 'highpass', delay: 0.08 });
-    },
-    jump() { noise({ duration: 0.12, gain: 0.16, filterFrom: 2200, filterTo: 5600, type: 'highpass' }); },
-  },
 };
 
 export const sfx = {
