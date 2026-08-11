@@ -18,7 +18,9 @@
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
   <link href="https://fonts.googleapis.com/css2?family=Kanit:wght@600;800&display=swap" rel="stylesheet">
 
-  <link rel="stylesheet" href="./style.css">
+  <!-- เปลี่ยน version เมื่อแก้ visual contract หลัก เพื่อไม่ให้ HTML ใหม่ประกอบกับ CSS เก่า
+       จาก cache ของ GitHub Pages แล้วดูเหมือนว่า deploy ไม่ขึ้น -->
+  <link rel="stylesheet" href="./style.css?v=plan1a-20260812">
 
   <!-- โจทย์ภาพดึงรูปจริงจาก Openverse — เปิดคอนเนกชันไว้ล่วงหน้าให้รูปมาไวขึ้น -->
   <link rel="preconnect" href="https://api.openverse.org" crossorigin>
@@ -603,6 +605,6 @@
        โหลดเป็นสคริปต์ธรรมดา (ไม่ใช่ module) เพื่อ expose window.Peer ให้ net.js ใช้
        ถ้าไฟล์นี้โหลดไม่ได้ เกมยังเล่นเดี่ยวได้ปกติ (net.js เช็ก window.Peer ก่อนเสมอ) -->
   <script src="./vendor/peerjs.min.js"></script>
-  <script type="module" src="./src/main.js"></script>
+  <script type="module" src="./src/main.js?v=plan1a-20260812"></script>
 </body>
 </html>

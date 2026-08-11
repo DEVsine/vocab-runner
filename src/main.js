@@ -23,7 +23,9 @@ import { createTrainPool, TRAIN } from './trains.js';
 import { createPickupPool, PICKUP } from './pickups.js';
 import { planBonus } from './bonus.js';
 import { createBoosts, BOOST } from './boosts.js';
-import { createHUD } from './hud.js';
+// version ผูกกับ visual contract ใน index.html: main ใหม่ต้องไม่ประกอบกับ HUD module
+// เก่าจาก cache ไม่งั้น CSS เห็นตำแหน่งตัวคูณแต่ JS ยังซ่อน ×1 อยู่
+import { createHUD } from './hud.js?v=plan1a-20260812';
 import { createUI } from './ui.js';
 import { createInput, ACTIONS } from './input.js';
 import { createNet } from './net.js';
