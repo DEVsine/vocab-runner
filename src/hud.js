@@ -44,6 +44,7 @@ function makeBoostChip({ icon, label, color }) {
   // ใน index.html) เพราะ role=img ตัดลูกหลานทั้งกิ่งออกจาก accessibility tree
   // ถ้าไปใส่ที่กล่องนอก ตัวเลขเวลาที่เหลือจะไม่มีวันถูกอ่าน — เหลือแค่ชื่อไอเทมค้างอยู่
   node.innerHTML = `<span class="boost-icon" role="img" aria-label="${label}">${icon}</span>`
+    + `<span class="boost-label">${label}</span>`
     + '<span class="boost-time"></span>'
     + '<span class="boost-bar"><i></i></span>';
   node.querySelector('.boost-bar i').style.background = color;
@@ -355,12 +356,11 @@ export function createHUD(handlers = {}) {
     setScore(score, gates, combo) {
       el.score.textContent = score;
       el.gates.textContent = gates;
-      if (combo > 1) {
-        el.combo.classList.remove('hidden');
-        el.comboValue.textContent = combo;
-      } else {
-        el.combo.classList.add('hidden');
-      }
+      // Plan 1A วางตัวคูณเป็นข้อมูลหลักบนแถวบน แม้ยังเป็น ×1 ก็ต้องอยู่ตำแหน่งเดิม
+      // HUD จึงไม่กระโดดเข้า-ออกเมื่อเริ่มต่อคอมโบ และผู้เล่นเห็นความหมายของค่านี้
+      // ก่อนที่มันจะเพิ่มขึ้น แทนที่จะเจอเอฟเฟกต์ใหม่โผล่มาโดยไม่มีบริบท
+      el.combo.classList.remove('hidden');
+      el.comboValue.textContent = Math.max(1, combo);
     },
 
     setCoins(n) { el.coins.textContent = n; },

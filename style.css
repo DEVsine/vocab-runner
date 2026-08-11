@@ -1529,4 +1529,265 @@ td.en { font-weight: 700; }
 #lane-flags.guessable { pointer-events: auto; }
 #lane-flags.guessable .flag { cursor: pointer; }
 #lane-flags.guessable .flag:active { transform: translateY(2px) scale(.98); }
+
+/* ══════════════════════════════════════════════════════════════
+   Plan 1A — Subway Clean visual hierarchy
+
+   รอบแรกของ redesign เก็บโครง HUD แบบ EZL-70 ไว้เกือบทั้งหมด จึง "ลดปุ่ม"
+   ได้จริงแต่ภาพยังไม่ตรงแบบ: แถวบนมีข้อมูลหกค่า, สกิลอยู่บน และปุ่มแอ็กชัน
+   กองกลางล่าง แบบ 1A ใช้กติกาที่ชัดกว่านั้น:
+   เหรียญ / คะแนน / ตัวคูณ / ดาว อยู่บนเส้นเดียว, สกิลล่างซ้าย,
+   แอ็กชันล่างขวา และเมนูปล่อยให้ตัวละครบนฉากเป็นพระเอก
+
+   ใช้ CSS จัด hierarchy ใหม่โดยคง DOM ids และ event wiring เดิมทั้งหมดไว้
+   ระยะทาง/ด่าน/สถิติสูงสุดยังอัปเดตใน DOM และแสดงเต็มบนจบเกม แต่ไม่แย่ง
+   attention ระหว่างวิ่ง ซึ่งเป็นเวลาที่ผู้เล่นต้องตัดสินใจภายในไม่กี่วินาที */
+
+/* ── Gameplay: แถวข้อมูลหลักหนึ่งแถวตาม 1A ─────────────────── */
+#hud { --hud-prompt-top: 74px; }
+#hud-stats { display: block; }
+#hud-stats > .stats-row:first-child,
+#hud-stats > .stats-sub,
+#hud-collect { display: contents; }
+
+#hud-stats > .stats-row:first-child > .stat {
+  position: absolute;
+  top: calc(10px + var(--sa-top));
+}
+#hud-stats > .stats-row:first-child > .stat:first-child {
+  left: 50%;
+  transform: translateX(-50%);
+  align-items: center;
+}
+#hud-stats > .stats-row:first-child > .stat:first-child .stat-label {
+  font-size: 10px;
+  letter-spacing: .16em;
+  color: rgba(232, 242, 255, .72);
+}
+#hud-score {
+  font-size: 32px;
+  line-height: .95;
+  color: var(--ink);
+  -webkit-text-stroke-width: 5px;
+}
+
+/* ระยะทาง/ด่าน/สูงสุดยังอยู่ใน state และจบเกม แต่ 1A ไม่ให้มันรบกวนตอนวิ่ง */
+#hud-stats > .stats-row:first-child > .stat.dist,
+#hud-stats > .stats-row:first-child > .stat.gates,
+#hud-stats > .stats-row:first-child > .stat.dim { display: none; }
+
+#hud-combo {
+  position: absolute;
+  top: calc(27px + var(--sa-top));
+  left: calc(50% + 20px);
+  padding: 2px 8px;
+  border-color: rgba(163, 230, 53, .62);
+  background: rgba(6, 10, 24, .76);
+  box-shadow: 0 0 18px -6px rgba(163, 230, 53, .8);
+}
+
+#hud-collect .stat.coins,
+#hud-collect .stat.stars {
+  position: absolute;
+  top: calc(14px + var(--sa-top));
+  display: flex;
+  flex-direction: row;
+  align-items: center;
+  gap: 6px;
+  min-height: 36px;
+  padding: 5px 11px;
+  border-radius: 999px;
+  background: rgba(6, 10, 24, .76);
+  border: 1px solid rgba(255,255,255,.14);
+  backdrop-filter: blur(8px);
+}
+#hud-collect .stat.coins { left: calc(12px + var(--sa-left)); }
+#hud-collect .stat.stars { right: calc(60px + var(--sa-right)); }
+#hud-collect .chip-icon { font-size: 17px; }
+.stat.coins #hud-coins,
+.stat.stars #hud-stars { font-size: 17px; }
+
+#btn-hud-pause {
+  position: absolute;
+  top: calc(12px + var(--sa-top));
+  right: calc(12px + var(--sa-right));
+  width: 40px;
+  height: 40px;
+  margin: 0;
+  border-radius: 999px;
+}
+
+/* สกิลมีชื่อ+เวลาชัดเจนที่ล่างซ้ายตาม mockup ไม่ใช่ชิปไร้ชื่อบนแถวสถิติ */
+#hud-boosts {
+  position: absolute;
+  left: calc(14px + var(--sa-left));
+  bottom: calc(16px + var(--sa-bottom));
+  z-index: 2;
+  display: flex;
+  flex-direction: column;
+  align-items: flex-start;
+  gap: 7px;
+  max-width: min(56vw, 260px);
+  margin: 0;
+}
+.boost-chip {
+  min-width: 148px;
+  padding: 8px 12px 10px;
+  gap: 7px;
+  border-radius: 13px;
+  background: rgba(6, 10, 24, .86);
+  backdrop-filter: blur(8px);
+}
+.boost-icon { font-size: 18px; }
+.boost-label {
+  min-width: 0;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+  font-size: 11px;
+  font-weight: 700;
+  color: var(--dim);
+}
+.boost-time { margin-left: auto; font-size: 12px; }
+.boost-bar { height: 4px; }
+
+/* แอ็กชันเป็นไอคอนวงกลมล่างขวา — ชื่อยังอยู่ใน accessibility tree */
+#hud-actions {
+  left: auto;
+  right: calc(14px + var(--sa-right));
+  bottom: calc(16px + var(--sa-bottom));
+  transform: none;
+  flex-direction: row-reverse;
+  gap: 8px;
+}
+.act {
+  min-width: 56px;
+  width: 56px;
+  min-height: 56px;
+  height: 56px;
+  padding: 0;
+  border-radius: 999px;
+  background: rgba(6, 10, 24, .86);
+  box-shadow: 0 8px 24px rgba(0,0,0,.28);
+}
+.act-icon { font-size: 24px; }
+.act-text {
+  position: absolute;
+  width: 1px;
+  height: 1px;
+  padding: 0;
+  margin: -1px;
+  overflow: hidden;
+  clip: rect(0, 0, 0, 0);
+  white-space: nowrap;
+  border: 0;
+}
+.jets {
+  position: absolute;
+  right: calc(18px + var(--sa-right));
+  bottom: calc(80px + var(--sa-bottom));
+}
+
+#hud-practice {
+  position: absolute;
+  top: calc(18px + var(--sa-top));
+  left: calc(12px + var(--sa-left));
+  padding: 7px 10px;
+  border-radius: 999px;
+  background: rgba(6,10,24,.76);
+  border: 1px solid rgba(255,255,255,.14);
+}
+
+/* ── Menu: เอากล่องใหญ่ที่บังฉากออก ให้ตัวละครเป็น visual hero ─ */
+#screen-menu {
+  overflow: hidden;
+  background: linear-gradient(180deg,
+    rgba(3,5,14,.12) 0%, rgba(3,5,14,.05) 32%,
+    rgba(3,5,14,.58) 61%, rgba(3,5,14,.96) 100%);
+  backdrop-filter: none;
+}
+#screen-menu .panel {
+  width: min(440px, 100%);
+  min-height: 100%;
+  display: flex;
+  flex-direction: column;
+  padding: 0 4px;
+  margin: 0 auto;
+  background: transparent;
+  border: 0;
+  border-radius: 0;
+  box-shadow: none;
+}
+#screen-menu #menu-char-row { margin: 0; }
+#screen-menu .title {
+  margin-top: auto;
+  font-size: clamp(38px, 12vw, 54px);
+  letter-spacing: -.025em;
+  text-shadow: 0 5px 0 rgba(0,0,0,.38);
+}
+#screen-menu .subtitle {
+  margin: 5px 0 12px;
+  color: rgba(232,242,255,.72);
+}
+#screen-menu .btn-hero {
+  min-height: 62px;
+  border-radius: 16px;
+  border-color: rgba(34,211,238,.9);
+  background: linear-gradient(180deg, #67e8f9, #22d3ee);
+  color: #06111d;
+  box-shadow: 0 10px 28px -10px rgba(34,211,238,.95), inset 0 1px rgba(255,255,255,.55);
+}
+#screen-menu .row .btn { background: rgba(6,10,24,.78); backdrop-filter: blur(8px); }
+#screen-menu .hint { display: none; }
+#screen-menu #menu-nav {
+  margin-top: 12px;
+  padding-top: 10px;
+  padding-bottom: 2px;
+}
+#screen-menu .nav-item {
+  background: rgba(6,10,24,.72);
+  backdrop-filter: blur(8px);
+}
+
+@media (min-width: 620px) {
+  #hud-score { font-size: 38px; }
+  #hud-combo { top: calc(32px + var(--sa-top)); left: calc(50% + 32px); }
+  #hud-prompt { top: calc(82px + var(--sa-top)); }
+  .act { width: 62px; height: 62px; min-width: 62px; min-height: 62px; }
+  .act-icon { font-size: 27px; }
+}
+
+@media (max-height: 480px) {
+  #hud { --hud-prompt-top: 26px; }
+  #hud-score { font-size: 25px; }
+  #hud-combo { top: calc(21px + var(--sa-top)); left: calc(50% + 26px); }
+  #hud-collect .stat.coins,
+  #hud-collect .stat.stars { top: calc(8px + var(--sa-top)); min-height: 30px; padding: 3px 8px; }
+  #btn-hud-pause { top: calc(7px + var(--sa-top)); width: 32px; height: 32px; }
+  #hud-collect .stat.stars { right: calc(52px + var(--sa-right)); }
+  #hud-boosts { bottom: calc(10px + var(--sa-bottom)); }
+  .boost-chip { min-width: 132px; padding: 6px 9px 8px; }
+  #hud-actions { bottom: calc(10px + var(--sa-bottom)); }
+  .act { min-width: 48px; width: 48px; min-height: 48px; height: 48px; }
+  /* prompt ของโจทย์เสียง/รูปสูงกว่าข้อความหนึ่งบรรทัด ธงต้องเริ่มใต้กล่องจริง
+     ไม่ใช่อิงตำแหน่งเดิม 34% ซึ่งทำให้ธงทับครึ่งล่างของ prompt ที่ 740×380 */
+  #lane-flags { top: 44%; }
+
+  #screen-menu .panel { min-height: 0; }
+  #screen-menu #menu-char-row,
+  #screen-menu .subtitle { display: none; }
+  #screen-menu .title { margin-top: 0; font-size: clamp(28px, 8vh, 38px); }
+  #screen-menu #menu-nav { margin-top: 8px; padding-top: 7px; }
+}
+
+@media (min-width: 920px) {
+  #screen-menu { justify-content: flex-start; }
+  #screen-menu .panel {
+    width: 410px;
+    min-height: 100%;
+    margin: 0 0 0 5vw;
+    padding-block: 18px;
+  }
+  #screen-menu .title { margin-top: auto; }
+}
 #spectate-banner { display: flex; align-items: center; gap: 10px; flex-wrap: wrap; justify-content: center; max-width: 94vw; }
