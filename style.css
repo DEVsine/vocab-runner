@@ -631,7 +631,12 @@ select {
   font-size: 11px; font-weight: 900; line-height: 1.5;
 }
 
-.speech-status { min-height: 17px; margin: 7px 0 4px; font-size: 12px; line-height: 1.5; color: var(--dim); }
+/* white-space: pre-line — บรรทัดที่สองคือรายงานสถานะเครื่องอ่าน (ดู voiceReport ใน audio.js)
+   ต้องขึ้นบรรทัดใหม่จริง ไม่งั้นจะไหลต่อท้ายจนอ่านไม่ออกว่าอันไหนคือคำอธิบาย อันไหนคือข้อมูลดิบ */
+.speech-status {
+  min-height: 17px; margin: 7px 0 4px; font-size: 12px; line-height: 1.5;
+  color: var(--dim); white-space: pre-line;
+}
 .speech-status.ok { color: var(--lime); }
 .speech-status.fail { color: var(--danger); }
 
@@ -826,6 +831,25 @@ select {
 }
 .requeue-note { margin: 10px 0 14px; font-size: 12px; color: var(--dim); line-height: 1.6; }
 .requeue-note b { color: var(--cyan); }
+
+/* ── จอตาย: ระหว่างอ่านเฉลย ──────────────────────────────────
+   ปุ่มถูก disabled ไว้จนเสียงอ่านจบ (ดู setDeathNarrating ใน ui.js)
+   ⚠️ หน้าตาต้องสื่อว่า "กำลังทำงานอยู่" ไม่ใช่ "พัง" — จึงหรี่ลงพร้อมชีพจรเบา ๆ
+   ถ้าหรี่เฉย ๆ นิ่ง ๆ เด็กจะสรุปว่าเกมค้างแล้วไปกดปุ่มอื่นหนี */
+#btn-retry:disabled { cursor: default; }
+#btn-retry.is-narrating {
+  opacity: 0.62;
+  animation: narrating-pulse 1.5s ease-in-out infinite;
+}
+@keyframes narrating-pulse {
+  50% { opacity: 0.92; }
+}
+.dead-narrating { margin: 8px 0 0; font-size: 12px; color: var(--cyan); line-height: 1.6; }
+
+/* ผู้ที่ตั้งค่าระบบว่า "ลดการเคลื่อนไหว" ต้องไม่เจอชีพจร — แต่ยังต้องเห็นว่าปุ่มหรี่อยู่ */
+@media (prefers-reduced-motion: reduce) {
+  #btn-retry.is-narrating { animation: none; }
+}
 
 /* ── จอตาย: หัวเรื่องคะแนน ────────────────────────────────────
    เดิมสถิติ 5 ตัวเรียงเท่ากันหมดในแถวเดียว = ไม่มีตัวไหนเด่น

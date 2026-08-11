@@ -322,6 +322,25 @@ export function createUI(handlers) {
     handlers.onAudioPrefs(toggleSfx.checked, toggleSpeech.checked);
   });
 
+  /* ── โหมดเสียงโค้ช ────────────────────────────────────────
+   * ตัวเลือกถูกสร้างจาก CFG.voice.modes ไม่ใช่เขียน <option> ตายไว้ใน HTML
+   * เพราะป้ายกับพรีเซ็ตต้องมาจากที่เดียวกัน — ไม่งั้นวันที่เพิ่มโหมดที่ 4
+   * จะมีคนเพิ่มใน config แล้วลืมเพิ่มใน HTML แล้วโหมดนั้นจะไม่มีทางถูกเลือกเลย */
+  const voiceSelect = $('voice-mode');
+  for (const [id, mode] of Object.entries(CFG.voice.modes)) {
+    const opt = document.createElement('option');
+    opt.value = id;
+    opt.textContent = mode.label;
+    voiceSelect.appendChild(opt);
+  }
+  voiceSelect.value = CFG.voice.modes[prefs.voiceMode] ? prefs.voiceMode : CFG.voice.defaultMode;
+
+  voiceSelect.addEventListener('change', () => {
+    prefs.voiceMode = voiceSelect.value;
+    savePrefs(prefs);
+    handlers.onVoiceModeChange(voiceSelect.value);
+  });
+
   /* ── ความเร็ว / ประเภทโจทย์ / โหมดเด็ก ─────────────────── */
 
   const speedSelect = $('speed-select');
@@ -534,6 +553,7 @@ export function createUI(handlers) {
       $('dead-chose').textContent = DEATH_NOTE[info.cause] || '';
     }
     if (subject && w.q) $('dead-chose').textContent += `\nโจทย์: ${w.q}`;
+    setDeathNarrating(false);   // จอใหม่ต้องเริ่มจากสถานะปกติเสมอ ก่อน main.js สั่งอ่าน
     document.querySelector('.dead-tag').textContent = DEATH_TAG[info.cause] || DEATH_TAG.lane;
     $('dead-score').textContent = info.score;
     $('dead-dist').textContent = formatDistance(info.distance ?? 0);
@@ -541,6 +561,24 @@ export function createUI(handlers) {
     $('dead-coins').textContent = info.coins ?? 0;
     $('dead-best').textContent = info.best;
     show('dead');
+  }
+
+  /**
+   * "กำลังอ่านเฉลยอยู่" — ล็อกเฉพาะปุ่มเล่นต่อ
+   *
+   * ⚠️ ห้ามใช้ .hidden หรือ pointer-events กับปุ่มนี้ ต้องใช้ disabled จริง ๆ
+   * เพราะ disabled คือสิ่งเดียวที่ทั้งเมาส์ นิ้ว คีย์บอร์ด และโปรแกรมอ่านหน้าจอ
+   * เข้าใจตรงกันว่า "ยังกดไม่ได้" — ซ่อนปุ่มทิ้งจะทำให้เลย์เอาต์กระตุกด้วย
+   *
+   * ปุ่มรองไม่ถูกแตะเลยโดยตั้งใจ: ทางออกจากจอนี้ต้องเปิดตลอดเวลา
+   */
+  function setDeathNarrating(on) {
+    const btn = $('btn-retry');
+    btn.disabled = on;
+    btn.classList.toggle('is-narrating', on);
+    btn.textContent = on ? '🔊 กำลังอ่านเฉลย…' : 'เล่นอีกครั้ง';
+    // ป้ายบอกเหตุผลใต้ปุ่ม — ปุ่มที่กดไม่ได้โดยไม่บอกว่าทำไม คือปุ่มที่ดูเหมือนเกมค้าง
+    $('dead-narrating').classList.toggle('hidden', !on);
   }
 
   /* ── หน้าสถิติ ─────────────────────────────────────────── */
@@ -617,6 +655,7 @@ export function createUI(handlers) {
     fillDeckList,
     setDeckInfo,
     showDeath,
+    setDeathNarrating,
     renderStats,
 
     /** @param {'pending'|'ok'|'fail'} kind */
@@ -626,8 +665,19 @@ export function createUI(handlers) {
       node.className = `speech-status ${kind}`;
     },
 
+    /** ผลของการฟังตัวอย่างโหมดเสียง — ใช้สไตล์เดียวกับแถบทดสอบเสียงด้านล่าง */
+    setVoiceNote(message, kind = 'pending') {
+      const node = $('voice-note');
+      node.textContent = message;
+      node.className = `speech-status ${kind}`;
+    },
+
     selectedDeckFile: () => deckSelect.value,
-    audioPrefs: () => ({ sfx: toggleSfx.checked, speech: toggleSpeech.checked }),
+    audioPrefs: () => ({
+      sfx: toggleSfx.checked,
+      speech: toggleSpeech.checked,
+      voiceMode: voiceSelect.value,
+    }),
 
     kidsMode: () => toggleKids.checked,
     // โหมดเด็กชนะเสมอ — ค่าที่ผู้ใช้ตั้งเองยังอยู่ในที่เก็บ แค่ไม่ถูกใช้ระหว่างเปิดโหมดเด็ก

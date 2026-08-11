@@ -14,7 +14,7 @@
  * ความรู้สึกตอนไล่เก็บจึงเหมือนเดิมตลอดเกม ไม่ว่าจะวิ่งเร็วแค่ไหน
  */
 
-import { CFG, answerWindowFor, obstacleRuleFor, replayDecision } from './config.js';
+import { CFG, answerWindowFor, obstacleRuleFor, replayDecision, narrationCapMs } from './config.js';
 import { createScene } from './scene.js';
 import { createPlayer } from './player.js';
 import { createGatePool } from './gates.js';
@@ -42,6 +42,7 @@ import * as srs from './srs.js';
 import {
   unlockAudio, sfx, speak, stopSpeaking, setSfxEnabled, setSpeechEnabled,
   setSfxStyle, isSpeechUsable, hasThaiVoice, isSpeaking, startAmbience, updateAmbience, stopAmbience,
+  setVoiceMode, coachLine, tauntLine, sampleLineEn, voiceReport,
 } from './audio.js';
 
 /* ══ ตัวช่วยสำหรับ deck สองชนิด ═══════════════════════════════
@@ -74,6 +75,62 @@ function speakAnswer(question, opts = {}) {
   if (!word) return;
   if (word.subject) speak(question.options?.[question.correctIndex]?.en, { ...opts, lang: 'th' });
   else speak(word.en, opts);
+}
+
+/**
+ * บทอ่านเฉลยบน "จอตาย" — ที่เดียวที่มีเวลาให้ฟังจนจบจริง ๆ
+ *
+ * ⚠️ ต่างจาก speakAnswer() ระหว่างวิ่งโดยตั้งใจ: ตอนวิ่งอ่านได้แค่ตัวคำตอบสั้น ๆ
+ * เพราะโจทย์ข้อถัดไปกำลังจะมาทับ แต่ตอนตายไม่มีอะไรมาทับ — จึงเป็นจังหวะเดียว
+ * ที่ "ใบความรู้" (fact) ของ deck วิชาถูกอ่านออกเสียงได้ครบ ซึ่งคือเนื้อหาที่
+ * ต้องจำไปตอบ ไม่ใช่ตัวเลือกที่ถูก
+ *
+ * คืนเป็น "หลายท่อน" เพราะเฉลยของ deck ศัพท์มีสองภาษาในเรื่องเดียว
+ * (คำว่า apple ต้องใช้เสียงอังกฤษ · คำแปล "แอปเปิล" ต้องใช้เสียงไทย)
+ * ยัดรวมเป็น utterance เดียวไม่ได้ เพราะหนึ่ง utterance มี lang/voice ได้ค่าเดียว
+ *
+ * @returns {{text:string, lang:'en'|'th', rate?:number}[]}
+ */
+function deathNarration(word, nth = 0) {
+  if (!word) return [];
+  const lead = coachLine(nth);
+  const th = (text, rate) => ({ text, lang: 'th', rate });
+
+  if (word.subject) {
+    const right = word.choices?.[word.answer] ?? '';
+    const rate = CFG.question.subject.speechRate;
+    return [
+      th(`${lead} คำตอบที่ถูกคือ ${right}`, rate),
+      ...(word.fact ? [th(word.fact, rate)] : []),
+    ].filter(p => p.text);
+  }
+
+  return [
+    th(`${lead} คำที่พลาดคือ`),
+    { text: word.en, lang: 'en', rate: 0.85 },
+    ...(word.th ? [th(`แปลว่า ${word.th}`)] : []),
+  ];
+}
+
+/**
+ * อ่านหลายท่อนต่อกันตามลำดับ — ท่อนถัดไปเริ่มเมื่อท่อนก่อนหน้า "จบเรื่อง" แล้ว
+ *
+ * ⚠️ ต้องเกาะ onDone ของ speak() ไม่ใช่ onend ของ utterance หรือ setTimeout เดา ๆ
+ * เพราะเส้นทางที่พูดไม่ได้เลย (ปิดสวิตช์ / ไม่มีเสียงไทย / แท็บถูกซ่อน) ไม่มี
+ * utterance เกิดขึ้นให้รอ — ถ้ารอ onend ลูกโซ่จะหยุดค้างที่ท่อนแรกตลอดกาล
+ * และ setTimeout เดาความยาวจะตัดเสียงกลางประโยคทันทีที่เครื่องอ่านช้ากว่าที่เดา
+ *
+ * @param alive ตัวบอกว่า "ลูกโซ่นี้ยังเป็นของปัจจุบันอยู่ไหม" — ตายรอบใหม่ทับได้
+ */
+function speakSequence(parts, alive, onDone) {
+  let i = 0;
+  const next = () => {
+    if (!alive()) return;
+    const part = parts[i++];
+    if (!part) { onDone?.(); return; }
+    speak(part.text, { lang: part.lang, rate: part.rate, onDone: next });
+  };
+  next();
 }
 
 /** ข้อความเฉลยสั้น ๆ สำหรับ toast ระหว่างวิ่ง */
@@ -213,6 +270,11 @@ const ui = createUI({
     setSfxEnabled(sfxOn);
     setSpeechEnabled(speechOn);
   },
+  onVoiceModeChange: (id) => {
+    unlockAudio();
+    setVoiceMode(id);
+    previewVoice();
+  },
   onTestSpeech: () => testSpeech(),
 });
 
@@ -222,6 +284,45 @@ const ui = createUI({
  * ถ้าไม่มีปุ่มนี้ ผู้เล่นจะแยกไม่ออกว่า "ลำโพงปิด" หรือ "เกมพัง"
  */
 let speechTestTimer = null;
+
+/**
+ * ฟังตัวอย่างโหมดเสียงทันทีที่สลับ — และที่สำคัญกว่านั้นคือ "รายงานว่าทำไมไม่ได้ยิน"
+ *
+ * ⚠️ เดิมตรงนี้เล่นแต่ประโยคไทย ซึ่งเป็นความผิดพลาดในการออกแบบการวินิจฉัย:
+ * ประโยคโค้ชทุกประโยคเป็นภาษาไทย · เฉลย deck วิชาก็ไทย · ตัวอย่างก็ไทย
+ * เครื่องที่ไม่มีเสียงอ่านภาษาไทยจึงเงียบ *ทุกทาง* พร้อมกัน แล้วผู้ใช้จะสรุปว่า
+ * "ฟีเจอร์พัง" ทั้งที่สาเหตุคือเครื่องไม่มีเสียงภาษานั้น — ต่างกันคนละเรื่อง
+ * และแก้คนละวิธี
+ *
+ * กติกาใหม่: ความเงียบต้องอธิบายตัวเองได้เสมอ
+ *   มีเสียงไทย  → ได้ยินประโยคจริงที่จะใช้ตอนตาย
+ *   ไม่มีเสียงไทย → ถอยไปเดโมด้วยประโยคอังกฤษ (ยังได้ยิน pitch/ความเร็วที่ต่างกัน)
+ *                   พร้อมบอกตรง ๆ ว่า deck วิชาเรียนจะไม่มีเสียง
+ *   พูดไม่ได้เลย  → บอกว่าให้ไปกดปุ่มทดสอบเพื่อดูรายละเอียด
+ */
+function previewVoice() {
+  ui.setVoiceNote('กำลังเล่นตัวอย่าง…', 'pending');
+
+  speak(coachLine(0), {
+    lang: 'th',
+    rate: CFG.question.subject.speechRate,
+    onStart: () => ui.setVoiceNote(
+      `✓ ได้ยินเสียงไทยแล้ว — deck วิชาเรียนจะมีเสียงอ่านโจทย์\n${voiceReport()}`, 'ok',
+    ),
+    onFail: () => {
+      speak(sampleLineEn(), {
+        rate: 0.95,
+        onStart: () => ui.setVoiceNote(
+          '⚠️ ได้ยินเฉพาะเสียงอังกฤษ — โหมดเสียงจะมีผลกับคำอังกฤษเท่านั้น '
+          + `และเฉลย/โจทย์ภาษาไทยจะเงียบ\n${voiceReport()}`, 'fail',
+        ),
+        onFail: () => ui.setVoiceNote(
+          `✗ ไม่ได้ยินอะไรเลยทั้งไทยและอังกฤษ\n${voiceReport()}`, 'fail',
+        ),
+      });
+    },
+  });
+}
 
 function testSpeech() {
   unlockAudio();
@@ -243,16 +344,22 @@ function testSpeech() {
     ui.setSpeechStatus('✗ ไม่ตอบสนอง — เกมจะข้ามโหมดฟังให้อัตโนมัติ', 'fail');
   }, 3000);
 
+  /* ⚠️ ต้องทดสอบ *สองภาษา* ไม่ใช่แค่อังกฤษ
+   * ของเดิมเช็กเสียงไทยด้วย hasThaiVoice() เฉย ๆ ซึ่งตอบได้แค่ "มีชื่อเสียงนี้ในเครื่อง"
+   * ไม่ได้ตอบว่า "อ่านออกมาจริงไหม" — และเสียงไทยคือเส้นทางที่พังบ่อยกว่ามาก
+   * (เย็นกว่า ยาวกว่า ติดตั้งไม่ครบบ่อยกว่า) การรายงานว่า "ใช้ได้" จากการมีชื่อ
+   * ทำให้คนตรวจสรุปว่าเกมพัง ทั้งที่ปัญหาคือเครื่องอ่านภาษาไทยไม่ออก
+   * → อ่านจริงทีละภาษา แล้วรายงานผลของภาษาที่สองด้วยเสียงที่ได้ยินจริง */
+  let englishOk = false;
+
   speak('opportunity', {
     rate: 0.9,
     onStart: () => {
       clearTimeout(speechTestTimer);
-      /* บอกเรื่องเสียงไทยตรงนี้ด้วย เพราะครูที่แจกเครื่องให้เด็กต้องรู้ *ก่อน* คาบเรียน
-       * ว่าเครื่องเครื่องนี้อ่านโจทย์วิชาได้ไหม — ถ้าไปรู้เอาตอนเด็กเล่นแล้ว
-       * มันสายเกินไปและแยกไม่ออกจาก "เกมพัง" */
+      englishOk = true;
       ui.setSpeechStatus(
         hasThaiVoice()
-          ? '✓ ใช้งานได้ ทั้งเสียงอังกฤษและเสียงไทย (วิชาเรียนจะมีเสียงอ่านโจทย์)'
+          ? '✓ เสียงอังกฤษใช้ได้ · กำลังทดสอบเสียงไทยต่อ…'
           : '✓ เสียงอังกฤษใช้ได้ · แต่เครื่องนี้ไม่มีเสียงไทย — deck วิชาเรียนจะเป็นตัวหนังสือเงียบ ๆ',
         'ok',
       );
@@ -260,6 +367,21 @@ function testSpeech() {
     onFail: () => {
       clearTimeout(speechTestTimer);
       ui.setSpeechStatus('✗ เบราว์เซอร์นี้อ่านออกเสียงไม่ได้ — เกมจะข้ามโหมดฟังให้อัตโนมัติ', 'fail');
+    },
+    // อ่านไทยต่อ "หลังอังกฤษจบ" เท่านั้น — ยิงพร้อมกันจะกลายเป็น cancel ทับกันเอง
+    // ซึ่งเป็นอาการเดียวกับบั๊กที่เพิ่งแก้ไป และจะทำให้ผลทดสอบโกหก
+    onDone: () => {
+      if (!englishOk || !hasThaiVoice()) return;
+      speak('ทดสอบเสียงอ่านภาษาไทย ครับ', {
+        lang: 'th',
+        rate: CFG.question.subject.speechRate,
+        onStart: () => ui.setSpeechStatus(
+          '✓ ใช้งานได้ ทั้งเสียงอังกฤษและเสียงไทย (วิชาเรียนจะมีเสียงอ่านโจทย์)', 'ok',
+        ),
+        onFail: () => ui.setSpeechStatus(
+          '✗ เสียงอังกฤษใช้ได้ แต่เสียงไทยอ่านไม่ออก — deck วิชาเรียนจะเป็นตัวหนังสือเงียบ ๆ', 'fail',
+        ),
+      });
     },
   });
 }
@@ -355,6 +477,7 @@ function applyTheme(id) {
 }
 
 function toMenu() {
+  stopDeathNarration();
   stopSpeaking();
   stopAmbience();
   state = 'menu';
@@ -419,6 +542,7 @@ function startRun() {
     leaveToMenu();
     return;
   }
+  stopDeathNarration();
   stopSpeaking();
   gates.reset();
   obstacles.reset();
@@ -537,6 +661,7 @@ function openPracticeTeach() {
   // เข้าห้องซ้อมได้จากจอตายในโหมดแข่งด้วย — ต้องถอนตัวออกจากห้องให้เรียบร้อยก่อน
   // ไม่งั้นเราจะยัง broadcast สถานะเข้าห้องอยู่ทั้งที่ไปนั่งเรียนคำศัพท์แล้ว
   exitMultiplayer();
+  stopDeathNarration();
   stopSpeaking();
   stopAmbience();
   hud.hide();
@@ -1243,6 +1368,11 @@ function toLobby() {
 
 /** ปุ่ม "เล่นอีกครั้ง": โหมดแข่ง=กลับห้อง, เล่นเดี่ยว=เริ่มรอบใหม่ทันที */
 function retry() {
+  /* ยังอ่านเฉลยไม่จบ = ยังไม่ให้ออกตัว (ปุ่มถูก disable อยู่แล้ว ตรงนี้กันทางคีย์บอร์ด/แตะจอ)
+   * ⚠️ ต้องผูกกับ state === 'dead' ด้วย ไม่ใช่เช็ก narrating เฉย ๆ
+   * เพราะปุ่ม "เริ่มเล่น" ในเมนูกับ "เล่นอีกครั้ง" บนจอตายเรียกฟังก์ชันเดียวกัน
+   * ถ้าธงค้างมาจากที่อื่น เมนูจะกดเริ่มเกมไม่ได้เลยโดยไม่มีอะไรอธิบาย */
+  if (narrating && state === 'dead') return;
   if (mpActive) toLobby();
   else startRun();
 }
@@ -1758,11 +1888,38 @@ function saveWithJet(gate) {
 
   player.boost();
   sfx.jetUse();
-  speakAnswer(q);
+  tauntThenAnswer(q);
 
   syncGear();
   hud.setScore(run.score, run.gates, run.combo);
   hud.toast(`${armorEmoji()} ${armorName()}ช่วยไว้! เฉลย: ${answerLine(q)}`, 2600);
+}
+
+/**
+ * ตอบผิดแต่เกราะรับไว้ → แซวด้วยเสียงโหมดที่ผู้เล่นเลือก แล้วต่อด้วยเฉลย
+ *
+ * ลำดับสำคัญ: แซวก่อน เฉลยทีหลัง
+ * เพราะถ้าโจทย์ข้อถัดไปมาตัดกลางคัน สิ่งที่ควรรอดคือ *คำแซว* ที่พูดจบไปแล้ว
+ * ไม่ใช่เฉลยที่ถูกตัดครึ่ง — และเฉลยยังอ่านซ้ำได้บนจอตายอยู่ดี
+ *
+ * ⚠️ ผูก alive กับ state === 'running' ไว้ ไม่งั้นถ้าผู้เล่นตายหรือกดพักระหว่างนี้
+ * ท่อนเฉลยจะยังโผล่มาพูดทับเสียงของจอถัดไป
+ */
+function tauntThenAnswer(question) {
+  const word = question?.word;
+  const parts = [{ text: tauntLine(run?.gates ?? 0), lang: 'th' }];
+
+  if (word?.subject) {
+    parts.push({
+      text: question.options?.[question.correctIndex]?.en,
+      lang: 'th',
+      rate: CFG.question.subject.speechRate,
+    });
+  } else if (word) {
+    parts.push({ text: word.en, lang: 'en' });
+  }
+
+  speakSequence(parts, () => state === 'running');
 }
 
 function die(cause, word, chosen) {
@@ -1796,6 +1953,8 @@ function die(cause, word, chosen) {
     gates: run.gates,
     coins: run.coins,
     best: srs.getBest(deck.id).score,
+    // เตรียมบทไว้ตรงนี้ แต่ยังไม่อ่าน — รอให้จอตายขึ้นก่อน (ดู startDeathNarration)
+    narration: deathNarration(word, run.gates),
   };
 
   // โหมดแข่ง: ส่งคะแนนสุดท้าย + สถานะ "ตายแล้ว" (ล็อกอันดับในตารางคะแนน)
@@ -1807,12 +1966,57 @@ function die(cause, word, chosen) {
     });
   }
 
-  // ให้เสียงระเบิดดังจบก่อน แล้วค่อยอ่านคำตอบที่ถูก (ไม่งั้นทับกันจนฟังไม่รู้เรื่อง)
-  if (word?.subject) {
-    setTimeout(() => speak(word.choices?.[word.answer], { lang: 'th' }), 430);
-  } else if (word) {
-    setTimeout(() => speak(word.en), 430);
-  }
+  /* ⚠️ ไม่อ่านเฉลยตรงนี้แล้ว (เดิมตั้ง setTimeout 430ms ไว้ตอนยังอยู่สถานะ 'dying')
+   * เหตุผล: จอตายขึ้นที่ ~600ms เสียงจึงเริ่มพูดตอนที่ยังไม่มีตัวหนังสือให้ดู
+   * เด็กได้ยินคำตอบลอย ๆ โดยไม่เห็นว่ามันคือคำตอบของอะไร = ได้ยินแต่ไม่ได้เรียน
+   * ย้ายไปเริ่มพร้อมจอตายแทน เพื่อให้ "เห็น + ได้ยิน" พร้อมกัน (dual coding) */
+}
+
+/* ══ อ่านเฉลยบนจอตาย แล้วค่อยปลดล็อกปุ่มเล่นต่อ ═══════════════
+ *
+ * ปัญหาที่แก้: เด็กที่เพิ่งตายจะกด "เล่นอีกครั้ง" ทันทีด้วยความเคยชิน
+ * เฉลย/ใบความรู้จึงถูกข้ามไปทุกครั้ง — ตายกี่รอบก็ไม่ได้เรียนอะไรเลย
+ * การหน่วงด้วยเวลาคงที่ (เช่น "รอ 3 วินาที") แก้ไม่ตรงจุด เพราะประโยคความรู้
+ * ของแต่ละข้อยาวไม่เท่ากัน — เส้นตายที่ถูกต้องคือ "เสียงอ่านจบ" ไม่ใช่ "ครบ n วินาที"
+ *
+ * ⚠️ ล็อกเฉพาะปุ่มหลัก ปุ่มรอง (กลับเมนู / ไปซ้อม) ต้องกดได้ตลอด
+ * ไม่งั้นจอนี้จะกลายเป็นกับดักที่ออกไปไหนไม่ได้เลย ซึ่งผิดกติกาข้อ 9
+ */
+let narrationToken = 0;
+let narrationGuard = null;
+let narrating = false;
+
+function stopDeathNarration() {
+  narrationToken += 1;          // ลูกโซ่เก่ากลายเป็น "ไม่ใช่ของปัจจุบัน" ทันที
+  clearTimeout(narrationGuard);
+  narrationGuard = null;
+  narrating = false;
+  ui.setDeathNarrating(false);
+}
+
+function startDeathNarration(parts) {
+  stopDeathNarration();
+  if (!parts?.length) return;
+
+  const token = ++narrationToken;
+  const alive = () => narrationToken === token;
+  const release = () => {
+    if (!alive()) return;
+    clearTimeout(narrationGuard);
+    narrationGuard = null;
+    narrating = false;
+    ui.setDeathNarrating(false);
+  };
+
+  narrating = true;
+  ui.setDeathNarrating(true);
+
+  /* กันเหนียว: ถ้าเครื่องยนต์ค้างจนไม่ยิง event อะไรกลับมาเลย ปุ่มต้องปลดล็อกอยู่ดี
+   * นับงบจากความยาวบททั้งหมด ไม่ใช่ค่าคงที่ — ใบความรู้ยาว 120 ตัวอักษร
+   * ใช้เวลาอ่านนานกว่าคำศัพท์คำเดียวหลายเท่า */
+  narrationGuard = setTimeout(release, narrationCapMs(parts.map(p => p.text).join(' ')));
+
+  speakSequence(parts, alive, release);
 }
 
 function resolveJokeGate(gate, lane) {
@@ -2238,6 +2442,7 @@ function update(dt) {
         state = 'dead';
         hud.hide();
         ui.showDeath(deathInfo);
+        startDeathNarration(deathInfo.narration);
       }
     }
     return;
@@ -2360,6 +2565,7 @@ async function boot() {
   const prefs = ui.audioPrefs();
   setSfxEnabled(prefs.sfx);
   setSpeechEnabled(prefs.speech);
+  setVoiceMode(prefs.voiceMode);
   setupNet();
   loadJokes();
 

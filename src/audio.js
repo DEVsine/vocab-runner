@@ -12,7 +12,7 @@
  *    เล่นไปสัก 20 ด่านเสียงจะตามหลังภาพอยู่ 10 คำ → ต้อง cancel() ก่อนทุกครั้ง
  */
 
-import { CFG } from './config.js';
+import { CFG, speechGraceMs, speechWatchdogDecision, voiceModeById } from './config.js';
 
 let ctx = null;
 let master = null;       // สำหรับ SFX
@@ -714,6 +714,7 @@ const PREFERRED_VOICES = ['Samantha', 'Alex', 'Ava', 'Allison', 'Karen', 'Daniel
 
 let speechHealthy = true;      // false เมื่อพิสูจน์แล้วว่าเครื่องยนต์พูดไม่ได้
 let speechWatchdog = null;
+let speechRun = 0;             // ลำดับของ speak() — ใช้ชี้ว่า watchdog ที่ตั้งอยู่เป็นของรอบไหน
 let thaiVoice = null;          // เสียงไทยสำหรับโจทย์ deck วิชา (อาจไม่มีในเครื่องนั้น)
 let voicesScanned = false;
 
@@ -793,11 +794,69 @@ function duckMusic(on) {
   musicBus.gain.setTargetAtTime(Math.max(0.0001, target), ctx.currentTime, 0.08);
 }
 
+/* ── โหมดเสียงโค้ช ─────────────────────────────────────────
+ * เก็บเป็น id ไม่ใช่ object เพื่อให้ค่าที่จูนใน config.js เป็นแหล่งความจริงเดียว
+ * (ถ้าเก็บ object ไว้ตรงนี้ การแก้ config ตอนรันไทม์จะไม่มีผล — และเราจะงงมาก) */
+let voiceModeId = CFG.voice.defaultMode;
+
+export function setVoiceMode(id) {
+  voiceModeId = CFG.voice.modes[id] ? id : CFG.voice.defaultMode;
+}
+
+/** หยิบประโยคของโหมดปัจจุบันแบบผลัดกัน — ไม่ให้ซ้ำจนกลายเป็นเสียงพื้นหลังที่สมองตัดทิ้ง */
+function pickLine(lines, nth) {
+  return lines[Math.abs(Math.trunc(nth)) % lines.length];
+}
+
+/** ประโยคขึ้นต้นตอนอ่านเฉลยบนจอตาย */
+export function coachLine(nth = 0) {
+  return pickLine(voiceModeById(voiceModeId).deathLines, nth);
+}
+
+/** ประโยคแซวตอนตอบผิดแล้วเกราะแตก (ระหว่างวิ่ง — ต้องสั้น) */
+export function tauntLine(nth = 0) {
+  return pickLine(voiceModeById(voiceModeId).taunts, nth);
+}
+
+/** ตัวอย่างภาษาอังกฤษของโหมดปัจจุบัน — ใช้ตอนเครื่องไม่มีเสียงไทย */
+export function sampleLineEn() {
+  return voiceModeById(voiceModeId).sampleEn;
+}
+
+/**
+ * สรุปสถานะเครื่องอ่านออกเสียงเป็นข้อความสั้น ๆ สำหรับโชว์บนหน้าจอ
+ *
+ * ทำไมต้องมี: อาการของ speechSynthesis คือ "เงียบ" ซึ่งเป็นอาการเดียวกัน
+ * ของสาเหตุที่ต่างกันสิ้นเชิงอย่างน้อย 5 อย่าง (ปิดสวิตช์ / ไม่มี voice ภาษานั้น /
+ * แท็บถูกซ่อน / เครื่องยนต์ค้าง / เบราว์เซอร์ไม่รองรับ) และไม่มีอันไหนโยน error เลย
+ * ผู้ใช้ที่เจอปัญหาจึงบอกได้แค่ "ไม่มีเสียง" ซึ่งไม่พอให้ใครแก้ได้
+ * → ให้เครื่องบอกสถานะของตัวเองออกมาเป็นตัวหนังสือ แล้วผู้ใช้แค่ส่งบรรทัดนี้มา
+ */
+export function voiceReport() {
+  if (!window.speechSynthesis) return 'เบราว์เซอร์นี้ไม่มี speechSynthesis';
+  pickVoice();
+  const total = window.speechSynthesis.getVoices().length;
+  return [
+    `เสียงทั้งหมด ${total}`,
+    `ไทย: ${thaiVoice ? thaiVoice.name : '— ไม่พบ —'}`,
+    `อังกฤษ: ${englishVoice ? englishVoice.name : '— ไม่พบ —'}`,
+    `สวิตช์: ${speechEnabled ? 'เปิด' : 'ปิด'}`,
+    `หน้าเว็บ: ${document.hidden ? 'ถูกซ่อน' : 'อยู่ด้านหน้า'}`,
+    `เครื่องยนต์: ${speechHealthy ? 'ปกติ' : 'เคยพลาด'}`,
+  ].join(' · ');
+}
+
 function makeUtterance(text, rate, lang) {
   const utter = new SpeechSynthesisUtterance(text);
   const thai = lang === 'th';
+  const mode = voiceModeById(voiceModeId);
   utter.lang = thai ? CFG.audio.speechLangTh : CFG.audio.speechLang;
-  utter.rate = rate ?? (thai ? CFG.audio.speechRateTh : CFG.audio.speechRate);
+  /* โหมดเสียงเป็น "ตัวคูณ" บนความเร็วเดิมเสมอ ไม่ใช่ค่าทับ
+   * ผู้เรียกแต่ละที่ตั้ง rate มาตามบริบทของตัวเอง (โจทย์วิชาช้ากว่าคำศัพท์อยู่แล้ว)
+   * ถ้าโหมดเสียงเขียนทับด้วยค่าตายตัว โจทย์วิชาจะเร็วจนฟังไม่ทันทันที */
+  const base = rate ?? (thai ? CFG.audio.speechRateTh : CFG.audio.speechRate);
+  utter.rate = Math.min(2, Math.max(0.5, base * mode.rateScale));
+  utter.pitch = mode.pitch;
   const voice = thai ? thaiVoice : englishVoice;
   if (voice) utter.voice = voice;
   return utter;
@@ -805,14 +864,25 @@ function makeUtterance(text, rate, lang) {
 
 /**
  * @param {string} text ข้อความที่จะอ่าน
- * @param {{rate?:number, lang?:'en'|'th', onStart?:Function, onFail?:Function}} opts
+ * @param {{rate?:number, lang?:'en'|'th', onStart?:Function, onFail?:Function,
+ *          onDone?:Function}} opts
+ *   onDone — ยิง "ครั้งเดียวเสมอ" เมื่อจบเรื่อง ไม่ว่าจะพูดจบ พูดไม่ได้ หรือถูกตัดคิว
+ *            จุดประสงค์คือให้ UI ที่ "รอฟังให้จบ" ปลดล็อกได้โดยไม่ต้องเดาเอง
+ *            ⚠️ ห้ามให้ผู้เรียกไปรอ onend ของ utterance เอง เพราะเส้นทางที่พูด
+ *            ไม่ได้เลย (ปิดสวิตช์ / ไม่มีเสียงไทย / แท็บถูกซ่อน) ไม่มี utterance
+ *            ให้รอตั้งแต่แรก — จอที่รออยู่จะค้างตลอดกาล
  */
-export function speak(text, { rate, lang = 'en', onStart, onFail } = {}) {
-  if (!text) return;
+export function speak(text, { rate, lang = 'en', onStart, onFail, onDone } = {}) {
+  // onDone ต้องยิงครั้งเดียวจริง ๆ — ทุกทางออกด้านล่างเรียกผ่านตัวนี้เท่านั้น
+  let done = false;
+  const finish = () => { if (done) return; done = true; onDone?.(); };
+  const fail = () => { onFail?.(); finish(); };
+
+  if (!text) { finish(); return; }
   // ทุกทางที่ "พูดไม่ได้" ต้องแจ้ง onFail เสมอ ไม่ใช่เงียบหายไป
   // ไม่งั้นโจทย์โหมดฟังจะค้างเป็นโจทย์ที่ไม่มีทางตอบได้
-  if (!speechEnabled || !window.speechSynthesis) { onFail?.(); return; }
-  if (document.hidden) { onFail?.(); return; }   // เบราว์เซอร์พักเครื่องยนต์อยู่
+  if (!speechEnabled || !window.speechSynthesis) { fail(); return; }
+  if (document.hidden) { fail(); return; }   // เบราว์เซอร์พักเครื่องยนต์อยู่
 
   const ss = window.speechSynthesis;
   pickVoice();
@@ -822,7 +892,7 @@ export function speak(text, { rate, lang = 'en', onStart, onFail } = {}) {
    * เสียงประหลาดหรือสะกดทีละตัว ซึ่งแย่กว่าเงียบมาก (เด็กจะสับสนว่าโจทย์ผิด)
    * และห้ามตั้ง speechHealthy = false ด้วย — เครื่องยนต์ยังดีอยู่ แค่ไม่มีเสียงภาษานี้
    * ถ้าตั้งไป โหมดฟังของ deck คำศัพท์จะถูกปิดตามไปทั้งเซสชันโดยไม่มีเหตุผล */
-  if (lang === 'th' && !thaiVoice) { onFail?.(); return; }
+  if (lang === 'th' && !thaiVoice) { fail(); return; }
 
   // cancel เฉพาะตอนที่มีอะไรค้างอยู่จริง — การ cancel รัว ๆ คือสาเหตุอันดับหนึ่ง
   // ที่ทำให้เครื่องยนต์ของ Chrome/WebKit ค้างจนเงียบไปทั้งเซสชัน
@@ -839,22 +909,32 @@ export function speak(text, { rate, lang = 'en', onStart, onFail } = {}) {
   const kickoff = didCancel ? CFG.audio.speakAfterCancelMs : 0;
 
   let started = false;
+  let retried = false;
   clearTimeout(speechWatchdog);
+
+  /* speechWatchdog เป็นตัวแปรระดับโมดูล (มี watchdog ได้ทีละตัวเท่านั้น)
+   * จึงต้องรู้ว่า "ตัวที่ตั้งอยู่ตอนนี้เป็นของใคร" ก่อนจะไปล้างมันทิ้ง
+   * ⚠️ ไม่มีตัวนับนี้ utterance ของรอบเก่าที่เริ่มพูดช้า ๆ จะไปล้าง watchdog
+   * ของรอบใหม่ทิ้ง = รอบใหม่กลายเป็นรอบที่ไม่มีใครเฝ้าเลย */
+  const myRun = ++speechRun;
 
   const attach = (utter) => {
     utter.onstart = () => {
       started = true;
       speechHealthy = true;
+      // เริ่มพูดแล้ว = ไม่มีอะไรให้ watchdog เฝ้าอีก (เฉพาะ watchdog ของรอบเราเอง)
+      if (speechRun === myRun) clearTimeout(speechWatchdog);
       duckMusic(true);
       onStart?.();
     };
-    utter.onend = () => duckMusic(false);
+    utter.onend = () => { duckMusic(false); finish(); };
     utter.onerror = (e) => {
       duckMusic(false);
       // ถูกตัดคิวเพราะคำถัดไปมาแทน = เรื่องปกติ ไม่ใช่ความผิดพลาด
-      if (e.error === 'canceled' || e.error === 'interrupted') return;
+      // แต่ยัง "จบเรื่อง" สำหรับผู้เรียกที่รออยู่ — ไม่งั้นจอที่รอฟังจะค้าง
+      if (e.error === 'canceled' || e.error === 'interrupted') { finish(); return; }
       speechHealthy = false;
-      onFail?.();
+      fail();
     };
     return utter;
   };
@@ -862,25 +942,55 @@ export function speak(text, { rate, lang = 'en', onStart, onFail } = {}) {
   const first = attach(makeUtterance(text, rate, lang));
   setTimeout(() => ss.speak(first), kickoff);
 
-  // watchdog: ไม่เริ่มพูดใน 450ms = เครื่องยนต์ค้าง → กู้แล้วลองใหม่ครั้งเดียว
-  // (นับจากตอนที่ยิงจริง จึงต้องบวก kickoff ไม่งั้นตอนหน่วงหลัง cancel
-  //  watchdog จะตัดสินว่า "ค้าง" ทั้งที่ยังไม่ทันได้เริ่มพูดด้วยซ้ำ)
-  speechWatchdog = setTimeout(() => {
-    if (started) return;
-    ss.cancel();
-    ss.resume();
-    const retry = attach(makeUtterance(text, rate, lang));
-    // ลองใหม่ต้องหน่วงเสมอ — รอบนี้เพิ่ง cancel() ไปหมาด ๆ ถ้ายิงติดกันอีก
-    // ก็จะโดนกลืนด้วยเหตุผลเดิม แล้ว "การลองใหม่" จะไม่มีความหมายเลย
-    setTimeout(() => ss.speak(retry), CFG.audio.speakAfterCancelMs);
+  /* ── watchdog ───────────────────────────────────────────────
+   * ⚠️ เดิมตรงนี้เป็น "ไม่เริ่มพูดใน 450ms = ค้าง → cancel แล้วลองใหม่"
+   * ซึ่งทำให้ประโยคไทยยาว ๆ ของ deck วิชาถูกตัดทิ้งแทบทุกข้อ
+   * (เหตุผลเต็มอยู่ที่ speechGraceMs ใน config.js — อ่านก่อนแก้ตัวเลขพวกนี้)
+   *
+   * ตอนนี้แยกสองอาการออกจากกันด้วยสถานะของเครื่องยนต์เอง:
+   *   idle (ไม่ speaking ไม่ pending) = งานหายไปเงียบ ๆ → นั่นคือของจริง ลองใหม่เลย
+   *   busy = รับงานไปแล้วแต่ยังตั้งท่าไม่เสร็จ → รอจนหมดงบตามความยาวข้อความ
+   * งบเวลาจึงยืดตามความยาว แต่ "การตรวจจับของหาย" ยังเร็วเท่าเดิม */
+  const graceMs = speechGraceMs(text);
 
+  /**
+   * เฝ้าเป็นช่วง ๆ ทีละ speechIdleProbeMs จนกว่าจะครบ deadline
+   * @param deadline งบเวลาทั้งหมดของความพยายามรอบนี้ (ms)
+   * @param elapsed  รอมาแล้วกี่ ms ในรอบนี้
+   * @param extra    เวลาที่ต้องบวกให้ทิกแรกเท่านั้น — ตอนหน่วงหลัง cancel
+   *                 ถ้าไม่บวก watchdog จะเริ่มนับก่อน ss.speak() ถูกเรียกด้วยซ้ำ
+   */
+  const watch = (deadline, elapsed = 0, extra = 0) => {
+    const step = Math.min(CFG.audio.speechIdleProbeMs, Math.max(1, deadline - elapsed));
     speechWatchdog = setTimeout(() => {
-      if (started) return;
+      const spent = elapsed + step;
+      const move = speechWatchdogDecision({
+        started,
+        engineBusy: !!(ss.speaking || ss.pending),
+        retried,
+        expired: spent >= deadline,
+      });
+      if (move === 'ok') return;
+      if (move === 'wait') { watch(deadline, spent); return; }
+
+      if (move === 'retry') {
+        retried = true;
+        ss.cancel();
+        ss.resume();
+        const again = attach(makeUtterance(text, rate, lang));
+        // ลองใหม่ต้องหน่วงเสมอ — รอบนี้เพิ่ง cancel() ไปหมาด ๆ ถ้ายิงติดกันอีก
+        // ก็จะโดนกลืนด้วยเหตุผลเดิม แล้ว "การลองใหม่" จะไม่มีความหมายเลย
+        setTimeout(() => ss.speak(again), CFG.audio.speakAfterCancelMs);
+        watch(graceMs + CFG.audio.speechRetryGraceMs, 0, CFG.audio.speakAfterCancelMs);
+        return;
+      }
+
       speechHealthy = false;     // ยอมแพ้ — เกมจะเลิกสุ่มโหมดฟังตั้งแต่นี้ไป
       duckMusic(false);
-      onFail?.();
-    }, 700);
-  }, 450);
+      fail();
+    }, step + extra);
+  };
+  watch(graceMs, 0, kickoff);
 }
 
 export function stopSpeaking() {
