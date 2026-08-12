@@ -35,10 +35,10 @@ import { wallet } from './wallet.js';
 import { cheats } from './cheats.js';
 import { characterById } from './characters.js';
 import { pickPracticeWords, buildPracticeQueue } from './practice.js';
-import { loadDeckIndex, loadDeck, pickWord, pickWordSeeded, buildQuestion, zoneDeck, kidsDeck, isSubjectDeck } from './deck.js';
+import { loadDeckIndex, loadDeck, pickWord, pickWordSeeded, buildQuestion, zoneDeck, kidsDeck, isSubjectDeck, chapterDeck } from './deck.js';
 import { stormLevel, stormPhase, drainOver } from './storm.js';
 import { AMMO, AMMO_ORDER, ammoById } from './weapons.js';
-import { addMissed, clearWords, pending as inboxPending, pendingCount } from './inbox.js';
+import { addMissed, clearWords, pending as inboxPending } from './inbox.js';
 import { mulberry32 } from './rng.js';
 import * as srs from './srs.js';
 import {
@@ -197,6 +197,7 @@ const hud = createHUD({
 /** boot | menu | lobby | countdown | running | dying | dead | paused | stats */
 let state = 'boot';
 let deck = null;
+let fullDeck = null;
 let run = null;
 let deathInfo = null;
 let dyingTimer = 0;
@@ -224,6 +225,7 @@ const ui = createUI({
   onMenu: () => leaveToMenu(),
   onResume: () => resumeGame(),
   onDeckChange: (file) => selectDeck(file),
+  onChapterChange: (chapterId) => selectChapter(chapterId),
   onThemeChange: (id) => applyTheme(id),
   onCharacterChange: (id) => equipSkin(id),
   // ใบสอนของ deck ศัพท์อ่าน "คำอังกฤษ" · ใบความรู้ของ deck วิชาอ่าน "ประโยคความรู้"
@@ -236,6 +238,7 @@ const ui = createUI({
   },
   onPracticeRun: (words) => startPracticeRun(words),
   onPracticeAgain: () => openPracticeTeach(),
+  onReviewChapter: () => openPracticeTeach(true),
   onCheatsChanged: () => hud.setCheatVisible(cheats.enabled()),
   onOpenMultiplayer: () => openMultiplayer(),
   onMPCreate: (name) => mpCreate(name),
@@ -259,7 +262,7 @@ const ui = createUI({
   onStatsChanged: () => {
     ui.renderStats(deck);
     ui.setDeckInfo(deck);
-    hud.setBest(srs.getBest(deck.id).score);
+    hud.setBest(srs.getBest(deck.scopeKey ?? deck.id).score);
   },
   onResetDeck: () => {
     srs.resetDeck(deck.id);
@@ -495,7 +498,8 @@ function toMenu() {
   ui.refreshIdentity();
   if (deck) {
     ui.setDeckInfo(deck);
-    ui.setPracticeBadge(pendingCount(deck.id));
+    ui.setPracticeBadge(scopedPendingCount());
+    ui.setChapterInfo(deck);
   }
   ui.show('menu');
 }
@@ -638,7 +642,7 @@ function startRun() {
   hud.setBoosts([]);
   hud.setBonusTimer(null);
   hud.hideBonusBanner();
-  hud.setBest(srs.getBest(deck.id).score);
+  hud.setBest(srs.getBest(deck.scopeKey ?? deck.id).score);
   hud.clearQuestion();
   hud.setQuestionVisible(true);    // เผื่อรอบก่อนจบตอนอยู่ในโบนัส (ยังซ่อน UI ค้างอยู่)
   hud.setFog(0);
@@ -658,7 +662,7 @@ function startRun() {
 
 /* ══ โหมดฝึก: สอน 10 คำ → วิ่งกับคำชุดนั้น → สอนชุดถัดไป ═══════ */
 
-function openPracticeTeach() {
+function openPracticeTeach(reviewOnly = false) {
   if (!deck) return;
   // เข้าห้องซ้อมได้จากจอตายในโหมดแข่งด้วย — ต้องถอนตัวออกจากห้องให้เรียบร้อยก่อน
   // ไม่งั้นเราจะยัง broadcast สถานะเข้าห้องอยู่ทั้งที่ไปนั่งเรียนคำศัพท์แล้ว
@@ -670,7 +674,16 @@ function openPracticeTeach() {
   hud.showLeaderboard(false);
   state = 'teach';
   // ชุดฝึกถูกเลือกจาก "คำที่คุณเพิ่งพลาด" ก่อนเสมอ — ติดป้ายให้เห็นว่าอันไหนมาจากตรงนั้น
-  ui.showPracticeTeach(pickPracticeWords(deck), new Set(inboxPending(deck.id)));
+  const pendingIds = new Set(inboxPending(deck.id));
+  const words = reviewOnly
+    ? deck.words.filter(word => pendingIds.has(idOf(word)))
+    : pickPracticeWords(deck);
+  if (!words.length) {
+    hud.toast('บทนี้ยังไม่มีข้อที่พลาด — ลองทดสอบบทนี้ก่อนได้เลย', 2400);
+    toMenu();
+    return;
+  }
+  ui.showPracticeTeach(words, pendingIds);
 }
 
 function startPracticeRun(words) {
@@ -1276,7 +1289,7 @@ function mpJoin(name, code) {
 
 /** หัวห้องกดเริ่ม → กระจาย deck + โหมด (เดี่ยว/ดูโอ้/สควอด) ให้ทุกคนเริ่มพร้อมกัน */
 function mpStart() {
-  net.startRace(ui.selectedDeckFile(), ui.mpMode());
+  net.startRace(ui.selectedDeckFile(), ui.mpMode(), deck?.chapterId ?? 'all');
 }
 
 const MODE_LABEL = { solo: '👤 เดี่ยว — ตัวใครตัวมัน', duo: '👥 ดูโอ้ — ทีมละ 2', squad: '👨‍👩‍👧‍👦 สควอด — ทีมละ 4' };
@@ -1297,7 +1310,10 @@ async function beginRace(startMsg) {
   hud.setFinalBanner(false);
   hud.showContest(null);
   try {
-    if (startMsg?.deck) deck = await loadDeck(startMsg.deck);
+    if (startMsg?.deck) {
+      fullDeck = await loadDeck(startMsg.deck);
+      deck = chapterDeck(fullDeck, startMsg.chapter ?? 'all');
+    }
   } catch (err) {
     console.warn('[mp] โหลด deck ของหัวห้องไม่ได้ — ใช้ deck เดิมแทน', err);
     // ต้องบอกผู้เล่นตรง ๆ ไม่ใช่เงียบ: ศึกชิงคำจะใช้คำจาก deck ของหัวห้อง
@@ -1943,7 +1959,7 @@ function die(cause, word, chosen) {
   if ((cause === 'lane' || cause === 'storm') && word) noteMiss(word);
 
   pendingRetryWord = word || null;
-  srs.submitScore(deck.id, run.score, run.gates);
+  srs.submitScore(deck.scopeKey ?? deck.id, run.score, run.gates);
   wallet.deposit(run.coins);        // เหรียญที่เก็บได้เข้ากระเป๋าถาวรเสมอ — ตายก็ไม่สูญเปล่า
 
   deathInfo = {
@@ -1954,7 +1970,9 @@ function die(cause, word, chosen) {
     distance: run.distance,
     gates: run.gates,
     coins: run.coins,
-    best: srs.getBest(deck.id).score,
+    best: srs.getBest(deck.scopeKey ?? deck.id).score,
+    learningScope: deck.chapter?.name ?? (isSubjectDeck(deck) ? 'ทุกบท' : ''),
+    learningProgress: isSubjectDeck(deck) ? srs.summarize(deck) : null,
     // เตรียมบทไว้ตรงนี้ แต่ยังไม่อ่าน — รอให้จอตายขึ้นก่อน (ดู startDeathNarration)
     narration: deathNarration(word, run.gates),
   };
@@ -2538,18 +2556,38 @@ function applySpeedMode(id) {
  */
 async function selectDeck(file) {
   try {
-    deck = await loadDeck(file);
+    fullDeck = await loadDeck(file);
   } catch (err) {
     console.error(err);
     document.getElementById('deck-info').innerHTML =
       `<span style="color:var(--danger)">โหลดชุดนี้ไม่ได้: ${err.message}</span>`;
+    fullDeck = null;
     deck = null;
     return;
   }
   pendingRetryWord = null;
+  const chapterId = ui.fillChapterList(fullDeck);
+  deck = chapterDeck(fullDeck, chapterId);
   ui.setDeckInfo(deck);
-  ui.setPracticeBadge(pendingCount(deck.id));
-  hud.setBest(srs.getBest(deck.id).score);
+  ui.setChapterInfo(deck);
+  ui.setPracticeBadge(scopedPendingCount());
+  hud.setBest(srs.getBest(deck.scopeKey ?? deck.id).score);
+}
+
+function selectChapter(chapterId) {
+  if (!fullDeck) return;
+  deck = chapterDeck(fullDeck, chapterId);
+  pendingRetryWord = null;
+  ui.setDeckInfo(deck);
+  ui.setChapterInfo(deck);
+  ui.setPracticeBadge(scopedPendingCount());
+  hud.setBest(srs.getBest(deck.scopeKey ?? deck.id).score);
+}
+
+function scopedPendingCount() {
+  if (!deck) return 0;
+  const allowed = new Set(deck.words.map(idOf));
+  return inboxPending(deck.id).filter(id => allowed.has(id)).length;
 }
 
 async function loadJokes() {

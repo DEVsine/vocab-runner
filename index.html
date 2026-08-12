@@ -166,6 +166,7 @@
 
         <h1 class="title">VOCAB<span class="title-accent">RUNNER</span></h1>
         <p class="subtitle">อ่านโจทย์ไทย แล้ววิ่งเข้าเลนคำอังกฤษที่ถูกต้อง</p>
+        <div id="menu-learning-scope" class="learning-scope hidden" aria-live="polite"></div>
 
         <!-- ปุ่มหลักอยู่ "บนสุด" บนมือถือ — คนเปิดเกมมาเพื่อเล่น ไม่ใช่เพื่อตั้งค่า
              การให้ตัวเลือกมาก่อนปุ่มเล่นคือการบังคับให้ทุกคนเลื่อนหาปุ่มทุกครั้ง
@@ -176,6 +177,7 @@
         <button id="btn-start" class="btn btn-primary btn-hero">▶ เริ่มเล่น</button>
         <div class="row">
           <button id="btn-practice" class="btn">📖 โหมดฝึก<span id="practice-badge" class="badge hidden">0</span></button>
+          <button id="btn-review-chapter" class="btn hidden">🔁 ทบทวนข้อที่พลาดบทนี้</button>
           <button id="btn-multiplayer" class="btn">🎮 เล่นหลายคน</button>
         </div>
 
@@ -235,6 +237,7 @@
                ตาเลยต้องไล่อ่านป้ายทีละอันกว่าจะเจอคะแนน ทั้งที่มันคือตัวเดียวที่คนอยากรู้ทันที -->
           <div class="dead-headline">
             <span class="dead-score-label">คะแนนรอบนี้</span>
+            <div id="dead-learning-scope" class="deck-info"></div>
             <div id="dead-score" class="dead-score hud-num">0</div>
             <div class="dead-best"><span class="stat-label">สูงสุด</span><strong id="dead-best" class="hud-num">0</strong></div>
           </div>
@@ -351,12 +354,19 @@
           <!-- aria-labelledby ไม่ใช่ของประดับ: <div> ที่เป็นแค่พี่น้องกับ <select> ไม่ผูกชื่อ
                ให้เองเหมือน <label> ที่ครอบอยู่ (ซึ่งเป็นทรงที่ธีม/ความเร็วยังใช้อยู่)
                ถ้าไม่มีบรรทัดนี้ screen reader จะอ่านได้แค่ชื่อชุดที่เลือกอยู่ ไม่รู้ว่าช่องนี้คุมอะไร -->
-          <div class="set-title" id="deck-select-label">ชุดคำศัพท์</div>
+          <div class="set-title" id="deck-select-label">ชุดการเรียนรู้</div>
           <select id="deck-select" aria-labelledby="deck-select-label"></select>
           <!-- ตำแหน่งในคลัง ("ชุดที่ 3 จาก 12") — ui.js นับจาก <option> จริงเสมอ
                ห้ามฝังจำนวนไว้ที่นี่ ไม่งั้นวันที่เพิ่มชุดใหม่ตัวเลขจะโกหกโดยไม่มีอะไรพัง -->
           <p id="deck-count" class="set-sub"></p>
           <p id="deck-info" class="deck-info">กำลังโหลด…</p>
+        </div>
+
+        <div id="chapter-card" class="set-card hidden">
+          <div class="set-title" id="chapter-select-label">บทที่จะทดสอบ</div>
+          <select id="chapter-select" aria-labelledby="chapter-select-label"></select>
+          <p id="chapter-progress" class="deck-info"></p>
+          <a id="chapter-book-link" class="btn btn-small" target="_blank" rel="noopener noreferrer">📖 เปิดหนังสือบทนี้</a>
         </div>
 
         <div class="set-card">

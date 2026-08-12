@@ -68,6 +68,8 @@ export function createUI(handlers) {
   const deckSelect = $('deck-select');
   const deckInfo = $('deck-info');
   const deckCount = $('deck-count');
+  const chapterSelect = $('chapter-select');
+  const chapterCard = $('chapter-card');
 
   /* "ชุดที่ 3 จาก 12" — บอกว่ายืนอยู่ตรงไหนของคลัง อ่านจำนวนจาก <option> จริงเสมอ
      เพราะรายการ deck มาจากไฟล์ index ตอนรันไทม์ ตัวเลขที่ฝังไว้จะโกหกเงียบ ๆ วันที่มีชุดเพิ่ม */
@@ -122,13 +124,66 @@ export function createUI(handlers) {
   }
 
   function setDeckInfo(deck) {
-    const best = srs.getBest(deck.id);
+    const best = srs.getBest(deck.scopeKey ?? deck.id);
     const s = srs.summarize(deck);
     const unit = deck.type === 'subject' ? 'ข้อ' : 'คำ';
     deckInfo.textContent =
       `${deck.words.length} ${unit} · เจอแล้ว ${s.seen} · แม่นแล้ว ${s.mastered}` +
       (best.score ? ` · สถิติสูงสุด ${best.score}` : '');
   }
+
+  function fillChapterList(deck) {
+    const chapters = Array.isArray(deck?.chapters) ? deck.chapters : [];
+    chapterCard.classList.toggle('hidden', !chapters.length);
+    chapterSelect.innerHTML = '';
+    if (!chapters.length) return 'all';
+
+    const all = document.createElement('option');
+    all.value = 'all';
+    all.textContent = `ทุกบท (${deck.words.length} ข้อ)`;
+    chapterSelect.appendChild(all);
+    for (const chapter of chapters) {
+      const count = deck.words.filter(word => word.chapterId === chapter.id).length;
+      const option = document.createElement('option');
+      option.value = chapter.id;
+      option.textContent = `${chapter.name} (${count} ข้อ)`;
+      chapterSelect.appendChild(option);
+    }
+    const saved = prefs.chapterByDeck?.[deck.id];
+    chapterSelect.value = chapters.some(chapter => chapter.id === saved) ? saved : 'all';
+    return chapterSelect.value;
+  }
+
+  function setChapterInfo(deck) {
+    const subject = deck?.type === 'subject';
+    const scope = $('menu-learning-scope');
+    scope.classList.toggle('hidden', !subject);
+    $('btn-review-chapter').classList.toggle('hidden', !subject);
+    if (!subject) {
+      $('btn-start').textContent = '▶ เริ่มเล่น';
+      return;
+    }
+
+    const s = srs.summarize(deck);
+    const chapter = deck.chapter;
+    const label = chapter?.name ?? 'ทุกบท';
+    const pages = chapter ? ` · อ่านหน้า ${chapter.pageStart}–${chapter.pageEnd}` : '';
+    $('chapter-progress').textContent =
+      `${deck.words.length} ข้อ · เคยเจอ ${s.seen} · แม่นแล้ว ${s.mastered}${pages}`;
+    $('chapter-book-link').href = deck.source?.url ?? '#';
+    $('chapter-book-link').textContent = chapter
+      ? `📖 เปิดหนังสือ · อ่านหน้า ${chapter.pageStart}–${chapter.pageEnd}`
+      : '📖 เปิดหนังสือฉบับเต็ม';
+    scope.innerHTML = `<b>${escapeHtml(label)}</b>${escapeHtml(pages)}<br>` +
+      `เคยเจอ ${s.seen}/${s.total} · แม่นแล้ว ${s.mastered}`;
+    $('btn-start').textContent = chapter ? '▶ ทดสอบบทนี้' : '▶ เริ่มเล่นทุกบท';
+  }
+
+  chapterSelect.addEventListener('change', () => {
+    prefs.chapterByDeck = { ...(prefs.chapterByDeck ?? {}), [deckSelect.value.replace(/\.json$/, '')]: chapterSelect.value };
+    savePrefs(prefs);
+    handlers.onChapterChange(chapterSelect.value);
+  });
 
   deckSelect.addEventListener('change', () => {
     prefs.deckFile = deckSelect.value;
@@ -294,6 +349,7 @@ export function createUI(handlers) {
   $('btn-pr-again').addEventListener('click', () => handlers.onPracticeAgain());
   $('btn-pr-done-menu').addEventListener('click', () => handlers.onMenu());
   $('btn-practice').addEventListener('click', () => handlers.onPracticeAgain());
+  $('btn-review-chapter').addEventListener('click', () => handlers.onReviewChapter());
 
   function showPracticeDone(words) {
     $('pr-done-words').innerHTML = words.map(w =>
@@ -560,6 +616,10 @@ export function createUI(handlers) {
     $('dead-gates').textContent = info.gates;
     $('dead-coins').textContent = info.coins ?? 0;
     $('dead-best').textContent = info.best;
+    const progress = info.learningProgress;
+    $('dead-learning-scope').textContent = info.learningScope
+      ? `${info.learningScope} · เคยเจอ ${progress.seen}/${progress.total} · แม่นแล้ว ${progress.mastered}`
+      : '';
     show('dead');
   }
 
@@ -653,7 +713,9 @@ export function createUI(handlers) {
     hideAll,
     current: () => current,
     fillDeckList,
+    fillChapterList,
     setDeckInfo,
+    setChapterInfo,
     showDeath,
     setDeathNarrating,
     renderStats,
@@ -673,6 +735,7 @@ export function createUI(handlers) {
     },
 
     selectedDeckFile: () => deckSelect.value,
+    selectedChapterId: () => chapterSelect.value || 'all',
     audioPrefs: () => ({
       sfx: toggleSfx.checked,
       speech: toggleSpeech.checked,
@@ -704,6 +767,11 @@ export function createUI(handlers) {
       const badge = $('practice-badge');
       badge.textContent = n;
       badge.classList.toggle('hidden', !n);
+      const review = $('btn-review-chapter');
+      const subject = !$('menu-learning-scope').classList.contains('hidden');
+      review.classList.toggle('hidden', !subject);
+      review.disabled = subject && !n;
+      review.textContent = n ? `🔁 ทบทวนข้อที่พลาดบทนี้ (${n})` : '🔁 ยังไม่มีข้อที่พลาดในบทนี้';
     },
   };
 }

@@ -1791,3 +1791,14 @@ td.en { font-weight: 700; }
   #screen-menu .title { margin-top: auto; }
 }
 #spectate-banner { display: flex; align-items: center; gap: 10px; flex-wrap: wrap; justify-content: center; max-width: 94vw; }
+.learning-scope {
+  margin: 8px 0 12px;
+  padding: 10px 12px;
+  border: 1px solid rgba(34, 211, 238, .28);
+  border-radius: 12px;
+  background: rgba(34, 211, 238, .08);
+  font-size: .86rem;
+  line-height: 1.45;
+}
+
+#chapter-book-link { display: inline-flex; margin-top: 8px; text-decoration: none; }
