@@ -52,34 +52,6 @@ export function isSubjectDeck(deck) {
   return deck?.type === 'subject';
 }
 
-export const ALL_CHAPTERS = 'all';
-
-export function chapterById(deck, chapterId) {
-  if (!isSubjectDeck(deck) || chapterId === ALL_CHAPTERS) return null;
-  return deck.chapters?.find(chapter => chapter.id === chapterId) ?? null;
-}
-
-/**
- * สร้าง learning scope สำหรับหนึ่งบท โดยคง deck.id เดิมไว้ให้ SRS รายข้อไม่แตก
- * scopeKey แยกเฉพาะสถิติระดับ "รอบ" เพราะคะแนนของ 10 ข้อเทียบกับ 100 ข้อไม่ได้
- */
-export function chapterDeck(deck, chapterId = ALL_CHAPTERS) {
-  if (!isSubjectDeck(deck) || chapterId === ALL_CHAPTERS) {
-    return { ...deck, chapterId: ALL_CHAPTERS, scopeKey: deck.id };
-  }
-  const chapter = chapterById(deck, chapterId);
-  if (!chapter) return chapterDeck(deck, ALL_CHAPTERS);
-  const words = deck.words.filter(word => word.chapterId === chapter.id);
-  return {
-    ...deck,
-    chapterId: chapter.id,
-    chapter,
-    words,
-    items: deck.items.filter(item => item.chapterId === chapter.id),
-    scopeKey: `${deck.id}:${chapter.id}`,
-  };
-}
-
 /**
  * แปลง "ข้อของวิชา" ให้เป็น object หน้าตาเดียวกับ "คำ" ของ deck ศัพท์
  *
@@ -104,7 +76,6 @@ export function toSubjectWord(item) {
     q: item.q,
     fact: item.fact ?? '',
     page: item.page,
-    chapterId: item.chapterId,
     choices: item.options,
     answer: item.answer,
     en: item.q,
@@ -122,31 +93,17 @@ export function normalizeDeck(deck, file = deck?.id ?? '?') {
     if (!Array.isArray(deck.items) || deck.items.length < 4) {
       throw new Error(`deck วิชา "${file}" ต้องมีอย่างน้อย 4 ข้อ`);
     }
-    if (!Array.isArray(deck.chapters) || !deck.chapters.length) {
-      throw new Error(`deck วิชา "${file}": ต้องประกาศ chapters อย่างน้อย 1 บท`);
-    }
-    const chapterIds = new Set(deck.chapters.map(chapter => chapter.id));
-    if (chapterIds.size !== deck.chapters.length || chapterIds.has(undefined)) {
-      throw new Error(`deck วิชา "${file}": chapter id หายหรือซ้ำ`);
-    }
     const seen = new Set();
     for (const item of deck.items) {
       if (!item.id) throw new Error(`deck วิชา "${file}": มีข้อที่ไม่มี id`);
       if (seen.has(item.id)) throw new Error(`deck วิชา "${file}": id ซ้ำ "${item.id}"`);
       seen.add(item.id);
-      if (!chapterIds.has(item.chapterId)) {
-        throw new Error(`deck วิชา "${file}" ข้อ "${item.id}": chapterId ไม่ตรงกับ chapters`);
-      }
       if (!Array.isArray(item.options) || item.options.length !== 3) {
         throw new Error(`deck วิชา "${file}" ข้อ "${item.id}": ต้องมีตัวเลือก 3 ตัวพอดี`);
       }
       if (!Number.isInteger(item.answer) || item.answer < 0 || item.answer > 2) {
         throw new Error(`deck วิชา "${file}" ข้อ "${item.id}": answer ต้องเป็น 0–2`);
       }
-    }
-    for (const chapter of deck.chapters) {
-      const count = deck.items.filter(item => item.chapterId === chapter.id).length;
-      if (count < 4) throw new Error(`deck วิชา "${file}" บท "${chapter.id}": ต้องมีอย่างน้อย 4 ข้อ`);
     }
     return { ...deck, words: deck.items.map(toSubjectWord) };
   }

@@ -584,7 +584,7 @@ export function createNet() {
 
   /** host เริ่มแข่ง: กระจายสัญญาณเริ่ม + deck + โหมด + ทีม ให้ทุกคนพร้อมกัน
    *  พร้อมล็อกรายชื่อผู้เข้ารอบ Battle Royale ณ วินาทีนี้ */
-  function startRace(deckFile, mode = 'solo', chapterId = 'all') {
+  function startRace(deckFile, mode = 'solo') {
     if (!isHost) return;
     raceMode = mode;
     teams = {};
@@ -608,7 +608,7 @@ export function createNet() {
     // ล้างธง "ตกรอบ" ของรอบก่อน — ไม่งั้นเปิดรอบใหม่ปุ๊บระบบจะเห็นทุกคนตายแล้ว
     for (const p of roster.values()) { p.finished = false; p.alive = false; p.oxy = 1; p.ammo = 0; }
 
-    const msg = { t: 'start', deck: deckFile, chapter: chapterId, mode: raceMode, teams };
+    const msg = { t: 'start', deck: deckFile, mode: raceMode, teams };
     sendAll(msg);
     broadcastRoster(true);            // ให้ทุกคนเห็นป้ายทีมทันทีตอนออกตัว
 

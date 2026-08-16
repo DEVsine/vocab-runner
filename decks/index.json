@@ -66,6 +66,12 @@
       "id": "digital-tech-2",
       "group": "subject",
       "name": "💻 เทคโนโลยีดิจิทัล 2 (ม.ต้น)"
+    },
+    {
+      "file": "electricity-daily-2.json",
+      "id": "electricity-daily-2",
+      "group": "subject",
+      "name": "⚡ การใช้พลังงานไฟฟ้าในชีวิตประจำวัน 2 (พว220001)"
     }
   ]
 }
