@@ -439,6 +439,11 @@ function buildAstronaut() {
 
     rig.add(pivot);
     pivot.userData.elbow = elbow;
+    // เก็บชิ้นฐานไว้ให้สกินที่มีสรีระเฉพาะ (เช่น Black Panther) สลับออกได้
+    // โดยไม่ต้องสร้าง skeleton/animation ชุดที่สอง
+    pivot.userData.pauldron = pauldron;
+    pivot.userData.upper = upper;
+    pivot.userData.fore = fore;
     return pivot;
   }
 
@@ -471,6 +476,8 @@ function buildAstronaut() {
 
     rig.add(pivot);
     pivot.userData.knee = knee;
+    pivot.userData.thigh = thigh;
+    pivot.userData.shin = shin;
     return pivot;
   }
 
@@ -1337,6 +1344,418 @@ function buildAstronaut() {
     };
   }
 
+  /* ══ Black Panther: หน้ากากเสือเหลี่ยม + เกราะดำเงิน + ลายพลัง ═
+   *
+   * เวอร์ชันแรกพลาดที่ "เปลี่ยนสีหุ่นเดิมเป็นดำ แล้วแปะหู+ตากลม" — ผลคืออ่านเป็น
+   * แมวดำ ไม่ใช่ Black Panther เพราะเอกลักษณ์จริงอยู่ที่ *โครงแผงหน้ากาก*:
+   * ตาเรียว, เส้นเงินรูป Y, กรามแยกชั้น และหัวทรงห้าเหลี่ยม ไม่ใช่ลูกบอล
+   *
+   * ชุดด้านล่างก็ใช้หลักเดียวกัน: เพิ่มเกราะอก/ไหล่/ปลายแขน/หน้าแข้งที่ยื่นพ้น
+   * silhouette แทนการหวังให้สีดำเฉดเดียวเล่าเรื่องทั้งหมด */
+  const blackPantherChargeParts = [];
+  const traceMat = new THREE.MeshBasicMaterial({
+    color: 0xa855f7, transparent: true, opacity: 0,
+    depthWrite: false, blending: THREE.AdditiveBlending,
+  });
+
+  function trace(parent, { x = 0, y = 0, z = 0, w, h, rz = 0 }) {
+    const line = new THREE.Mesh(new THREE.BoxGeometry(w, h, 0.025), traceMat);
+    line.position.set(x, y, z);
+    line.rotation.z = rz;
+    line.visible = false;
+    parent.add(line);
+    blackPantherChargeParts.push(line);
+    return line;
+  }
+
+  // ลาย V บนแผ่นหลัง — ติดบนผิวฝั่ง +Z ซึ่งเป็นด้านที่กล้องเกมมองเห็น
+  trace(rig, { x: -0.11, y: 1.02, z: 0.225, w: 0.035, h: 0.34, rz: -0.56 });
+  trace(rig, { x:  0.11, y: 1.02, z: 0.225, w: 0.035, h: 0.34, rz:  0.56 });
+  trace(rig, { x: -0.16, y: 0.82, z: 0.225, w: 0.03, h: 0.24, rz:  0.72 });
+  trace(rig, { x:  0.16, y: 0.82, z: 0.225, w: 0.03, h: 0.24, rz: -0.72 });
+  // เส้นบนแขน/ขาแขวนกับ pivot ของชิ้นส่วนนั้น จึงแกว่งไปพร้อมท่าวิ่งโดยอัตโนมัติ
+  trace(armL, { y: -0.15, z: 0.11, w: 0.027, h: 0.24, rz: -0.28 });
+  trace(armR, { y: -0.15, z: 0.11, w: 0.027, h: 0.24, rz:  0.28 });
+  trace(legL, { y: -0.16, z: 0.13, w: 0.03, h: 0.25, rz: -0.22 });
+  trace(legR, { y: -0.16, z: 0.13, w: 0.03, h: 0.25, rz:  0.22 });
+
+  const pantherMask = new THREE.Group();
+  const maskShell = toonMat(0x07080c);
+  const maskPanel = toonMat(0x151821);
+  const maskTrim = new THREE.MeshBasicMaterial({ color: 0x596271, side: THREE.DoubleSide });
+  const eyeRimMat = new THREE.MeshBasicMaterial({ color: 0x222733, side: THREE.DoubleSide });
+  const eyeMat = new THREE.MeshBasicMaterial({ color: 0xf7f8ff, side: THREE.DoubleSide });
+  const mouthMat = new THREE.MeshBasicMaterial({ color: 0x080a0f, side: THREE.DoubleSide });
+
+  /**
+   * หัวทรงโล่กลับหัวจากวงแหวน superellipse หลายชั้น
+   *
+   * Sphere ผิดตั้งแต่ silhouette: ขมับกับแก้มโป่งเท่ากัน จึงอ่านเป็นลูกแมวทันที
+   * รูปอ้างอิงมีขมับกว้าง ด้านข้างเกือบตรง และสอบแรงเข้าหาคาง เราจึงกำหนด
+   * รัศมีแต่ละระดับ Y แยกกัน ส่วน power > 2 ทำหน้าตัดให้เป็น rounded-square
+   * โดยยังมีความโค้งพอรับแสง ไม่แข็งเป็นกล่องหรือหุ่นยนต์
+   */
+  function pantherHelmetGeometry() {
+    const sides = 16;
+    const rings = [
+      { y: -0.33, rx: 0.19, rz: 0.17, power: 3.0 },
+      { y: -0.27, rx: 0.29, rz: 0.245, power: 3.5 },
+      { y: -0.11, rx: 0.365, rz: 0.30, power: 4.2 },
+      { y:  0.11, rx: 0.39, rz: 0.315, power: 4.4 },
+      { y:  0.27, rx: 0.36, rz: 0.29, power: 4.0 },
+      { y:  0.35, rx: 0.27, rz: 0.225, power: 3.2 },
+      { y:  0.385, rx: 0.15, rz: 0.125, power: 2.8 },
+    ];
+    const vertices = [];
+    const indices = [];
+
+    for (const ring of rings) {
+      for (let i = 0; i < sides; i++) {
+        const a = (i / sides) * Math.PI * 2;
+        const c = Math.cos(a);
+        const s = Math.sin(a);
+        const exponent = 2 / ring.power;
+        vertices.push(
+          ring.rx * Math.sign(c) * Math.pow(Math.abs(c), exponent),
+          ring.y,
+          ring.rz * Math.sign(s) * Math.pow(Math.abs(s), exponent),
+        );
+      }
+    }
+
+    for (let r = 0; r < rings.length - 1; r++) {
+      for (let i = 0; i < sides; i++) {
+        const next = (i + 1) % sides;
+        const a = r * sides + i;
+        const b = r * sides + next;
+        const c = (r + 1) * sides + i;
+        const d = (r + 1) * sides + next;
+        indices.push(a, c, b, b, c, d);
+      }
+    }
+
+    const bottom = vertices.length / 3;
+    vertices.push(0, -0.345, 0);
+    const top = vertices.length / 3;
+    vertices.push(0, 0.405, 0);
+    for (let i = 0; i < sides; i++) {
+      const next = (i + 1) % sides;
+      indices.push(bottom, i, next);
+      const topRing = (rings.length - 1) * sides;
+      indices.push(top, topRing + next, topRing + i);
+    }
+
+    const geometry = new THREE.BufferGeometry();
+    geometry.setAttribute('position', new THREE.Float32BufferAttribute(vertices, 3));
+    geometry.setIndex(indices);
+    geometry.computeVertexNormals();
+    return geometry;
+  }
+
+  const maskCap = new THREE.Mesh(pantherHelmetGeometry(), maskShell);
+  pantherMask.add(maskCap);
+  gloss.push(glossShell(maskCap, 42).material);
+
+  // กรามเป็นแผงเล็กคม ไม่ใช่ลูกบอลอีกก้อนซ้อนตรงปาก
+  const jaw = new THREE.Mesh(new THREE.DodecahedronGeometry(0.18, 0), maskPanel);
+  jaw.scale.set(1.18, 0.5, 0.43);
+  jaw.position.set(0, -0.19, -0.275);
+  pantherMask.add(jaw);
+
+  function flatPanel(points, material, z) {
+    const shape = new THREE.Shape();
+    shape.moveTo(points[0][0], points[0][1]);
+    for (let i = 1; i < points.length; i++) shape.lineTo(points[i][0], points[i][1]);
+    shape.closePath();
+    const mesh = new THREE.Mesh(new THREE.ShapeGeometry(shape), material);
+    mesh.position.z = z;
+    pantherMask.add(mesh);
+    return mesh;
+  }
+
+  function maskLine({ x, y, w, h, rz = 0, z = -0.33, material = maskTrim }) {
+    const line = new THREE.Mesh(new THREE.BoxGeometry(w, h, 0.024), material);
+    line.position.set(x, y, z);
+    line.rotation.z = rz;
+    pantherMask.add(line);
+    return line;
+  }
+
+  // สันกลาง + กิ่งรูป Y คือ pattern ที่ภาพอ้างอิงทั้งสามมีร่วมกัน
+  maskLine({ x: 0, y: 0.2, w: 0.011, h: 0.235 });
+  maskLine({ x: -0.09, y: 0.235, w: 0.011, h: 0.17, rz: 0.7 });
+  maskLine({ x:  0.09, y: 0.235, w: 0.011, h: 0.17, rz: -0.7 });
+  maskLine({ x: -0.17, y: -0.11, w: 0.01, h: 0.095, rz: -0.82 });
+  maskLine({ x:  0.17, y: -0.11, w: 0.01, h: 0.095, rz: 0.82 });
+
+  // กรอบตาดำใหญ่กว่าตาขาวเล็กน้อย → ได้ขอบ eyeliner แบบหน้ากาก ไม่ใช่ลูกตานูน
+  const eyeOutline = [
+    [0.045, 0.045], [0.18, 0.052], [0.255, 0.006],
+    [0.205, -0.05], [0.075, -0.038],
+  ];
+  const eyeTrim = [
+    [0.03, 0.056], [0.185, 0.064], [0.272, 0.006],
+    [0.212, -0.063], [0.06, -0.05],
+  ];
+  const eyeInner = [
+    [0.06, 0.034], [0.177, 0.04], [0.232, 0.006],
+    [0.194, -0.036], [0.084, -0.028],
+  ];
+
+  function earFin(side) {
+    // สี่เหลี่ยมคางหมูทรงลิ่ม: ฐานกว้างและปลายตัดเฉียงแบบครีบหมวกฮีโร่
+    // ต่างจาก Cone ที่ทุกเส้นวิ่งไปรวมเป็นจุดเดียว จึงหลีกเลี่ยงภาพ "หูลูกแมว"
+    const shape = new THREE.Shape();
+    shape.moveTo(-0.075, -0.06);
+    shape.lineTo(0.09, -0.04);
+    shape.lineTo(0.085, 0.075);
+    shape.lineTo(0.012, 0.015);
+    shape.closePath();
+    const geometry = new THREE.ExtrudeGeometry(shape, {
+      depth: 0.075,
+      bevelEnabled: true,
+      bevelSegments: 1,
+      bevelSize: 0.008,
+      bevelThickness: 0.008,
+    });
+    geometry.center();
+    const fin = new THREE.Mesh(geometry, maskShell);
+    fin.position.set(side * 0.305, 0.35, -0.015);
+    fin.scale.x = side;
+    fin.rotation.z = side * -0.08;
+    return fin;
+  }
+
+  for (const side of [-1, 1]) {
+    const ear = earFin(side);
+    pantherMask.add(ear);
+
+    flatPanel(eyeTrim.map(([x, y]) => [side * x, y]), maskTrim, -0.326);
+    flatPanel(eyeOutline.map(([x, y]) => [side * x, y]), eyeRimMat, -0.336);
+    flatPanel(eyeInner.map(([x, y]) => [side * x, y]), eyeMat, -0.346);
+  }
+
+  // จมูกและแผงปากซ้อนกราม ทำให้ด้านล่างหน้ากากมีน้ำหนักเหมือนภาพอ้างอิง
+  flatPanel([[0, 0.005], [-0.045, -0.045], [0, -0.072], [0.045, -0.045]], maskTrim, -0.348);
+  flatPanel([[-0.13, -0.14], [-0.065, -0.115], [0, -0.14], [0.065, -0.115], [0.13, -0.14], [0.105, -0.215], [0, -0.235], [-0.105, -0.215]], mouthMat, -0.342);
+  maskLine({ x: 0, y: -0.225, w: 0.11, h: 0.014, z: -0.352 });
+
+  // ลายม่วงบนหน้ากากทับตำแหน่งเส้นเงินพอดีเมื่อพลังใกล้เต็ม
+  trace(pantherMask, { x: 0, y: 0.2, z: -0.356, w: 0.009, h: 0.235 });
+  trace(pantherMask, { x: -0.09, y: 0.235, z: -0.356, w: 0.009, h: 0.17, rz: 0.7 });
+  trace(pantherMask, { x:  0.09, y: 0.235, z: -0.356, w: 0.009, h: 0.17, rz: -0.7 });
+  trace(pantherMask, { x: -0.17, y: -0.11, z: -0.356, w: 0.008, h: 0.095, rz: -0.82 });
+  trace(pantherMask, { x:  0.17, y: -0.11, z: -0.356, w: 0.008, h: 0.095, rz: 0.82 });
+
+  /* ── เกราะลำตัว ─────────────────────────────────────────── */
+  const armorDark = toonMat(0x151922);
+  const armorMid = toonMat(0x2d3442);
+  const armorSilver = new THREE.MeshBasicMaterial({ color: 0x4d5562 });
+  const pantherArmor = new THREE.Group();
+
+  const chestFront = new THREE.Mesh(new THREE.DodecahedronGeometry(0.285, 0), armorDark);
+  chestFront.scale.set(1.04, 0.74, 0.46);
+  chestFront.position.set(0, 1.035, -0.18);
+  pantherArmor.add(chestFront);
+  const chestBack = chestFront.clone();
+  chestBack.position.z = 0.18;
+  pantherArmor.add(chestBack);
+
+  const abdomen = new THREE.Mesh(new THREE.CylinderGeometry(0.24, 0.205, 0.28, 8), armorMid);
+  abdomen.position.y = 0.77;
+  pantherArmor.add(abdomen);
+  const waist = new THREE.Mesh(new THREE.CylinderGeometry(0.255, 0.24, 0.12, 8), armorDark);
+  waist.position.y = HIP_Y + 0.03;
+  pantherArmor.add(waist);
+
+  function armorLine(parent, { x, y, z, w, h, rz = 0 }) {
+    const line = new THREE.Mesh(new THREE.BoxGeometry(w, h, 0.025), armorSilver);
+    line.position.set(x, y, z);
+    line.rotation.z = rz;
+    parent.add(line);
+    return line;
+  }
+
+  // V เงินด้านหน้าและหลัง — ด้านหน้าอ่านในร้าน ด้านหลังอ่านตอนวิ่ง
+  for (const z of [-0.315, 0.315]) {
+    armorLine(pantherArmor, { x: -0.11, y: 1.06, z, w: 0.016, h: 0.26, rz: -0.57 });
+    armorLine(pantherArmor, { x:  0.11, y: 1.06, z, w: 0.016, h: 0.26, rz:  0.57 });
+    armorLine(pantherArmor, { x: -0.15, y: 0.84, z, w: 0.014, h: 0.17, rz:  0.72 });
+    armorLine(pantherArmor, { x:  0.15, y: 0.84, z, w: 0.014, h: 0.17, rz: -0.72 });
+  }
+
+  // เติมลายพลังด้านหน้าให้สมมาตรกับด้านหลังเดิม
+  trace(rig, { x: -0.11, y: 1.02, z: -0.315, w: 0.03, h: 0.34, rz:  0.56 });
+  trace(rig, { x:  0.11, y: 1.02, z: -0.315, w: 0.03, h: 0.34, rz: -0.56 });
+
+  /**
+   * สร้างกล้ามเนื้อจาก profile จริง: รัศมีเปลี่ยนตามความยาวของแขน/ขา
+   * ทรงกลมที่ย่อแล้วแปะต่อกันให้เพียง "ปริมาตร" แต่ไม่มีจุดกำเนิด-เกาะของกล้าม
+   * จึงอ่านเป็นไขมัน ส่วน profile นี้มีไหล่/มัดกลาง/เอ็นใกล้ข้อที่กว้างไม่เท่ากัน
+   * และใช้เพียง 8 ด้านเพื่อให้เกิดระนาบคมแบบชุดเกราะซูเปอร์ฮีโร่
+   */
+  function muscleGeometry(profile) {
+    return new THREE.LatheGeometry(
+      profile.map(([radius, y]) => new THREE.Vector2(radius, y)),
+      8,
+    );
+  }
+
+  const upperArmGeometry = muscleGeometry([
+    [0.078, -0.12], [0.098, -0.085], [0.122, -0.025],
+    [0.128, 0.035], [0.112, 0.085], [0.092, 0.12],
+  ]);
+  const forearmGeometry = muscleGeometry([
+    [0.072, -0.105], [0.082, -0.065], [0.104, -0.005],
+    [0.111, 0.055], [0.091, 0.105],
+  ]);
+  const thighGeometry = muscleGeometry([
+    [0.096, -0.135], [0.123, -0.09], [0.148, -0.015],
+    [0.153, 0.06], [0.137, 0.11], [0.122, 0.135],
+  ]);
+  const calfGeometry = muscleGeometry([
+    [0.073, -0.12], [0.094, -0.075], [0.126, -0.01],
+    [0.132, 0.045], [0.105, 0.09], [0.088, 0.12],
+  ]);
+
+  function limbArmor(parent, lowerParent, side) {
+    const upperGroup = new THREE.Group();
+
+    // Deltoid เป็นก้อนสามเหลี่ยมมนที่ไหลจากหัวไหล่ลงต้นแขน ไม่ใช่ลูกบอลครึ่งซีก
+    const deltoid = new THREE.Mesh(new THREE.DodecahedronGeometry(0.145, 1), armorDark);
+    deltoid.scale.set(0.9, 0.76, 0.82);
+    deltoid.position.set(side * 0.006, -0.025, -0.005);
+    upperGroup.add(deltoid);
+
+    const upperMuscle = new THREE.Mesh(upperArmGeometry, armorDark);
+    upperMuscle.position.y = -0.14;
+    upperGroup.add(upperMuscle);
+
+    // แผง biceps ด้านหน้าสร้างสันรับแสง ทำให้มัดกล้ามอ่านออกแม้อยู่ที่ขนาด ~20 px
+    const biceps = new THREE.Mesh(new THREE.DodecahedronGeometry(0.096, 1), armorMid);
+    biceps.scale.set(0.75, 1.12, 0.58);
+    biceps.position.set(side * 0.012, -0.14, -0.055);
+    upperGroup.add(biceps);
+    armorLine(upperGroup, { x: side * 0.018, y: -0.14, z: -0.116, w: 0.012, h: 0.16, rz: side * 0.2 });
+    parent.add(upperGroup);
+
+    const lowerGroup = new THREE.Group();
+    const foreMuscle = new THREE.Mesh(forearmGeometry, armorDark);
+    foreMuscle.position.y = -0.11;
+    lowerGroup.add(foreMuscle);
+
+    // Gauntlet หกเหลี่ยมสอบเข้าหาข้อมือ จึงไม่อ่านเป็นปลอกทรงกระบอกอ้วน ๆ
+    const gauntlet = new THREE.Mesh(new THREE.CylinderGeometry(0.098, 0.077, 0.17, 6), armorMid);
+    gauntlet.position.y = -0.13;
+    lowerGroup.add(gauntlet);
+    armorLine(lowerGroup, { x: side * 0.02, y: -0.13, z: -0.101, w: 0.014, h: 0.135, rz: side * -0.2 });
+    lowerParent.add(lowerGroup);
+    return [upperGroup, lowerGroup];
+  }
+
+  const armArmorL = limbArmor(armL, armL.userData.elbow, -1);
+  const armArmorR = limbArmor(armR, armR.userData.elbow, 1);
+
+  function legArmor(leg, side) {
+    const kneeGroup = leg.userData.knee;
+    const thighGroup = new THREE.Group();
+    const thighMuscle = new THREE.Mesh(thighGeometry, armorDark);
+    thighMuscle.position.y = -0.135;
+    thighGroup.add(thighMuscle);
+
+    // Quadriceps แยกเป็นแผงหน้า ทำให้ต้นขามีมัด ไม่ใช่ท่อที่พองเท่ากันรอบด้าน
+    const quadPlate = new THREE.Mesh(new THREE.DodecahedronGeometry(0.112, 1), armorMid);
+    quadPlate.scale.set(0.78, 1.14, 0.58);
+    quadPlate.position.set(side * 0.014, -0.13, -0.065);
+    thighGroup.add(quadPlate);
+    armorLine(thighGroup, { x: side * 0.018, y: -0.145, z: -0.133, w: 0.013, h: 0.18, rz: side * -0.16 });
+    leg.add(thighGroup);
+
+    const calfGroup = new THREE.Group();
+    const kneeCap = new THREE.Mesh(new THREE.DodecahedronGeometry(0.105, 0), armorDark);
+    kneeCap.scale.set(0.96, 0.68, 0.72);
+    kneeCap.position.z = -0.035;
+    calfGroup.add(kneeCap);
+
+    const calfMuscle = new THREE.Mesh(calfGeometry, armorDark);
+    calfMuscle.position.y = -0.12;
+    calfGroup.add(calfMuscle);
+
+    const shinPlate = new THREE.Mesh(new THREE.DodecahedronGeometry(0.108, 1), armorMid);
+    shinPlate.scale.set(0.76, 1.2, 0.54);
+    shinPlate.position.set(side * 0.012, -0.13, -0.07);
+    calfGroup.add(shinPlate);
+    armorLine(calfGroup, { x: side * 0.02, y: -0.13, z: -0.135, w: 0.014, h: 0.17, rz: side * -0.18 });
+    kneeGroup.add(calfGroup);
+    return [thighGroup, calfGroup];
+  }
+
+  const legArmorL = legArmor(legL, -1);
+  const legArmorR = legArmor(legR, 1);
+
+  const collar = new THREE.Mesh(
+    new THREE.TorusGeometry(0.235, 0.028, 6, 22),
+    toonMat(0xb9bfca, { emissive: 0x242637 })
+  );
+  collar.rotation.x = Math.PI / 2;
+  collar.position.y = NECK_Y - 0.055;
+
+  // เขี้ยวเรียงด้านหน้าแบบสร้อยในภาพอ้างอิง ไม่ล้อมเต็มวงเหมือนปลอกคอสุนัข
+  const teeth = new THREE.Group();
+  teeth.position.y = NECK_Y - 0.015;
+  for (let i = -3; i <= 3; i++) {
+    const tooth = new THREE.Mesh(new THREE.ConeGeometry(0.018, 0.075, 4), toonMat(0xb9bfca));
+    tooth.position.set(i * 0.052, -0.035 - Math.abs(i) * 0.006, -0.3 + Math.abs(i) * 0.012);
+    tooth.rotation.z = Math.PI + i * 0.035;
+    teeth.add(tooth);
+  }
+
+  /* กรงเล็บเป็น "สถานะอาวุธ" ไม่ใช่ส่วนหนึ่งของชุดถาวร:
+   * เก็บไอเทมไว้เฉย ๆ มือยังว่าง และจะโผล่บนมือทั้งสองข้างเมื่อกด Space เท่านั้น
+   * การแขวนไว้ใต้ข้อศอกผ่าน handMount ทำให้กรงเล็บตามการงอแขน/ท่าวิ่งเองโดยไม่ต้อง
+   * เขียนแอนิเมชันซ้ำอีกชุด ส่วนใบมีดชี้ไปทาง -Z ซึ่งเป็นทิศที่ตัวละครกำลังวิ่ง */
+  const pantherClawDark = toonMat(0x171a23, { emissive: 0x190b2c });
+  const pantherClawMetal = toonMat(0xe7ecfb, { emissive: 0x7e22ce, emissiveIntensity: 0.72 });
+  const clawAxis = new THREE.Vector3(0, 1, 0);
+
+  function buildPantherClaws(arm) {
+    const hold = handMount(arm);
+    const gauntlet = new THREE.Mesh(new THREE.DodecahedronGeometry(0.115, 0), pantherClawDark);
+    gauntlet.scale.set(1.08, 0.78, 0.9);
+    gauntlet.position.z = -0.035;
+    hold.add(gauntlet);
+
+    const blades = [];
+    for (const finger of [-1, 0, 1]) {
+      const knuckle = new THREE.Mesh(new THREE.DodecahedronGeometry(0.035, 0), armorSilver);
+      knuckle.position.set(finger * 0.055, 0.015, -0.105);
+      hold.add(knuckle);
+
+      const blade = new THREE.Mesh(new THREE.ConeGeometry(0.022, 0.34, 5), pantherClawMetal);
+      const direction = new THREE.Vector3(finger * 0.13, 0.02, -1).normalize();
+      blade.quaternion.setFromUnitVectors(clawAxis, direction);
+      blade.position.set(finger * 0.064, 0.015, -0.265);
+      hold.add(blade);
+      blades.push(blade);
+    }
+
+    const aura = makeAuraSprite(0xa855f7, 0.36, 0.62);
+    aura.position.set(0, 0, -0.2);
+    hold.add(aura);
+    return { hold, blades, aura };
+  }
+
+  const pantherClawL = buildPantherClaws(armL);
+  const pantherClawR = buildPantherClaws(armR);
+
+  weapons.blackpanther = {
+    always: [pantherMask, pantherArmor, collar, teeth, ...armArmorL, ...armArmorR, ...legArmorL, ...legArmorR],
+    rest: [], stow: [], hold: [pantherClawL.hold, pantherClawR.hold],
+    glows: [...pantherClawL.blades, ...pantherClawR.blades],
+    aura: [pantherClawL.aura, pantherClawR.aura],
+    mounts: [pantherArmor, collar, teeth], headMounts: [pantherMask],
+  };
+
   /* ── แขวนกลุ่มเข้าที่ ────────────────────────────────────────
    * mounts     → ลำตัว (ผ้าคลุม เข็มขัด ฝักดาบ)
    * headMounts → กลุ่มหัว (หมวก ฮู้ด หน้ากาก) เพื่อให้ส่ายไปพร้อมใบหน้า
@@ -1348,8 +1767,9 @@ function buildAstronaut() {
   }
 
   return {
-    rig, armL, armR, legL, legR, torso, chest, head, helmet,
+    rig, armL, armR, legL, legR, torso, chest, belt, head, helmet,
     face, facePlate, brows, mouth, thrusters, mat, weapons, astroParts, gloss, torsoGloss,
+    blackPantherChargeParts, traceMat,
   };
 }
 
@@ -1714,7 +2134,11 @@ export function createPlayer(scene) {
        * อ่านเป็น "สองอย่างพัง ๆ" ไม่ใช่ "ของชิ้นเดียวที่มีพลัง" */
       const k = 0.5 + Math.sin(state.runT * 10) * 0.5;
       if (weapon) {
-        weapon.glow.scale.setScalar(1 + (k - 0.5) * 0.28);
+        // บางอาวุธมีแกนเรืองแสงชิ้นเดียว (ดาบ) แต่กรงเล็บมีหกใบ
+        // อย่าสมมติว่า weapon ทุกตัวต้องมี `.glow` — สมมติฐานเดิมทำให้ Black Panther
+        // โยน TypeError ทันทีในเฟรมแรกหลังสวมอาวุธ จนผู้เล่นรู้สึกว่า Space ไม่ทำงาน
+        const glows = weapon.glows ?? (weapon.glow ? [weapon.glow] : []);
+        for (const glow of glows) glow.scale.setScalar(1 + (k - 0.5) * 0.28);
         for (const s of weapon.aura ?? []) pulseAura(s, k);
         if (weapon.spin) weapon.spin.rotation.z += dt * 9;   // ดาวกระจายหมุนตลอด
       }
@@ -2031,6 +2455,23 @@ export function createPlayer(scene) {
     a.mat.amber.color.setHex(c.accent);   // เข็มขัด/แถบถัง = สี accent ประจำตัว
     // ถังออกซิเจน/กระจกหน้ากาก/ครีบ/ตะเข็บ = ชุดของนักบินอวกาศคนเดียว
     for (const p of a.astroParts) p.visible = c.id === 'astro';
+    // Black Panther มีหน้ากากและเกราะเอวของตัวเอง — ถ้าปล่อยของโครงกลางไว้จะได้
+    // หัวกลมซ้อนใต้หน้ากาก + เข็มขัดม่วงแบบนักบิน ซึ่งเป็นสองจุดที่ทำให้เวอร์ชันแรกดูไม่เหมือน
+    const isPanther = c.id === 'blackpanther';
+    a.helmet.visible = !isPanther;
+    a.belt.visible = !isPanther;
+
+    // Black Panther ใช้แขนขา profile กล้ามเนื้อของตัวเอง ถ้าปล่อยท่อ/บ่ากลมของโครงกลาง
+    // ไว้ข้างใต้ silhouette จะยังบวมเป็นลูกบอลแม้เกราะชั้นนอกปั้นถูกแล้ว
+    for (const arm of [a.armL, a.armR]) {
+      arm.userData.pauldron.visible = !isPanther;
+      arm.userData.upper.visible = !isPanther;
+      arm.userData.fore.visible = !isPanther;
+    }
+    for (const leg of [a.legL, a.legR]) {
+      leg.userData.thigh.visible = !isPanther;
+      leg.userData.shin.visible = !isPanther;
+    }
     applyFace(c.face);
 
     /* ความมันของวัสดุ — ค่าเดียวคุมทุกเปลือกไฮไลต์พร้อมกัน
@@ -2041,7 +2482,18 @@ export function createPlayer(scene) {
     for (const m of a.gloss) m.specular.setScalar(g);
 
     applyBuild(c.build);
+    setSkillCharge(0, false);
     refreshGear();
+  }
+
+  /** ลายม่วงค่อย ๆ ติดบนร่างช่วงใกล้เต็ม และสว่างสุดตลอดตอนคลื่นกำลังกวาด */
+  function setSkillCharge(ratio = 0, bursting = false) {
+    const start = CFG.blackPanther.traceStartsAt;
+    const k = state.skin === 'blackpanther'
+      ? (bursting ? 1 : Math.max(0, Math.min(1, (ratio - start) / (1 - start))))
+      : 0;
+    a.traceMat.opacity = 0.18 + k * 0.82;
+    for (const part of a.blackPantherChargeParts) part.visible = k > 0.015;
   }
 
   return {
@@ -2054,6 +2506,7 @@ export function createPlayer(scene) {
     setFlying,
     setPlatform,
     applySkin,
+    setSkillCharge,
     setShowcase(on) { state.showcase = on; },
     setSelfMarker(on) { marker.visible = on; },
     onPlatform() { return state.baseY > 0.4; },

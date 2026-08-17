@@ -64,7 +64,14 @@
           <!-- ไอเทมจับเวลาที่กำลังทำงาน (แม่เหล็ก / คะแนน ×2) — hud.js เป็นคนเติมชิป
                อยู่ชิดซ้ายซึ่งเป็นช่องที่แถวนี้เว้นว่างไว้อยู่แล้ว จึงไม่ต้องวาง absolute
                ทับใคร และไม่ไปชนกับแถบพายุ/โบนัสที่ออกันอยู่ขอบล่าง -->
-          <div id="hud-boosts"></div>
+          <div id="hud-boosts">
+            <div id="hud-character-skill" class="character-skill hidden" aria-live="polite">
+              <span class="skill-icon" role="img" aria-label="พลังจลน์ไวเบรเนียม">💜</span>
+              <span class="skill-copy"><b>พลังจลน์ไวเบรเนียม</b><small id="hud-skill-status">กำลังสะสม</small></span>
+              <span id="hud-skill-value" class="skill-value">0%</span>
+              <span class="skill-bar"><i id="hud-skill-fill"></i></span>
+            </div>
+          </div>
           <!-- ป้ายความหมายอยู่ใน aria-label ไม่ใช่ title — #hud ปิด pointer-events
                ทั้งผืน tooltip จึงไม่มีวันโผล่ แต่ screen reader ยังอ่าน aria ได้ปกติ -->
           <div id="hud-collect">
@@ -149,7 +156,7 @@
 
       <div id="hud-controls-hint">
         <kbd>←</kbd><kbd>→</kbd> เปลี่ยนเลน · <kbd>↑</kbd> กระโดด · <kbd>↓</kbd> สไลด์ ·
-        <kbd>Space</kbd> ใส่เกราะ · <kbd>Q</kbd> เลือกกระสุน · <kbd>F</kbd> ยิง · <kbd>Esc</kbd> พัก
+        <kbd>Space</kbd> ใส่อุปกรณ์/ใช้สกิล · <kbd>Q</kbd> เลือกกระสุน · <kbd>F</kbd> ยิง · <kbd>Esc</kbd> พัก
       </div>
     </div>
 
@@ -166,6 +173,7 @@
 
         <h1 class="title">VOCAB<span class="title-accent">RUNNER</span></h1>
         <p class="subtitle">อ่านโจทย์ไทย แล้ววิ่งเข้าเลนคำอังกฤษที่ถูกต้อง</p>
+        <div id="menu-learning-scope" class="learning-scope hidden" aria-live="polite"></div>
 
         <!-- ปุ่มหลักอยู่ "บนสุด" บนมือถือ — คนเปิดเกมมาเพื่อเล่น ไม่ใช่เพื่อตั้งค่า
              การให้ตัวเลือกมาก่อนปุ่มเล่นคือการบังคับให้ทุกคนเลื่อนหาปุ่มทุกครั้ง
@@ -176,12 +184,13 @@
         <button id="btn-start" class="btn btn-primary btn-hero">▶ เริ่มเล่น</button>
         <div class="row">
           <button id="btn-practice" class="btn">📖 โหมดฝึก<span id="practice-badge" class="badge hidden">0</span></button>
+          <button id="btn-review-chapter" class="btn hidden">🔁 ทบทวนข้อที่พลาดบทนี้</button>
           <button id="btn-multiplayer" class="btn">🎮 เล่นหลายคน</button>
         </div>
 
         <p class="hint desktop-only">
           <kbd>←</kbd><kbd>→</kbd> เปลี่ยนเลน · <kbd>↑</kbd> กระโดด · <kbd>↓</kbd> สไลด์ ·
-          <kbd>Space</kbd> ใส่เกราะ · <kbd>Q</kbd>/<kbd>F</kbd> เลือก/ยิงอาวุธ
+          <kbd>Space</kbd> ใส่อุปกรณ์/ใช้สกิล · <kbd>Q</kbd>/<kbd>F</kbd> เลือก/ยิงอาวุธ
         </p>
         <p class="hint touch-only">ปัดนิ้วเพื่อเปลี่ยนเลน/กระโดด/สไลด์ · ปุ่มด้านล่างจอสำหรับเกราะและอาวุธ</p>
 
@@ -235,6 +244,7 @@
                ตาเลยต้องไล่อ่านป้ายทีละอันกว่าจะเจอคะแนน ทั้งที่มันคือตัวเดียวที่คนอยากรู้ทันที -->
           <div class="dead-headline">
             <span class="dead-score-label">คะแนนรอบนี้</span>
+            <div id="dead-learning-scope" class="deck-info"></div>
             <div id="dead-score" class="dead-score hud-num">0</div>
             <div class="dead-best"><span class="stat-label">สูงสุด</span><strong id="dead-best" class="hud-num">0</strong></div>
           </div>
@@ -320,7 +330,7 @@
         <p id="shop-code-status" class="shop-code-status"></p>
 
         <p class="hint">เก็บเหรียญจากการวิ่งทุกโหมด — จบรอบแล้วเหรียญเข้ากระเป๋าอัตโนมัติ<br>
-        ตัวละครทุกตัวเก่งเท่ากัน ต่างแค่ความเท่และอาวุธประจำตัว</p>
+        ตัวละครทั่วไปต่างกันที่รูปลักษณ์ ส่วนตัวที่มีป้าย “สกิลพิเศษ” จะมีความสามารถเฉพาะตัว</p>
         <button id="btn-shop-close" class="btn btn-primary">กลับเมนู</button>
       </div>
     </section>
@@ -351,12 +361,19 @@
           <!-- aria-labelledby ไม่ใช่ของประดับ: <div> ที่เป็นแค่พี่น้องกับ <select> ไม่ผูกชื่อ
                ให้เองเหมือน <label> ที่ครอบอยู่ (ซึ่งเป็นทรงที่ธีม/ความเร็วยังใช้อยู่)
                ถ้าไม่มีบรรทัดนี้ screen reader จะอ่านได้แค่ชื่อชุดที่เลือกอยู่ ไม่รู้ว่าช่องนี้คุมอะไร -->
-          <div class="set-title" id="deck-select-label">ชุดคำศัพท์</div>
+          <div class="set-title" id="deck-select-label">ชุดการเรียนรู้</div>
           <select id="deck-select" aria-labelledby="deck-select-label"></select>
           <!-- ตำแหน่งในคลัง ("ชุดที่ 3 จาก 12") — ui.js นับจาก <option> จริงเสมอ
                ห้ามฝังจำนวนไว้ที่นี่ ไม่งั้นวันที่เพิ่มชุดใหม่ตัวเลขจะโกหกโดยไม่มีอะไรพัง -->
           <p id="deck-count" class="set-sub"></p>
           <p id="deck-info" class="deck-info">กำลังโหลด…</p>
+        </div>
+
+        <div id="chapter-card" class="set-card hidden">
+          <div class="set-title" id="chapter-select-label">บทที่จะทดสอบ</div>
+          <select id="chapter-select" aria-labelledby="chapter-select-label"></select>
+          <p id="chapter-progress" class="deck-info"></p>
+          <a id="chapter-book-link" class="btn btn-small" target="_blank" rel="noopener noreferrer">📖 เปิดหนังสือบทนี้</a>
         </div>
 
         <div class="set-card">
@@ -605,6 +622,6 @@
        โหลดเป็นสคริปต์ธรรมดา (ไม่ใช่ module) เพื่อ expose window.Peer ให้ net.js ใช้
        ถ้าไฟล์นี้โหลดไม่ได้ เกมยังเล่นเดี่ยวได้ปกติ (net.js เช็ก window.Peer ก่อนเสมอ) -->
   <script src="./vendor/peerjs.min.js"></script>
-  <script type="module" src="./src/main.js?v=plan1a-20260812"></script>
+  <script type="module" src="./src/main.js?v=claws-20260814b"></script>
 </body>
 </html>

@@ -213,6 +213,14 @@ export const sfx = {
     noise({ duration: 0.5, gain: 0.34, filterFrom: 2200, filterTo: 120 });
   },
 
+  /** Black Panther ปลดปล่อยพลังจลน์ — ทุ้มกระแทกก่อน แล้วคลื่นแหลมกวาดออกไป */
+  pantherBurst() {
+    tone({ freq: 78, endFreq: 42, duration: 0.48, type: 'sawtooth', gain: 0.3 });
+    tone({ freq: 260, endFreq: 1240, duration: 0.72, type: 'triangle', gain: 0.19, delay: 0.04 });
+    tone({ freq: 520, endFreq: 2100, duration: 0.55, type: 'sine', gain: 0.12, delay: 0.11 });
+    noise({ duration: 0.82, gain: 0.22, filterFrom: 650, filterTo: 5600 });
+  },
+
   /** เก็บเหรียญ — ไล่เสียงสูงขึ้นตามจำนวนที่เก็บติดกัน (ให้รู้สึกว่า "กำลังต่อเนื่อง") */
   coin(streak = 0) {
     const base = 880 * Math.pow(2, Math.min(streak, 8) / 12);

@@ -65,6 +65,10 @@ export function createHUD(handlers = {}) {
     starsBox: document.querySelector('.stat.stars'),
     collect: $('hud-collect'),
     boosts: $('hud-boosts'),
+    characterSkill: $('hud-character-skill'),
+    skillStatus: $('hud-skill-status'),
+    skillValue: $('hud-skill-value'),
+    skillFill: $('hud-skill-fill'),
     jets: $('hud-jets'),
     bonusBanner: $('bonus-banner'),
     bonusTimer: $('bonus-timer'),
@@ -385,10 +389,10 @@ export function createHUD(handlers = {}) {
       el.practice.classList.toggle('hidden', on);
     },
 
-    /** ปุ่มเกราะต้องพูดภาษาของตัวละครที่ใส่อยู่ (โล่/คาตานะ/ดาวกระจาย/ไลต์เซเบอร์) */
-    setArmorLabel(emoji, name) {
+    /** ปุ่มเกราะต้องพูดภาษาของตัวละครที่ใส่อยู่ รวมถึงคำกริยา "ใช้" ของสกิลกรงเล็บ */
+    setArmorLabel(emoji, name, action = 'ใส่') {
       el.actEquip.querySelector('.act-icon').textContent = emoji;
-      el.actEquip.querySelector('.act-text').textContent = `ใส่${name}`;
+      el.actEquip.querySelector('.act-text').textContent = `${action}${name}`;
     },
 
     setPracticeProgress(done, total) {
@@ -512,6 +516,23 @@ export function createHUD(handlers = {}) {
       }
     },
     getBoosts: () => activeBoosts,
+
+    /** HUD ของสกิลประจำตัว — null = ตัวที่ใส่อยู่ไม่มีสกิลนี้ */
+    setCharacterSkill(info) {
+      if (!info) {
+        el.characterSkill.classList.add('hidden');
+        el.characterSkill.classList.remove('casting', 'near-ready');
+        return;
+      }
+      const ratio = Math.max(0, Math.min(1, info.chargeRatio ?? 0));
+      const casting = info.phase === 'burst';
+      el.characterSkill.classList.remove('hidden');
+      el.characterSkill.classList.toggle('casting', casting);
+      el.characterSkill.classList.toggle('near-ready', !casting && ratio >= CFG.blackPanther.traceStartsAt);
+      el.skillStatus.textContent = casting ? 'กำลังระเบิดไปข้างหน้า' : (ratio >= CFG.blackPanther.traceStartsAt ? 'พลังใกล้เต็ม!' : 'วิ่งเพื่อสะสมพลัง');
+      el.skillValue.textContent = casting ? 'ปล่อยพลัง!' : `${Math.round(ratio * 100)}%`;
+      el.skillFill.style.transform = `scaleX(${casting ? 1 : ratio})`;
+    },
 
     /** @param {number} n เกราะในคลัง (ยังไม่ใส่) @param {boolean} armed ใส่อยู่ = pip เรืองแสงพิเศษ */
     setJets(n, armed = false) {

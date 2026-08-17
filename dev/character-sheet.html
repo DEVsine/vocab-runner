@@ -21,6 +21,7 @@
 <script type="module">
 import * as THREE from 'three';
 import { createPlayer } from '../src/player.js';
+import { createPickupPool } from '../src/pickups.js';
 import { CHARACTER_ORDER } from '../src/characters.js';
 import { CFG } from '../src/config.js';
 
@@ -74,11 +75,19 @@ if (only) {
 const gear = params.get('gear');            // '', 'stow', 'armed'
 const back = params.get('back') === '1';    // มองจากด้านหลัง (มุมที่เห็นตอนเล่นจริง)
 const run = params.get('run') === '1';      // ท่าวิ่งแทนท่ายืนโชว์
+const pickupStyle = params.get('pickup');   // 'jet' หรือ 'claws' — ตรวจของที่เก็บได้แบบไม่ต้องรอสุ่ม
 
 for (const p of players) {
   if (gear === 'stow') p.setGear(1, false);
   else if (gear === 'armed') p.setGear(1, true);
   if (run) p.setShowcase(false);
+}
+
+let pickupPool = null;
+if (pickupStyle) {
+  players.forEach(p => { p.group.parent.visible = false; });
+  pickupPool = createPickupPool(scene);
+  pickupPool.spawnJet(1, CFG.world.playerZ, pickupStyle);
 }
 
 const pz = CFG.world.playerZ;
@@ -92,7 +101,10 @@ camera.lookAt(0, aimY, pz);
  * จะค้างอยู่ที่ 0.2 เรเดียนตอนถ่ายภาพ แล้วเราจะสรุปผิดว่า "ตัวละครหันหลังให้กล้อง"
  * เดินเวลาเองเป็นก้อนก่อน แล้วค่อยเรนเดอร์ = ได้ภาพเดิมทุกครั้งไม่ว่าเครื่องจะเร็วแค่ไหน */
 const warm = Math.round(parseFloat(params.get('t') || '3') * 60);
-for (let i = 0; i < warm; i++) for (const p of players) p.update(1 / 60, null);
+for (let i = 0; i < warm; i++) {
+  for (const p of players) p.update(1 / 60, null);
+  pickupPool?.update(1 / 60, 0);
+}
 renderer.render(scene, camera);
 
 /* ⚠️ ใช้ setInterval ไม่ใช่ requestAnimationFrame
@@ -101,6 +113,7 @@ renderer.render(scene, camera);
  * เราจะได้จอเปล่าแล้วสรุปผิดว่า "โมเดลโหลดไม่ขึ้น" ทั้งที่มันโหลดสำเร็จแล้ว */
 setInterval(() => {
   for (const p of players) p.update(1 / 60, null);
+  pickupPool?.update(1 / 60, 0);
   renderer.render(scene, camera);
 }, 1000 / 30);
 window.__ready = true;

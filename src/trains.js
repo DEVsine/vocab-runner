@@ -180,6 +180,24 @@ export function createTrainPool(scene) {
       return items.some(t => t.active && t.type === TRAIN.RIDE && t.lane === lane);
     },
 
+    /** ทำลายยานที่ช่วงลำตัวยานทับกับหน้าคลื่น แล้วคืนจุดกึ่งกลางไว้สร้างเศษพลัง */
+    destroyBetween(nearZ, farZ) {
+      const hi = Math.max(nearZ, farZ);
+      const lo = Math.min(nearZ, farZ);
+      const destroyed = [];
+      for (const t of items) {
+        if (!t.active) continue;
+        const z = t.parts.group.position.z;
+        const front = z + length / 2;
+        const back = z - length / 2;
+        if (front < lo || back > hi) continue;
+        destroyed.push({ x: LANE_X(t.lane), y: roofY * 0.6, z: Math.max(lo, Math.min(hi, z)) });
+        t.active = false;
+        t.parts.group.visible = false;
+      }
+      return destroyed;
+    },
+
     reset() {
       for (const t of items) {
         t.active = false;

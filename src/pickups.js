@@ -42,10 +42,16 @@ export function createPickupPool(scene) {
     coins.push({ mesh, active: false });
   }
 
-  /* ── ไอพ่นสำรอง ─────────────────────────────────────────── */
+  /* ── เกราะ/อาวุธสำรอง ─────────────────────────────────────
+   * หมวดของไอเทมยังใช้ PICKUP.JET เพื่อรักษา save/gameplay contract เดิม แต่ภาพที่เห็น
+   * ไม่ควรถูกล็อกเป็นถังไอพ่น: Black Panther เก็บ "กรงเล็บ" และตัวอื่นเก็บอุปกรณ์
+   * ประจำตัวของตัวเอง การแยก visual ออกจากชนิดไอเทมทำให้กติกาคงเดิมแต่ภาพไม่โกหกผู้เล่น */
   const jets = [];
   for (let i = 0; i < CFG.powerup.poolSize; i++) {
     const g = new THREE.Group();
+    const jetVisual = new THREE.Group();
+    jetVisual.name = 'jet-pickup';
+    g.add(jetVisual);
 
     for (const x of [-0.16, 0.16]) {
       const tank = new THREE.Mesh(
@@ -53,7 +59,7 @@ export function createPickupPool(scene) {
         toonMat(0xe8eef8, { emissive: 0x1b2a3a })
       );
       tank.position.x = x;
-      g.add(tank);
+      jetVisual.add(tank);
 
       const flame = new THREE.Mesh(
         new THREE.ConeGeometry(0.1, 0.3, 10),
@@ -61,8 +67,57 @@ export function createPickupPool(scene) {
       );
       flame.rotation.x = Math.PI;
       flame.position.set(x, -0.42, 0);
-      g.add(flame);
+      jetVisual.add(flame);
     }
+
+    // กรงเล็บสามแฉกบนถุงมือดำ: silhouette ต้องอ่านออกตั้งแต่ไกล ไม่ใช่กล่องสีม่วง
+    // ใบมีดชี้ขึ้นและกางเล็กน้อย จึงยังเห็นครบสามซี่แม้ไอเทมกำลังหมุนรอบแกน Y
+    const clawVisual = new THREE.Group();
+    clawVisual.name = 'claw-pickup';
+    clawVisual.visible = false;
+    clawVisual.rotation.z = -0.12;
+
+    const cuff = new THREE.Mesh(
+      new THREE.CylinderGeometry(0.19, 0.16, 0.22, 6),
+      toonMat(0x11131a, { emissive: 0x180b2c })
+    );
+    cuff.position.y = -0.22;
+    clawVisual.add(cuff);
+
+    const glove = new THREE.Mesh(
+      new THREE.DodecahedronGeometry(0.25, 0),
+      toonMat(0x1f2430, { emissive: 0x26113f })
+    );
+    glove.scale.set(1.05, 0.78, 0.62);
+    glove.position.y = -0.04;
+    clawVisual.add(glove);
+
+    const clawGlow = [];
+    for (const finger of [-1, 0, 1]) {
+      const knuckle = new THREE.Mesh(
+        new THREE.DodecahedronGeometry(0.065, 0),
+        toonMat(0x555e70)
+      );
+      knuckle.position.set(finger * 0.115, 0.105, -0.04);
+      clawVisual.add(knuckle);
+
+      const blade = new THREE.Mesh(
+        new THREE.ConeGeometry(0.048, 0.48, 5),
+        toonMat(0xe8edff, { emissive: 0x7e22ce, emissiveIntensity: 0.65 })
+      );
+      blade.position.set(finger * 0.13, 0.34, -0.035);
+      blade.rotation.z = finger * -0.13;
+      clawVisual.add(blade);
+      clawGlow.push(blade);
+    }
+
+    const gem = new THREE.Mesh(
+      new THREE.OctahedronGeometry(0.095, 0),
+      new THREE.MeshBasicMaterial({ color: 0xc084fc })
+    );
+    gem.position.set(0, -0.035, -0.175);
+    clawVisual.add(gem);
+    g.add(clawVisual);
 
     // วงแหวนเรืองแสงรอบตัว ทำให้เห็นแต่ไกลว่า "นี่ของหายาก"
     const halo = new THREE.Mesh(
@@ -74,7 +129,7 @@ export function createPickupPool(scene) {
 
     g.visible = false;
     scene.add(g);
-    jets.push({ group: g, halo, active: false });
+    jets.push({ group: g, halo, jetVisual, clawVisual, clawGlow, gem, active: false });
   }
 
   /* ── ดาวสะสม (ปลดล็อกด่านโบนัส) ─────────────────────────
@@ -159,9 +214,14 @@ export function createPickupPool(scene) {
       return c;
     },
 
-    spawnJet(lane, z) {
+    spawnJet(lane, z, style = 'jet') {
       const j = jets.find(o => !o.active);
       if (!j) return null;
+      const claws = style === 'claws';
+      j.jetVisual.visible = !claws;
+      j.clawVisual.visible = claws;
+      j.halo.material.color.setHex(claws ? 0xa855f7 : PALETTE.cyan);
+      j.group.userData.pickupStyle = claws ? 'claws' : 'jet';
       j.active = true;
       j.group.visible = true;
       j.group.position.set(LANE_X(lane), CFG.powerup.y, z);
@@ -241,6 +301,11 @@ export function createPickupPool(scene) {
         j.group.rotation.y = spin * 1.6;
         j.group.position.y = CFG.powerup.y + Math.sin(spin * 3) * 0.12;
         j.halo.scale.setScalar(1 + Math.sin(spin * 5) * 0.08);
+        if (j.clawVisual.visible) {
+          const pulse = 1 + Math.sin(spin * 8) * 0.08;
+          j.gem.scale.setScalar(pulse);
+          for (const blade of j.clawGlow) blade.material.emissiveIntensity = 0.5 + pulse * 0.22;
+        }
         if (j.group.position.z > CFG.world.despawnZ) {
           j.active = false;
           j.group.visible = false;

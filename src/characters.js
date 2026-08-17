@@ -1,12 +1,12 @@
 /**
  * characters.js — ตัวละครในร้านค้า (ข้อมูลล้วน ไม่มี three.js)
  *
- * ทุกตัวเล่นเหมือนกันเป๊ะ — ต่างแค่ "เปลือก + ชื่อเกราะ/อาวุธ"
+ * ตัวละครทั่วไปเล่นเหมือนกัน — ต่างแค่ "เปลือก + ชื่อเกราะ/อาวุธ"
  * ไอเทมกันตาย (เดิมคือไอพ่น) เปลี่ยนร่างตามตัวละคร: กดใส่แล้วอาวุธ/เกราะ
  * ของตัวนั้นจะเรืองแสง และข้อความในเกมเรียกชื่ออาวุธนั้นแทนคำว่าไอพ่น
  *
- * ⚠️ ห้ามให้ตัวละครที่ "ซื้อด้วยเหรียญ" เก่งกว่าตัวฟรี (pay-to-win)
- * เกมนี้วัดความรู้ศัพท์ ไม่ใช่ความหนาของกระเป๋า — ของซื้อคือความเท่เท่านั้น
+ * ตัวที่มี `ability.special` เป็นข้อยกเว้นโดยตั้งใจ: ร้านค้าต้องติดป้ายและอธิบายผล
+ * ต่อ gameplay ให้ชัด ห้ามซ่อนความได้เปรียบไว้ในคำบรรยายเชิงรูปลักษณ์
  *
  * ── ช่อง model: ใช้เมื่อวางไฟล์ .glb แล้ว ──
  * ถ้ามีไฟล์ assets/models/<id>.glb เกมจะใช้โมเดลนั้นแทนตัวที่ปั้นด้วยโค้ด
@@ -243,9 +243,19 @@ export const CHARACTERS = {
       props: { stow: ['Spellbook'], hold: ['Spellbook_open', '1H_Wand'] },
     },
   },
+  blackpanther: {
+    id: 'blackpanther', name: 'Black Panther', emoji: '🐈‍⬛', price: 30000,
+    weapon: 'กรงเล็บไวเบรเนียม', weaponEmoji: '✦', pickupStyle: 'claws', gearAction: 'ใช้',
+    suit: 0x0b0c12, suitDim: 0x202333, joint: 0x3b4054, accent: 0xa855f7,
+    desc: 'วิ่งสะสมพลัง 140 ม. หรือเก็บกรงเล็บแล้วกด Space เพื่อปล่อยคลื่นม่วงทำลายของด้านหน้า',
+    // Chibi แบบภาพอ้างอิง: หัวใหญ่ ไหล่กว้าง ลำตัวสั้นแน่น ไม่สูงผอมแบบนินจา
+    build: { h: 1.0, shoulder: 1.16, torso: [1.14, 0.9], limb: 1.04, head: [1.0, 1.0, 1.0] },
+    face: { mode: 'none' }, gloss: 0.36,
+    ability: { icon: '💜', name: 'ระเบิดพลังจลน์', special: true },
+  },
 };
 
-export const CHARACTER_ORDER = ['astro', 'spartan', 'samurai', 'ninja', 'darklord', 'skeleton', 'wizard', 'witch'];
+export const CHARACTER_ORDER = ['astro', 'spartan', 'samurai', 'ninja', 'darklord', 'skeleton', 'wizard', 'witch', 'blackpanther'];
 
 export function characterById(id) {
   return CHARACTERS[id] || CHARACTERS.astro;

@@ -246,6 +246,33 @@ export function createObstaclePool(scene) {
       return null;
     },
 
+    /**
+     * ทำลายอุปสรรคทุกเลนที่หน้าคลื่นกวาดผ่าน แล้วคืนตำแหน่งไว้สร้างเศษพลัง
+     * nearZ > farZ เสมอ เพราะ "ข้างหน้า" ของเกมคือแกน −Z
+     *
+     * ปิด active กับ visible พร้อมกันในจุดเดียว: ถ้าซ่อนแต่ภาพแต่ลืม hitbox
+     * ผู้เล่นจะชนอุปสรรคที่มองไม่เห็น ซึ่งเป็นบั๊กที่ทำลายความเชื่อใจทันที
+     */
+    destroyBetween(nearZ, farZ) {
+      const hi = Math.max(nearZ, farZ);
+      const lo = Math.min(nearZ, farZ);
+      const destroyed = [];
+      for (const o of items) {
+        if (!o.active) continue;
+        const z = o.holder.position.z;
+        if (z > hi || z < lo) continue;
+        destroyed.push({
+          x: o.holder.position.x,
+          y: o.type === OBSTACLE.JUNK ? highY : (o.type === OBSTACLE.BARRIER ? barrierHeight * 0.5 : lowHeight * 0.55),
+          z,
+          type: o.type,
+        });
+        o.active = false;
+        o.holder.visible = false;
+      }
+      return destroyed;
+    },
+
     reset() {
       for (const o of items) {
         o.active = false;

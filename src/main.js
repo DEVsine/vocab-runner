@@ -23,9 +23,11 @@ import { createTrainPool, TRAIN } from './trains.js';
 import { createPickupPool, PICKUP } from './pickups.js';
 import { planBonus } from './bonus.js';
 import { createBoosts, BOOST } from './boosts.js';
+import { createBlackPantherSkill } from './black-panther-skill.js';
+import { createBlackPantherFx } from './black-panther-fx.js';
 // version ผูกกับ visual contract ใน index.html: main ใหม่ต้องไม่ประกอบกับ HUD module
 // เก่าจาก cache ไม่งั้น CSS เห็นตำแหน่งตัวคูณแต่ JS ยังซ่อน ×1 อยู่
-import { createHUD } from './hud.js?v=plan1a-20260812';
+import { createHUD } from './hud.js?v=claws-20260814';
 import { createUI } from './ui.js';
 import { createInput, ACTIONS } from './input.js';
 import { createNet } from './net.js';
@@ -35,10 +37,10 @@ import { wallet } from './wallet.js';
 import { cheats } from './cheats.js';
 import { characterById } from './characters.js';
 import { pickPracticeWords, buildPracticeQueue } from './practice.js';
-import { loadDeckIndex, loadDeck, pickWord, pickWordSeeded, buildQuestion, zoneDeck, kidsDeck, isSubjectDeck } from './deck.js';
+import { loadDeckIndex, loadDeck, pickWord, pickWordSeeded, buildQuestion, zoneDeck, kidsDeck, isSubjectDeck, chapterDeck } from './deck.js';
 import { stormLevel, stormPhase, drainOver } from './storm.js';
 import { AMMO, AMMO_ORDER, ammoById } from './weapons.js';
-import { addMissed, clearWords, pending as inboxPending, pendingCount } from './inbox.js';
+import { addMissed, clearWords, pending as inboxPending } from './inbox.js';
 import { mulberry32 } from './rng.js';
 import * as srs from './srs.js';
 import {
@@ -180,6 +182,7 @@ const obstacles = createObstaclePool(world.scene);
 const trains = createTrainPool(world.scene);
 const pickups = createPickupPool(world.scene);
 const ghosts = createGhosts(world.scene);
+const blackPantherFx = createBlackPantherFx(world.scene, { range: CFG.blackPanther.range });
 // ปุ่ม/แถวที่กดได้ทั้งหมดอยู่ใน HUD — ผูก handler ตรงนี้ที่เดียว
 // (ฟังก์ชันด้านล่างเป็น function declaration จึงถูก hoist มาถึงตรงนี้แล้ว)
 const hud = createHUD({
@@ -197,6 +200,7 @@ const hud = createHUD({
 /** boot | menu | lobby | countdown | running | dying | dead | paused | stats */
 let state = 'boot';
 let deck = null;
+let fullDeck = null;
 let run = null;
 let deathInfo = null;
 let dyingTimer = 0;
@@ -224,6 +228,7 @@ const ui = createUI({
   onMenu: () => leaveToMenu(),
   onResume: () => resumeGame(),
   onDeckChange: (file) => selectDeck(file),
+  onChapterChange: (chapterId) => selectChapter(chapterId),
   onThemeChange: (id) => applyTheme(id),
   onCharacterChange: (id) => equipSkin(id),
   // ใบสอนของ deck ศัพท์อ่าน "คำอังกฤษ" · ใบความรู้ของ deck วิชาอ่าน "ประโยคความรู้"
@@ -236,6 +241,7 @@ const ui = createUI({
   },
   onPracticeRun: (words) => startPracticeRun(words),
   onPracticeAgain: () => openPracticeTeach(),
+  onReviewChapter: () => openPracticeTeach(true),
   onCheatsChanged: () => hud.setCheatVisible(cheats.enabled()),
   onOpenMultiplayer: () => openMultiplayer(),
   onMPCreate: (name) => mpCreate(name),
@@ -259,7 +265,7 @@ const ui = createUI({
   onStatsChanged: () => {
     ui.renderStats(deck);
     ui.setDeckInfo(deck);
-    hud.setBest(srs.getBest(deck.id).score);
+    hud.setBest(srs.getBest(deck.scopeKey ?? deck.id).score);
   },
   onResetDeck: () => {
     srs.resetDeck(deck.id);
@@ -442,7 +448,7 @@ createInput(canvas, (action) => {
         break;
       }
       if (action === ACTIONS.BACK) pauseGame();
-      else if (action === ACTIONS.CONFIRM) equipJet();   // Space/Enter/แตะจอ = ใส่ไอพ่น
+      else if (action === ACTIONS.CONFIRM) equipJet();   // Space/Enter/แตะจอ = ใส่อุปกรณ์หรือใช้สกิล
       else if (action === ACTIONS.FIRE) fireWeapon();
       else if (action === ACTIONS.SWITCH) cycleAmmo();
       else player.handle(action, sfx);
@@ -484,6 +490,8 @@ function toMenu() {
   stopAmbience();
   state = 'menu';
   hud.hide();
+  hud.setCharacterSkill(null);
+  blackPantherFx.reset();
   hud.showSpectate(false);
   // ล็อบบี้โชว์ตัวละคร (สไตล์ Fortnite): กล้องหันเข้าหน้าตัวละครบนแท่นเรืองแสง
   player.reset();
@@ -495,7 +503,8 @@ function toMenu() {
   ui.refreshIdentity();
   if (deck) {
     ui.setDeckInfo(deck);
-    ui.setPracticeBadge(pendingCount(deck.id));
+    ui.setPracticeBadge(scopedPendingCount());
+    ui.setChapterInfo(deck);
   }
   ui.show('menu');
 }
@@ -577,9 +586,11 @@ function startRun() {
     distance: 0,           // เมตรสะสมทั้งรอบ (1 หน่วยโลก ≈ 1 เมตร — ดู config.js)
     coins: 0,
     jets: 0,
-    jetArmed: false,       // ไอพ่นต้อง "กดใส่" เองถึงจะกันตาย (Space/แตะจอ)
+    jetArmed: false,       // อุปกรณ์ต้อง "กดใส่" เองถึงจะกันตาย (Space/แตะจอ)
     stars: 0,
     boosts: createBoosts(),  // ไอเทมจับเวลา (แม่เหล็ก/×2) — นาฬิกาเดินใน update()
+    blackPanther: createBlackPantherSkill(CFG.blackPanther),
+    pantherBurstRequested: false,
     bonus: null,
     recent: [],
     events: [],
@@ -636,9 +647,11 @@ function startRun() {
   syncGear();
   hud.setStars(0, CFG.stars.needed);
   hud.setBoosts([]);
+  hud.setCharacterSkill(player.state.skin === 'blackpanther' ? run.blackPanther.current() : null);
+  blackPantherFx.reset();
   hud.setBonusTimer(null);
   hud.hideBonusBanner();
-  hud.setBest(srs.getBest(deck.id).score);
+  hud.setBest(srs.getBest(deck.scopeKey ?? deck.id).score);
   hud.clearQuestion();
   hud.setQuestionVisible(true);    // เผื่อรอบก่อนจบตอนอยู่ในโบนัส (ยังซ่อน UI ค้างอยู่)
   hud.setFog(0);
@@ -648,7 +661,7 @@ function startRun() {
   // (ตัวเลขที่ค้างอยู่ที่ 0 ยังเป็นสิ่งเร้าที่ชวนให้มองอยู่ดี)
   hud.setCollectiblesVisible(!run.practice);
   hud.setBattleVisible(run.br);
-  hud.setArmorLabel(armorEmoji(), armorName());
+  hud.setArmorLabel(armorEmoji(), armorName(), armorAction());
   hud.setCheatVisible(cheats.enabled());
   hud.setOxygen(1, 1);
   hud.setWeapon(0, 0, run.selectedAmmo, null);
@@ -658,7 +671,7 @@ function startRun() {
 
 /* ══ โหมดฝึก: สอน 10 คำ → วิ่งกับคำชุดนั้น → สอนชุดถัดไป ═══════ */
 
-function openPracticeTeach() {
+function openPracticeTeach(reviewOnly = false) {
   if (!deck) return;
   // เข้าห้องซ้อมได้จากจอตายในโหมดแข่งด้วย — ต้องถอนตัวออกจากห้องให้เรียบร้อยก่อน
   // ไม่งั้นเราจะยัง broadcast สถานะเข้าห้องอยู่ทั้งที่ไปนั่งเรียนคำศัพท์แล้ว
@@ -670,7 +683,16 @@ function openPracticeTeach() {
   hud.showLeaderboard(false);
   state = 'teach';
   // ชุดฝึกถูกเลือกจาก "คำที่คุณเพิ่งพลาด" ก่อนเสมอ — ติดป้ายให้เห็นว่าอันไหนมาจากตรงนั้น
-  ui.showPracticeTeach(pickPracticeWords(deck), new Set(inboxPending(deck.id)));
+  const pendingIds = new Set(inboxPending(deck.id));
+  const words = reviewOnly
+    ? deck.words.filter(word => pendingIds.has(idOf(word)))
+    : pickPracticeWords(deck);
+  if (!words.length) {
+    hud.toast('บทนี้ยังไม่มีข้อที่พลาด — ลองทดสอบบทนี้ก่อนได้เลย', 2400);
+    toMenu();
+    return;
+  }
+  ui.showPracticeTeach(words, pendingIds);
 }
 
 function startPracticeRun(words) {
@@ -1276,7 +1298,7 @@ function mpJoin(name, code) {
 
 /** หัวห้องกดเริ่ม → กระจาย deck + โหมด (เดี่ยว/ดูโอ้/สควอด) ให้ทุกคนเริ่มพร้อมกัน */
 function mpStart() {
-  net.startRace(ui.selectedDeckFile(), ui.mpMode());
+  net.startRace(ui.selectedDeckFile(), ui.mpMode(), deck?.chapterId ?? 'all');
 }
 
 const MODE_LABEL = { solo: '👤 เดี่ยว — ตัวใครตัวมัน', duo: '👥 ดูโอ้ — ทีมละ 2', squad: '👨‍👩‍👧‍👦 สควอด — ทีมละ 4' };
@@ -1297,7 +1319,10 @@ async function beginRace(startMsg) {
   hud.setFinalBanner(false);
   hud.showContest(null);
   try {
-    if (startMsg?.deck) deck = await loadDeck(startMsg.deck);
+    if (startMsg?.deck) {
+      fullDeck = await loadDeck(startMsg.deck);
+      deck = chapterDeck(fullDeck, startMsg.chapter ?? 'all');
+    }
   } catch (err) {
     console.warn('[mp] โหลด deck ของหัวห้องไม่ได้ — ใช้ deck เดิมแทน', err);
     // ต้องบอกผู้เล่นตรง ๆ ไม่ใช่เงียบ: ศึกชิงคำจะใช้คำจาก deck ของหัวห้อง
@@ -1711,7 +1736,7 @@ function runDirector() {
       trains.spawn(TRAIN.ONCOMING, ev.lane,
         -(distanceOver(ev.lead) + CFG.trains.oncomingExtraSpeed * ev.lead));
       sfx.horn();              // หวูดเตือนพร้อมไฟหน้า — ผู้เล่นมีเวลาหลบ ~1.5 วิ
-    } else pickups.spawnJet(ev.lane, z);
+    } else pickups.spawnJet(ev.lane, z, characterById(player.state.skin).pickupStyle ?? 'jet');
 
     run.events.splice(i, 1);
   }
@@ -1850,13 +1875,32 @@ function noteMiss(word) {
 }
 
 /**
- * กด "ใส่" ไอพ่นจากคลัง (Space/Enter/แตะจอ ระหว่างวิ่ง)
- * ใส่แล้วมีเปลวที่หลังตลอด และกันตายได้ 1 ครั้ง — ทุกสาเหตุ (ตอบผิด/ชนของ/ชนยาน)
- * ⚠️ เก็บมาเฉย ๆ โดยไม่ใส่ = ไม่กันอะไรเลย ชนแล้วตายปกติ (นี่คือการตัดสินใจของผู้เล่น)
+ * ใช้อุปกรณ์จากคลัง (Space/Enter/แตะจอ ระหว่างวิ่ง)
+ * ตัวทั่วไป: สวมอาวุธ/เกราะไว้กันตายหนึ่งครั้ง
+ * Black Panther: สวมกรงเล็บและส่งคำขอระเบิดพลังไปยัง state machine ในเฟรมถัดไป
  */
 function equipJet() {
   if (state !== 'running' || !run || run.bonus || run.contest) return;
-  if (run.jetArmed) { hud.toast('ไอพ่นใส่อยู่แล้ว', 900); return; }
+
+  const isPanther = player.state.skin === 'blackpanther';
+  if (isPanther) {
+    // ห้ามหักของในคลังถ้าคลื่นเดิมยังเดินอยู่ — ปุ่มตอบสนอง แต่ charge ไม่หายฟรี
+    if (run.blackPanther.current().phase === 'burst') {
+      hud.toast('💜 คลื่นพลังยังระเบิดอยู่', 900);
+      return;
+    }
+    if (run.jets <= 0) return;
+
+    run.jets -= 1;
+    run.jetArmed = true;
+    run.pantherBurstRequested = true;
+    sfx.jetEquip();
+    syncGear();
+    hud.toast('✦ สวมกรงเล็บไวเบรเนียม — ปลดปล่อยพลัง!', 1200);
+    return;
+  }
+
+  if (run.jetArmed) { hud.toast(`${armorName()}ใส่อยู่แล้ว`, 900); return; }
   if (run.jets <= 0) return;
   run.jets -= 1;
   run.jetArmed = true;
@@ -1930,6 +1974,9 @@ function die(cause, word, chosen) {
   // ล้างสถานะไอเทมจับเวลาที่ป้อนให้ HUD — ตายแล้วนาฬิกาหยุดเดิน (update ไม่วิ่งแล้ว)
   // ถ้าไม่ล้าง EZL-70 จะเห็นตัวเลขแช่ค้างข้ามไปจนถึงจอตาย
   hud.setBoosts([]);
+  hud.setCharacterSkill(null);
+  player.setSkillCharge(0, false);
+  blackPantherFx.reset();
 
   world.shake(1.1);
   stopAmbience();
@@ -1943,7 +1990,7 @@ function die(cause, word, chosen) {
   if ((cause === 'lane' || cause === 'storm') && word) noteMiss(word);
 
   pendingRetryWord = word || null;
-  srs.submitScore(deck.id, run.score, run.gates);
+  srs.submitScore(deck.scopeKey ?? deck.id, run.score, run.gates);
   wallet.deposit(run.coins);        // เหรียญที่เก็บได้เข้ากระเป๋าถาวรเสมอ — ตายก็ไม่สูญเปล่า
 
   deathInfo = {
@@ -1954,7 +2001,9 @@ function die(cause, word, chosen) {
     distance: run.distance,
     gates: run.gates,
     coins: run.coins,
-    best: srs.getBest(deck.id).score,
+    best: srs.getBest(deck.scopeKey ?? deck.id).score,
+    learningScope: deck.chapter?.name ?? (isSubjectDeck(deck) ? 'ทุกบท' : ''),
+    learningProgress: isSubjectDeck(deck) ? srs.summarize(deck) : null,
     // เตรียมบทไว้ตรงนี้ แต่ยังไม่อ่าน — รอให้จอตายขึ้นก่อน (ดู startDeathNarration)
     narration: deathNarration(word, run.gates),
   };
@@ -2122,6 +2171,48 @@ function checkHazards() {
 }
 
 /**
+ * เดิน state machine ของ Black Panther แล้วเชื่อมผลลัพธ์ 3 ชั้นเข้าด้วยกัน:
+ * state บริสุทธิ์ → ภาพ/UI → hitbox ของอุปสรรค
+ *
+ * เรียกหลัง obstacles.update เสมอ ตำแหน่งที่คลื่นเห็นจึงตรงกับตำแหน่งที่ถูกทำลาย
+ * ในเฟรมเดียวกัน ไม่เกิดภาพคลื่นผ่านแล้วอุปสรรคค่อยหายเฟรมถัดไป
+ */
+function updateBlackPantherSkill(dt) {
+  const enabled = player.state.skin === 'blackpanther';
+  const distance = enabled && !run.bonus ? run.speed * dt : 0;
+  const activate = enabled && run.pantherBurstRequested;
+  // คำสั่งเป็น edge-trigger: อ่านหนึ่งครั้งแล้วล้างทันที ป้องกันการค้างจนระเบิดซ้ำทุกเฟรม
+  run.pantherBurstRequested = false;
+  const skill = run.blackPanther.tick({ distance, dt, enabled, activate });
+
+  player.setSkillCharge(skill.chargeRatio, skill.phase === 'burst');
+  hud.setCharacterSkill(enabled ? skill : null);
+  blackPantherFx.update(dt, skill, player.x());
+
+  if (!enabled) return;
+  if (skill.started) {
+    sfx.pantherBurst();
+    world.shake(0.55);
+    hud.toast(skill.source === 'claw'
+      ? '✦ กรงเล็บปลดปล่อยคลื่นไวเบรเนียม!'
+      : '💜 พลังเต็ม — ปลดปล่อยคลื่นไวเบรเนียม!', 1500);
+    // เฟรมประกาศสกิลยังมี sweepRatio=0 โดยตั้งใจ แต่ hitbox ใกล้ตัวต้องถูกล้างทันที
+    // ไม่งั้นพลังเต็มในจังหวะที่อุปสรรคแตะตัวพอดี ผู้เล่นจะตายก่อนเห็นคลื่นเฟรมแรก
+    for (const hit of obstacles.destroyBetween(0, -6)) blackPantherFx.burstAt(hit);
+    for (const hit of trains.destroyBetween(0, -6)) blackPantherFx.burstAt(hit);
+  }
+
+  if (skill.sweepTo > skill.sweepFrom) {
+    // อุปสรรควิ่งสวนคลื่นเข้าหาผู้เล่น จึงขยายขอบใกล้ด้วยระยะที่โลกขยับในเฟรมนี้
+    // เพื่อกันวัตถุ "ลอดรอยต่อ" ระหว่างช่วง sweep สองเฟรม
+    const nearZ = Math.min(0, -CFG.blackPanther.range * skill.sweepFrom + run.speed * dt + 0.12);
+    const farZ = -CFG.blackPanther.range * skill.sweepTo;
+    for (const hit of obstacles.destroyBetween(nearZ, farZ)) blackPantherFx.burstAt(hit);
+    for (const hit of trains.destroyBetween(nearZ, farZ)) blackPantherFx.burstAt(hit);
+  }
+}
+
+/**
  * ซิงก์ "สถานะเกราะ" ไปยังทั้ง HUD และตัวละครในฉากพร้อมกันจากที่เดียว
  *
  * ⚠️ เดิมสองอย่างนี้ถูกสั่งแยกกันคนละบรรทัด (hud.setJets / player.setArmed)
@@ -2137,6 +2228,7 @@ function syncGear() {
 /** ชื่อ/อีโมจิของ "เกราะกันตาย" ตามตัวละครที่ใส่ (astro=ไอพ่น, ตัวอื่น=อาวุธประจำตัว) */
 function armorName() { return characterById(wallet.selected()).weapon; }
 function armorEmoji() { return characterById(wallet.selected()).weaponEmoji; }
+function armorAction() { return characterById(wallet.selected()).gearAction ?? 'ใส่'; }
 
 /**
  * ยานลำเลียง: ตัดสิน 3 อย่างต่อเฟรม — ขึ้นหลังคา / ชนตัวยาน / โดนยานสวน
@@ -2208,7 +2300,9 @@ function collectPickups() {
     } else if (kind === PICKUP.JET) {
       run.jets = Math.min(CFG.powerup.maxCharges, run.jets + 1);
       sfx.jetPickup();
-      hud.toast(`ได้${armorName()}! กด Space หรือแตะจอเพื่อ "ใส่" — ใส่แล้วถึงจะกันตาย`, 2400);
+      hud.toast(player.state.skin === 'blackpanther'
+        ? 'ได้กรงเล็บไวเบรเนียม! กด Space หรือแตะจอเพื่อระเบิดพลัง'
+        : `ได้${armorName()}! กด Space หรือแตะจอเพื่อ "ใส่" — ใส่แล้วถึงจะกันตาย`, 2400);
 
     } else {
       // ไอเทมจับเวลา (แม่เหล็ก/×2): ทำงานทันที ไม่ต้องกดใช้ —
@@ -2362,6 +2456,7 @@ function update(dt) {
     player.update(dt, sfx);
     gates.update(dt, run.speed);
     obstacles.update(dt, run.speed);
+    updateBlackPantherSkill(dt);
     trains.update(dt, run.speed);
     pickups.update(dt, run.speed, magnetTarget());
     world.update(dt, run.speed, player.x());
@@ -2538,18 +2633,38 @@ function applySpeedMode(id) {
  */
 async function selectDeck(file) {
   try {
-    deck = await loadDeck(file);
+    fullDeck = await loadDeck(file);
   } catch (err) {
     console.error(err);
     document.getElementById('deck-info').innerHTML =
       `<span style="color:var(--danger)">โหลดชุดนี้ไม่ได้: ${err.message}</span>`;
+    fullDeck = null;
     deck = null;
     return;
   }
   pendingRetryWord = null;
+  const chapterId = ui.fillChapterList(fullDeck);
+  deck = chapterDeck(fullDeck, chapterId);
   ui.setDeckInfo(deck);
-  ui.setPracticeBadge(pendingCount(deck.id));
-  hud.setBest(srs.getBest(deck.id).score);
+  ui.setChapterInfo(deck);
+  ui.setPracticeBadge(scopedPendingCount());
+  hud.setBest(srs.getBest(deck.scopeKey ?? deck.id).score);
+}
+
+function selectChapter(chapterId) {
+  if (!fullDeck) return;
+  deck = chapterDeck(fullDeck, chapterId);
+  pendingRetryWord = null;
+  ui.setDeckInfo(deck);
+  ui.setChapterInfo(deck);
+  ui.setPracticeBadge(scopedPendingCount());
+  hud.setBest(srs.getBest(deck.scopeKey ?? deck.id).score);
+}
+
+function scopedPendingCount() {
+  if (!deck) return 0;
+  const allowed = new Set(deck.words.map(idOf));
+  return inboxPending(deck.id).filter(id => allowed.has(id)).length;
 }
 
 async function loadJokes() {
