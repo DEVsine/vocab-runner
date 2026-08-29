@@ -120,7 +120,8 @@ export function submitScore(deckId, score, gates) {
 /* ── สรุปผลสำหรับหน้าสถิติ ─────────────────────────────────── */
 
 export function summarize(deck) {
-  const stats = deckStats(deck.id);
+  const deckId = deck.statsId ?? deck.id;
+  const stats = deckStats(deckId);
   const rows = deck.words.map(word => {
     const st = stats[itemId(word)];
     return {

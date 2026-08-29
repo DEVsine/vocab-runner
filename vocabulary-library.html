@@ -1,0 +1,30 @@
+<!doctype html>
+<html lang="th">
+  <head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>คลังคำศัพท์ · Vocab Runner</title>
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Kanit:wght@400;500;600;700;800&display=swap" rel="stylesheet">
+    <style>
+      :root{--ink:#edf6ff;--muted:#9aacbf;--cyan:#35d8ee;--panel:#10172a;--line:rgba(255,255,255,.12)}*{box-sizing:border-box}body{margin:0;min-height:100vh;color:var(--ink);font-family:Kanit,"Noto Sans Thai",sans-serif;background:#070b16 radial-gradient(circle at 20% -10%,#123555 0,transparent 34%),radial-gradient(circle at 90% 15%,#2d1737 0,transparent 28%)}main{width:min(1040px,calc(100% - 32px));margin:0 auto;padding:40px 0 64px}.back,button{font:inherit}.back{color:var(--cyan);text-decoration:none;font-weight:600;background:none;border:0;padding:0;cursor:pointer}header{margin:42px 0 28px;display:grid;gap:12px}.eyebrow{margin:0;color:#b7f8ff;font-size:12px;font-weight:700;letter-spacing:.13em;text-transform:uppercase}h1{margin:0;font-size:clamp(34px,7vw,64px);line-height:1;letter-spacing:-.04em}h1 em{color:var(--cyan);font-style:normal}.intro{max-width:690px;margin:0;color:var(--muted);line-height:1.7}.category-grid{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:16px}.category-card{display:flex;align-items:center;gap:16px;width:100%;padding:22px;border:1px solid var(--line);border-radius:18px;color:var(--ink);text-align:left;cursor:pointer;background:linear-gradient(145deg,rgba(24,35,59,.98),rgba(11,16,31,.98));transition:transform .16s,border-color .16s}.category-card:hover{transform:translateY(-2px);border-color:var(--cyan)}.category-icon{font-size:48px}.category-copy{display:grid;gap:3px;flex:1}.category-copy strong{font-size:21px}.category-copy span{color:var(--muted);font-size:14px;line-height:1.4}.arrow{font-size:25px;color:var(--cyan)}.section-header{display:flex;align-items:end;justify-content:space-between;gap:16px;margin:34px 0 18px}.section-header h2{margin:0;font-size:clamp(30px,5vw,45px);line-height:1}.section-header p{margin:7px 0 0;color:var(--muted)}#category-count{padding:5px 11px;border-radius:99px;background:var(--cyan);color:#00232c;font-weight:800;white-space:nowrap}.word-grid{display:grid;grid-template-columns:repeat(5,minmax(0,1fr));gap:14px}.word-tile{overflow:hidden;padding:0;border:1px solid var(--line);border-radius:15px;color:var(--ink);text-align:left;cursor:pointer;background:var(--panel);transition:transform .16s,border-color .16s}.word-tile:hover{transform:translateY(-2px);border-color:var(--cyan)}.word-tile img,.word-placeholder{display:block;width:100%;aspect-ratio:1;object-fit:cover;background:#e7e5e2}.word-placeholder{display:grid!important;place-items:center;padding:0!important;font-size:42px;background:linear-gradient(145deg,#273a58,#19233b)}.word-tile>span:last-child{display:block;padding:9px 10px;font-weight:600;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}.dialog{position:fixed;z-index:3;inset:0;display:grid;place-items:center;padding:20px;background:rgba(1,4,11,.76);backdrop-filter:blur(6px)}.dialog[hidden],section[hidden],.detail img[hidden],.detail-no-image[hidden]{display:none}.detail{position:relative;overflow:hidden;width:min(560px,100%);border:1px solid var(--line);border-radius:22px;background:var(--panel);box-shadow:0 24px 80px #000}.detail img{display:block;width:100%;max-height:min(54vh,460px);object-fit:cover;background:#e7e5e2}.detail-no-image{min-height:220px;padding:40px;display:grid;place-items:center;text-align:center;color:var(--muted);background:linear-gradient(145deg,#273a58,#19233b)}.detail-copy{padding:21px 24px 24px}.detail-copy h2{margin:0;font-size:clamp(34px,8vw,52px);line-height:1}.detail-copy .thai{margin:5px 0 19px;color:var(--cyan);font-size:21px}.credit{margin:0;color:var(--muted);font-size:12px;line-height:1.6}.credit a{color:#c5d8ee}.close{position:absolute;right:11px;top:11px;width:38px;height:38px;border:0;border-radius:50%;color:white;font-size:24px;cursor:pointer;background:rgba(0,0,0,.64)}@media(max-width:720px){main{width:min(100% - 24px,560px);padding-top:28px}header{margin-top:32px}.category-grid{grid-template-columns:1fr}.word-grid{grid-template-columns:repeat(3,minmax(0,1fr));gap:10px}.word-tile>span:last-child{padding:7px;font-size:14px}.section-header{align-items:start}.detail-copy{padding:18px}.detail img{max-height:47vh}}@media(max-width:360px){.word-grid{grid-template-columns:repeat(2,minmax(0,1fr))}}
+    </style>
+  </head>
+  <body>
+    <main>
+      <a class="back" href="./index.html">← กลับ Vocab Runner</a>
+      <section id="category-view">
+        <header><p class="eyebrow">Vocabulary library</p><h1>เลือกหมวด <em>คำศัพท์</em></h1><p class="intro">แตะหมวดเพื่อดูคำศัพท์และภาพจริงที่เก็บไว้ในเครื่องของเกม</p></header>
+        <div id="category-grid" class="category-grid" aria-live="polite"></div>
+      </section>
+      <section id="words-view" hidden>
+        <button id="back-to-categories" class="back" type="button">← เลือกหมวดอื่น</button>
+        <div class="section-header"><div><h2 id="category-title">สัตว์</h2><p id="category-description"></p></div><span id="category-count"></span></div>
+        <div id="word-grid" class="word-grid" aria-live="polite"></div>
+      </section>
+    </main>
+    <div id="word-dialog" class="dialog" role="dialog" aria-modal="true" aria-labelledby="detail-en" hidden><article class="detail"><button id="close-detail" class="close" type="button" aria-label="ปิด">×</button><img id="detail-image"><div id="detail-no-image" class="detail-no-image" hidden></div><div class="detail-copy"><h2 id="detail-en"></h2><p id="detail-th" class="thai"></p><p id="detail-credit" class="credit"></p></div></article></div>
+    <script type="module" src="./src/vocabulary-library.js"></script>
+  </body>
+</html>

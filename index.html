@@ -91,6 +91,7 @@
 
       <div id="hud-prompt">
         <div class="prompt-label" id="hud-prompt-label">วิ่งเข้าเลนที่แปลว่า</div>
+        <div id="hud-lesson-step" class="lesson-step hidden"></div>
         <div id="hud-prompt-word">—</div>
         <div id="hud-prompt-emoji" class="hidden">🚀</div>
         <img id="hud-prompt-image" class="hidden" alt="" decoding="async">
@@ -174,6 +175,7 @@
         <h1 class="title">VOCAB<span class="title-accent">RUNNER</span></h1>
         <p class="subtitle">อ่านโจทย์ไทย แล้ววิ่งเข้าเลนคำอังกฤษที่ถูกต้อง</p>
         <div id="menu-learning-scope" class="learning-scope hidden" aria-live="polite"></div>
+        <p id="menu-study-summary" class="menu-study-summary hidden" aria-live="polite"></p>
 
         <!-- ปุ่มหลักอยู่ "บนสุด" บนมือถือ — คนเปิดเกมมาเพื่อเล่น ไม่ใช่เพื่อตั้งค่า
              การให้ตัวเลือกมาก่อนปุ่มเล่นคือการบังคับให้ทุกคนเลื่อนหาปุ่มทุกครั้ง
@@ -208,6 +210,9 @@
           <button id="btn-stats" class="nav-item" type="button">
             <span class="nav-icon" aria-hidden="true">📊</span><span class="nav-label">สถิติ</span>
           </button>
+          <a class="nav-item" href="./vocabulary-library.html">
+            <span class="nav-icon" aria-hidden="true">🖼️</span><span class="nav-label">คลังคำ</span>
+          </a>
           <button id="btn-menu-settings" class="nav-item" type="button" aria-controls="screen-settings">
             <span class="nav-icon" aria-hidden="true">⚙️</span><span class="nav-label">ตั้งค่า</span>
           </button>
@@ -363,6 +368,12 @@
                ถ้าไม่มีบรรทัดนี้ screen reader จะอ่านได้แค่ชื่อชุดที่เลือกอยู่ ไม่รู้ว่าช่องนี้คุมอะไร -->
           <div class="set-title" id="deck-select-label">ชุดการเรียนรู้</div>
           <select id="deck-select" aria-labelledby="deck-select-label"></select>
+          <div id="study-level-wrap" class="hidden">
+            <div class="set-title" id="study-level-label">ชุดคำ</div>
+            <select id="study-level-select" aria-labelledby="study-level-label"></select>
+            <label class="toggle"><input type="checkbox" id="study-cumulative-toggle"> <span>รวมชุดก่อนหน้า</span></label>
+            <p class="set-sub">แต่ละชุด ~10 คำ · ไม่ติ๊ก = เล่นเฉพาะชุดนี้ · ติ๊ก = ทบทวนสะสม</p>
+          </div>
           <!-- ตำแหน่งในคลัง ("ชุดที่ 3 จาก 12") — ui.js นับจาก <option> จริงเสมอ
                ห้ามฝังจำนวนไว้ที่นี่ ไม่งั้นวันที่เพิ่มชุดใหม่ตัวเลขจะโกหกโดยไม่มีอะไรพัง -->
           <p id="deck-count" class="set-sub"></p>
@@ -410,7 +421,7 @@
           <div class="toggles">
             <label class="toggle"><input type="checkbox" id="toggle-kids"> <span>👶 โหมดเด็ก (Phonics)</span></label>
           </div>
-          <p id="kids-note" class="deck-info">คำสั้นระดับต้น · วิ่งช้า · โจทย์รูปกับเสียงเท่านั้น</p>
+          <p id="kids-note" class="deck-info">คำสั้น · วิ่งช้า · สอนทีละขั้น: รูปซ้ำ → เสียง → ไทย ในชุด ~5 คำ · พูดทุกครั้งที่ขึ้นคำ</p>
         </div>
 
         <div class="set-card">
@@ -418,7 +429,9 @@
           <div class="toggles">
             <label class="toggle"><input type="checkbox" id="toggle-sfx" checked> <span>เสียงประกอบ</span></label>
             <label class="toggle"><input type="checkbox" id="toggle-speech" checked> <span>อ่านออกเสียงคำ</span></label>
+            <label class="toggle"><input type="checkbox" id="toggle-speak-all" checked> <span>พูดทุกครั้งที่ขึ้นคำ</span></label>
           </div>
+          <p class="set-sub">ขึ้นรูปหรือขึ้นคำอังกฤษแล้วอ่านให้ฟัง <b>ตอนวิ่งในเกม</b> — และเปิดลำดับสอนรูป→เสียง→ไทย (ไม่ใช่การ์ด Flash ตอนฝึก)</p>
           <!-- ปุ่มตรวจเครื่องอ่านออกเสียงของเบราว์เซอร์ — โหมดฟังพึ่งพาสิ่งนี้ทั้งหมด
                และมันพังเงียบ ๆ ได้หลายทาง จึงต้องมีวิธีตรวจที่ให้คำตอบชัด ๆ -->
           <!-- โหมดเสียงโค้ช — <option> ถูกเติมจาก CFG.voice.modes ใน ui.js

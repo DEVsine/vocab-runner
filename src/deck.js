@@ -33,6 +33,7 @@ export async function loadDeckIndex() {
 }
 
 export async function loadDeck(file) {
+  await loadStudyLevelsCatalog();
   const res = await fetch(`./decks/${file}`, NO_CACHE);
   if (!res.ok) throw new Error(`โหลด deck "${file}" ไม่ได้ (HTTP ${res.status})`);
   return normalizeDeck(await res.json(), file);
@@ -78,6 +79,27 @@ export function chapterDeck(deck, chapterId = ALL_CHAPTERS) {
     items: deck.items.filter(item => item.chapterId === chapter.id),
     scopeKey: `${deck.id}:${chapter.id}`,
   };
+}
+
+/* ── deck คำตรงข้าม (โหมดสอบ) ──────────────────────────────
+ *
+ *   antonym → { type:"antonym", words: [{en, ant, th, antTh, level}] }
+ *             โจทย์คือ "คำตรงข้ามของ X" — ตัวเลือกเป็นคำ `ant` ของคำอื่นในชุด
+ *
+ * deck ชนิดนี้คือ "โหมดสอบ": อ่านอย่างเดียว ไม่มีเสียง ไม่มีเกราะกันตาย
+ * เพื่อให้ผลคะแนนสะท้อนความรู้จริง ไม่ใช่ไอเทมที่เก็บได้ระหว่างทาง
+ */
+export function isAntonymDeck(deck) {
+  return deck?.type === 'antonym';
+}
+
+/**
+ * deck นี้ต้องเล่นแบบ "โหมดสอบ" ไหม — ตอนนี้มีแค่คำตรงข้าม
+ * แยกชื่อฟังก์ชันไว้ตั้งแต่แรก เพราะกติกาโหมดสอบ (เงียบ/ไม่มีเกราะ/โจทย์ตัวหนังสือ)
+ * เป็นของ "ประเภทการเล่น" ไม่ใช่ของ deck คำตรงข้ามโดยเฉพาะ
+ */
+export function isExamDeck(deck) {
+  return isAntonymDeck(deck);
 }
 
 /**
@@ -151,10 +173,209 @@ export function normalizeDeck(deck, file = deck?.id ?? '?') {
     return { ...deck, words: deck.items.map(toSubjectWord) };
   }
 
+  if (isAntonymDeck(deck)) {
+    if (!Array.isArray(deck.words) || deck.words.length < 4) {
+      throw new Error(`deck คำตรงข้าม "${file}" ต้องมีอย่างน้อย 4 คู่`);
+    }
+    for (const w of deck.words) {
+      // ต้องครบทั้ง 4 ช่องทุกคู่ — โจทย์สลับภาษา (en/th) และตัวเลือกเผยคำแปล (antTh)
+      // ขาดช่องเดียวจะกลายเป็นโจทย์/เฉลยว่างเปล่ากลางเกมโดยไม่มี error ฟ้อง
+      if (!w.en || !w.ant || !w.th || !w.antTh) {
+        throw new Error(`deck คำตรงข้าม "${file}" คู่ "${w.en ?? '?'}": ต้องมี en/ant/th/antTh ครบ`);
+      }
+    }
+    return attachStudyLevels(deck);
+  }
+
   if (!Array.isArray(deck.words) || deck.words.length < 4) {
     throw new Error(`deck "${file}" ต้องมีคำอย่างน้อย 4 คำ`);
   }
-  return deck;
+  return attachStudyLevels(deck);
+}
+
+/* ── ชุดคำย่อย (~10 คำต่อชุด) ─────────────────────────────────
+ *
+ * แบ่งอัตโนมัติจากลำดับ topic (คุ้นเคยก่อน) + สั้น→ยาวภายใน topic
+ * ผู้เล่นเลือกชุดที่ N ได้ 2 แบบ:
+ *   - เฉพาะชุดนี้ (~10 คำ) — เหมาะรอบสั้น ๆ วนซ้ำจำได้เร็ว
+ *   - รวมชุด 1..N — ทบทวนสะสม
+ * สถิติ SRS แยกตาม playDeckId() เช่น animals@I3 (ชุด 3 อย่างเดียว) / animals@C3 (รวม)
+ */
+
+let studyLevelsCatalog = null;
+
+export async function loadStudyLevelsCatalog() {
+  if (studyLevelsCatalog) return studyLevelsCatalog;
+  const res = await fetch('./decks/study-levels.json', NO_CACHE);
+  if (!res.ok) throw new Error(`โหลดลำดับหมวดย่อยไม่ได้ (HTTP ${res.status})`);
+  studyLevelsCatalog = await res.json();
+  return studyLevelsCatalog;
+}
+
+/** ใช้ในเทสต์เท่านั้น — inject catalog โดยไม่ fetch */
+export function setStudyLevelsCatalog(catalog) {
+  studyLevelsCatalog = catalog;
+}
+
+/** @param {object} deck deck หลัง normalizeDeck */
+export function studyLevelPlan(deck) {
+  if (!deck?.id || isSubjectDeck(deck)) return null;
+  return studyLevelsCatalog?.[deck.id] ?? {};
+}
+
+/** กุญแจสถิติ — แยกตามชุด+โหมดรวม/ไม่รวม */
+export function playDeckId(deck) {
+  return deck?.statsId ?? deck?.id ?? '';
+}
+
+/** นับตัวอักษรอังกฤษอย่างเดียว — เว้นวรรค/เครื่องหมายไม่นับ ("polar bear" = 9) */
+export function englishLetterCount(en) {
+  return String(en ?? '').replace(/[^a-zA-Z]/g, '').length;
+}
+
+function byShortestEnglish(a, b) {
+  const diff = englishLetterCount(a.en) - englishLetterCount(b.en);
+  if (diff !== 0) return diff;
+  return String(a.en ?? '').localeCompare(String(b.en ?? ''));
+}
+
+function topicRank(topic, order, fallback) {
+  if (!topic) return fallback;
+  const idx = order.indexOf(topic);
+  return idx >= 0 ? idx : fallback + order.length;
+}
+
+/** เรียงคำก่อนแบ่งชุด: topic ที่คุ้นเคยก่อน แล้วสั้น→ยาว */
+export function sortWordsForStudy(words, plan = {}) {
+  if (plan.mode === 'difficulty') {
+    return words.slice().sort((a, b) =>
+      ((a.level ?? 2) - (b.level ?? 2)) || byShortestEnglish(a, b),
+    );
+  }
+
+  const order = plan.topicOrder ?? [];
+  const seen = new Set(order);
+  for (const w of words) {
+    if (w.topic && !seen.has(w.topic)) {
+      order.push(w.topic);
+      seen.add(w.topic);
+    }
+  }
+
+  return words.slice().sort((a, b) =>
+    topicRank(a.topic, order, 50) - topicRank(b.topic, order, 50) ||
+    byShortestEnglish(a, b),
+  );
+}
+
+/** แบ่งเป็นก้อน ~wordsPerStep · ถ้าท้ายเหลือ < minWordsPerStep ให้รวมกับชุดก่อน */
+export function chunkStudyWords(words, wordsPerStep, minWordsPerStep = 4) {
+  if (!words.length) return [];
+  const chunks = [];
+  for (let i = 0; i < words.length; i += wordsPerStep) {
+    chunks.push(words.slice(i, i + wordsPerStep));
+  }
+  if (chunks.length > 1 && chunks[chunks.length - 1].length < minWordsPerStep) {
+    chunks[chunks.length - 2].push(...chunks.pop());
+  }
+  return chunks;
+}
+
+function dominantTopic(chunk) {
+  const counts = new Map();
+  for (const w of chunk) {
+    if (!w.topic) continue;
+    counts.set(w.topic, (counts.get(w.topic) ?? 0) + 1);
+  }
+  let best = null;
+  let bestN = 0;
+  for (const [topic, n] of counts) {
+    if (n > bestN) { best = topic; bestN = n; }
+  }
+  return best;
+}
+
+function stepName(step, chunk, plan) {
+  // plan ตั้ง stepNaming:"level" ได้ เมื่อชุดที่ N ตรงกับระดับความยากที่ N พอดี
+  // (เช่น deck คำตรงข้ามที่จัด 10 คู่ต่อระดับมาแล้วจากไฟล์)
+  if (plan?.stepNaming === 'level') return `ระดับ ${step}`;
+  const topicLabels = plan?.topicLabels;
+  const topic = dominantTopic(chunk);
+  const label = topic && topicLabels?.[topic] ? topicLabels[topic] : null;
+  return label ? `${label} · ชุด ${step}` : `ชุดที่ ${step}`;
+}
+
+/** ใส่ studyStep ให้ทุกคำ + meta ชุดไว้บน deck */
+export function attachStudyLevels(deck) {
+  if (isSubjectDeck(deck)) {
+    return { ...deck, studyLevels: null, allWords: deck.words, statsId: deck.id };
+  }
+
+  const plan = studyLevelsCatalog?.[deck.id] ?? {};
+  const { wordsPerStep, minWordsPerStep } = CFG.studySteps;
+  const sorted = sortWordsForStudy(deck.words, plan);
+  const chunks = chunkStudyWords(sorted, wordsPerStep, minWordsPerStep);
+
+  if (chunks.length <= 1 && sorted.length <= wordsPerStep) {
+    return { ...deck, studyLevels: null, allWords: sorted, words: sorted, statsId: deck.id };
+  }
+
+  const allWords = [];
+  let cumulative = 0;
+  const studyLevels = chunks.map((chunk, i) => {
+    const step = i + 1;
+    for (const w of chunk) allWords.push({ ...w, studyStep: step });
+    cumulative += chunk.length;
+    return {
+      level: step,
+      name: stepName(step, chunk, plan),
+      stepCount: chunk.length,
+      cumulativeCount: cumulative,
+    };
+  });
+
+  return {
+    ...deck,
+    allWords,
+    words: allWords,
+    studyLevels,
+  };
+}
+
+/**
+ * เลือกชุดคำ — cumulative=false = เฉพาะชุดนี้ (~10 คำ) · true = รวมชุด 1..N
+ */
+export function applyStudyLevel(deck, step, { cumulative = false } = {}) {
+  if (!deck?.studyLevels?.length || !deck.allWords) return deck;
+  const n = Number(step);
+  const row = deck.studyLevels.find(r => r.level === n);
+  if (!row) return deck;
+
+  const words = cumulative
+    ? deck.allWords.filter(w => w.studyStep <= n)
+    : deck.allWords.filter(w => w.studyStep === n);
+
+  if (words.length < CFG.studySteps.minWordsPerStep) return deck;
+
+  const mode = cumulative ? 'C' : 'I';
+  return {
+    ...deck,
+    words,
+    activeStudyLevel: n,
+    activeStudyLevelName: row.name,
+    activeStudyCumulative: cumulative,
+    statsId: `${deck.id}@${mode}${n}`,
+  };
+}
+
+export function defaultStudyLevel(deck) {
+  if (!deck?.studyLevels?.length) return null;
+  return deck.studyLevels[0].level;
+}
+
+export function maxStudyLevel(deck) {
+  if (!deck?.studyLevels?.length) return null;
+  return deck.studyLevels[deck.studyLevels.length - 1].level;
 }
 
 /* ── เครื่องมือ ─────────────────────────────────────────────── */
@@ -227,8 +448,9 @@ export function pickWord(deck, recentQueue, rand = Math.random) {
   const candidates = pool.length >= 4 ? pool : deck.words;
 
   const weights = candidates.map(w => {
-    if (isUnseen(deck.id, w)) return CFG.srs.unseenWeight;
-    return CFG.srs.boxWeights[statOf(deck.id, w).box] ?? 1;
+    const deckKey = playDeckId(deck);
+    if (isUnseen(deckKey, w)) return CFG.srs.unseenWeight;
+    return CFG.srs.boxWeights[statOf(deckKey, w).box] ?? 1;
   });
 
   const total = weights.reduce((sum, x) => sum + x, 0);
@@ -366,10 +588,51 @@ export function buildSubjectQuestion(deck, answer, opts = {}, rand = Math.random
   };
 }
 
+/**
+ * ปั้นโจทย์คำตรงข้าม (โหมดสอบ) — "คำตรงข้ามของ X คืออะไร"
+ *
+ * ตัวเลือกทุกใบเป็นคำ `ant`: คำตอบถูกคือ ant ของคำที่ถาม ตัวลวงคือ ant ของคู่อื่น
+ * ⚠️ ตัวลวงต้องไม่ใช่คำในคู่ของโจทย์เอง — deck มีคู่กลับด้าน (dry—wet และ wet—dry)
+ * ถ้าโจทย์คือ "wet" แล้วตัวลวงหยิบ ant ของคู่ dry—wet มา จะได้ "wet" ซ้ำกับโจทย์
+ * หรือ "dry" ซ้ำกับคำตอบ = มีคำตอบถูกสองใบ/ตัวเลือกไร้สาระ
+ *
+ * โจทย์สลับภาษาแบบสุ่ม: ถามด้วยคำอังกฤษ (en) หรือคำไทย (th) — promptLang บอก HUD
+ * ว่าจะโชว์ "คำตรงข้ามของ hot" หรือ "คำตรงข้ามของ ร้อน"
+ * โหมดเป็น text เสมอ: โหมดสอบวัดการอ่าน ไม่มีเสียงและไม่มีรูป
+ */
+export function buildAntonymQuestion(deck, answer, opts = {}, rand = Math.random) {
+  const seen = new Set([answer.ant, answer.en]);   // กันซ้ำทั้งกับคำตอบและตัวโจทย์
+  const pool = [];
+  for (const w of deck.words) {
+    if (w.en === answer.en) continue;
+    if (seen.has(w.ant) || w.ant === answer.th) continue;
+    seen.add(w.ant);                                // dedupe ข้อความตัวเลือก (ant ซ้ำข้ามคู่ได้ เช่น slow)
+    pool.push(w);
+  }
+
+  const distractors = shuffle(pool, rand).slice(0, 2)
+    .map(w => ({ en: w.ant, th: w.antTh }));        // เก็บ antTh ไว้เผยคำแปลตอนเฉลย
+
+  const options = shuffle(
+    [{ en: answer.ant, th: answer.antTh }, ...distractors],
+    rand,
+  );
+  return {
+    word: answer,
+    options,
+    correctIndex: options.findIndex(o => o.en === answer.ant),
+    mode: 'text',
+    antonym: true,
+    promptLang: rand() < 0.5 ? 'en' : 'th',
+  };
+}
+
 export function buildQuestion(deck, answer, opts = {}, rand = Math.random) {
   if (isSubjectDeck(deck)) return buildSubjectQuestion(deck, answer, opts, rand);
+  if (isAntonymDeck(deck)) return buildAntonymQuestion(deck, answer, opts, rand);
 
-  const box = opts.box ?? (isUnseen(deck.id, answer) ? 1 : statOf(deck.id, answer).box);
+  const deckKey = playDeckId(deck);
+  const box = opts.box ?? (isUnseen(deckKey, answer) ? 1 : statOf(deckKey, answer).box);
 
   // 1) ตั้งต้นจากคำชนิดเดียวกัน (คำนาม/กริยา/คุณศัพท์/กริยาวิเศษณ์)
   //    เพราะถ้าปนชนิดคำ ผู้เล่นจะเดาถูกจากไวยากรณ์แทนความหมาย
@@ -418,6 +681,6 @@ export function buildQuestion(deck, answer, opts = {}, rand = Math.random) {
     word: answer,
     options,
     correctIndex: options.findIndex(o => o.en === answer.en),
-    mode: chooseMode(answer, opts, rand),
+    mode: opts.mode ?? chooseMode(answer, opts, rand),
   };
 }

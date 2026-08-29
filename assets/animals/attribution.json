@@ -1,0 +1,1832 @@
+{
+  "cat": {
+    "title": "Mona",
+    "creator": "Boaz Arad",
+    "license": "CC BY 2.0",
+    "licenseUrl": "https://creativecommons.org/licenses/by/2.0/",
+    "sourceUrl": "https://www.flickr.com/photos/11112129@N00/5403000714"
+  },
+  "elephant": {
+    "title": "Elephant, wildlife background",
+    "creator": "U.S. Agency for International Development",
+    "license": "CC0 1.0",
+    "licenseUrl": "https://creativecommons.org/publicdomain/zero/1.0/",
+    "sourceUrl": "https://www.rawpixel.com/image/6201640/photo-image-background-public-domain-nature"
+  },
+  "tiger": {
+    "title": "Nagzira Tiger",
+    "creator": "Vijaymp",
+    "license": "CC BY 3.0",
+    "licenseUrl": "https://creativecommons.org/licenses/by/3.0/",
+    "sourceUrl": "https://commons.wikimedia.org/w/index.php?curid=16021446"
+  },
+  "dog": {
+    "title": "20110425 German Shepherd Dog 8505",
+    "creator": "Jakub Hałun",
+    "license": "CC BY-SA 4.0",
+    "licenseUrl": "https://creativecommons.org/licenses/by-sa/4.0",
+    "sourceUrl": "https://commons.wikimedia.org/wiki/File%3A20110425%20German%20Shepherd%20Dog%208505.jpg",
+    "originalUrl": "https://commons.wikimedia.org/wiki/File:20110425_German_Shepherd_Dog_8505.jpg",
+    "cachedFrom": "Wikimedia Commons"
+  },
+  "rabbit": {
+    "title": "Rabbit - Hong Kong - 20091004 6729",
+    "creator": "Jakub Hałun",
+    "license": "CC BY-SA 4.0",
+    "licenseUrl": "https://creativecommons.org/licenses/by-sa/4.0",
+    "sourceUrl": "https://commons.wikimedia.org/wiki/File%3ARabbit%20-%20Hong%20Kong%20-%2020091004%206729.jpg",
+    "originalUrl": "https://commons.wikimedia.org/wiki/File:Rabbit_-_Hong_Kong_-_20091004_6729.jpg",
+    "cachedFrom": "Wikimedia Commons"
+  },
+  "hamster": {
+    "title": "A pet hamster named Peach",
+    "creator": "TetraHydroCannabinol",
+    "license": "CC BY-SA 3.0",
+    "licenseUrl": "http://creativecommons.org/licenses/by-sa/3.0/",
+    "sourceUrl": "https://commons.wikimedia.org/wiki/File%3AA%20pet%20hamster%20named%20Peach.jpg",
+    "originalUrl": "https://commons.wikimedia.org/wiki/File:A_pet_hamster_named_Peach.jpg",
+    "cachedFrom": "Wikimedia Commons"
+  },
+  "guinea pig": {
+    "title": "Two adult Guinea Pigs (Cavia porcellus)",
+    "creator": "Wikimedia Commons contributor",
+    "license": "CC BY-SA 3.0",
+    "licenseUrl": "http://creativecommons.org/licenses/by-sa/3.0/",
+    "sourceUrl": "https://commons.wikimedia.org/wiki/File%3ATwo%20adult%20Guinea%20Pigs%20(Cavia%20porcellus).jpg",
+    "originalUrl": "https://commons.wikimedia.org/wiki/File:Two_adult_Guinea_Pigs_(Cavia_porcellus).jpg",
+    "cachedFrom": "Wikimedia Commons"
+  },
+  "ferret": {
+    "title": "Mustela putorius furo",
+    "creator": "Wikimedia Commons contributor",
+    "license": "Public domain",
+    "licenseUrl": "https://commons.wikimedia.org/wiki/File%3AMustela%20putorius%20furo.jpg",
+    "sourceUrl": "https://commons.wikimedia.org/wiki/File%3AMustela%20putorius%20furo.jpg",
+    "originalUrl": "https://commons.wikimedia.org/wiki/File:Mustela_putorius_furo.jpg",
+    "cachedFrom": "Wikimedia Commons"
+  },
+  "goldfish": {
+    "title": "Carassius auratus auratus (goldfish) 2",
+    "creator": "James St. John",
+    "license": "CC BY 2.0",
+    "licenseUrl": "https://creativecommons.org/licenses/by/2.0",
+    "sourceUrl": "https://commons.wikimedia.org/wiki/File%3ACarassius%20auratus%20auratus%20(goldfish)%202.jpg",
+    "originalUrl": "https://commons.wikimedia.org/wiki/File:Carassius_auratus_auratus_(goldfish)_2.jpg",
+    "cachedFrom": "Wikimedia Commons"
+  },
+  "canary": {
+    "title": "Serinus canaria - Canary - Wild",
+    "creator": "Eduardo Martínez",
+    "license": "CC BY 2.0",
+    "licenseUrl": "https://creativecommons.org/licenses/by/2.0",
+    "sourceUrl": "https://commons.wikimedia.org/wiki/File%3ASerinus%20canaria%20-%20Canary%20-%20Wild.jpg",
+    "originalUrl": "https://commons.wikimedia.org/wiki/File:Serinus_canaria_-_Canary_-_Wild.jpg",
+    "cachedFrom": "Wikimedia Commons"
+  },
+  "cow": {
+    "title": "Cow female black white",
+    "creator": "Keith Weller/USDA",
+    "license": "Public domain",
+    "licenseUrl": "https://commons.wikimedia.org/wiki/File%3ACow%20female%20black%20white.jpg",
+    "sourceUrl": "https://commons.wikimedia.org/wiki/File%3ACow%20female%20black%20white.jpg",
+    "originalUrl": "https://commons.wikimedia.org/wiki/File:Cow_female_black_white.jpg",
+    "cachedFrom": "Wikimedia Commons"
+  },
+  "bull": {
+    "title": "Tethered bull Holstein Mexico p2",
+    "creator": "Cvmontuy",
+    "license": "CC BY-SA 4.0",
+    "licenseUrl": "https://creativecommons.org/licenses/by-sa/4.0",
+    "sourceUrl": "https://commons.wikimedia.org/wiki/File%3ATethered%20bull%20Holstein%20Mexico%20p2.jpg",
+    "originalUrl": "https://commons.wikimedia.org/wiki/File:Tethered_bull_Holstein_Mexico_p2.jpg",
+    "cachedFrom": "Wikimedia Commons"
+  },
+  "ox": {
+    "title": "Ploughing paddy field with oxen, Umaria district, MP, India",
+    "creator": "Yann (talk)",
+    "license": "CC BY-SA 4.0",
+    "licenseUrl": "https://creativecommons.org/licenses/by-sa/4.0",
+    "sourceUrl": "https://commons.wikimedia.org/wiki/File%3APloughing%20paddy%20field%20with%20oxen%2C%20Umaria%20district%2C%20MP%2C%20India.jpg",
+    "originalUrl": "https://commons.wikimedia.org/wiki/File:Ploughing_paddy_field_with_oxen,_Umaria_district,_MP,_India.jpg",
+    "cachedFrom": "Wikimedia Commons"
+  },
+  "buffalo": {
+    "title": "Three buffaloes heads above water in Si Phan Don",
+    "creator": "Basile Morin",
+    "license": "CC BY-SA 4.0",
+    "licenseUrl": "https://creativecommons.org/licenses/by-sa/4.0",
+    "sourceUrl": "https://commons.wikimedia.org/wiki/File%3AThree%20buffaloes%20heads%20above%20water%20in%20Si%20Phan%20Don.jpg",
+    "originalUrl": "https://commons.wikimedia.org/wiki/File:Three_buffaloes_heads_above_water_in_Si_Phan_Don.jpg",
+    "cachedFrom": "Wikimedia Commons"
+  },
+  "calf": {
+    "title": "New born Frisian red white calf",
+    "creator": "Uberprutser",
+    "license": "CC BY-SA 3.0",
+    "licenseUrl": "https://creativecommons.org/licenses/by-sa/3.0",
+    "sourceUrl": "https://commons.wikimedia.org/wiki/File%3ANew%20born%20Frisian%20red%20white%20calf.jpg",
+    "originalUrl": "https://commons.wikimedia.org/wiki/File:New_born_Frisian_red_white_calf.jpg",
+    "cachedFrom": "Wikimedia Commons"
+  },
+  "pig": {
+    "title": "Pot-bellied pigs in Lisbon Zoo 2008",
+    "creator": "Alvesgaspar",
+    "license": "CC BY-SA 4.0",
+    "licenseUrl": "https://creativecommons.org/licenses/by-sa/4.0",
+    "sourceUrl": "https://commons.wikimedia.org/wiki/File%3APot-bellied%20pigs%20in%20Lisbon%20Zoo%202008.jpg",
+    "originalUrl": "https://commons.wikimedia.org/wiki/File:Pot-bellied_pigs_in_Lisbon_Zoo_2008.jpg",
+    "cachedFrom": "Wikimedia Commons"
+  },
+  "piglet": {
+    "title": "Piglets at Mudchute Farm - geograph.org.uk - 7008181",
+    "creator": "Marathon",
+    "license": "CC BY-SA 2.0",
+    "licenseUrl": "https://creativecommons.org/licenses/by-sa/2.0",
+    "sourceUrl": "https://commons.wikimedia.org/wiki/File%3APiglets%20at%20Mudchute%20Farm%20-%20geograph.org.uk%20-%207008181.jpg",
+    "originalUrl": "https://commons.wikimedia.org/wiki/File:Piglets_at_Mudchute_Farm_-_geograph.org.uk_-_7008181.jpg",
+    "cachedFrom": "Wikimedia Commons"
+  },
+  "sheep": {
+    "title": "Flock of sheep",
+    "creator": "Keith Weller",
+    "license": "Public domain",
+    "licenseUrl": "https://commons.wikimedia.org/wiki/File%3AFlock%20of%20sheep.jpg",
+    "sourceUrl": "https://commons.wikimedia.org/wiki/File%3AFlock%20of%20sheep.jpg",
+    "originalUrl": "https://commons.wikimedia.org/wiki/File:Flock_of_sheep.jpg",
+    "cachedFrom": "Wikimedia Commons"
+  },
+  "lamb": {
+    "title": "Lamb - Animal Park Muggensturm 01",
+    "creator": "H. Zell",
+    "license": "CC BY-SA 3.0",
+    "licenseUrl": "https://creativecommons.org/licenses/by-sa/3.0",
+    "sourceUrl": "https://commons.wikimedia.org/wiki/File%3ALamb%20-%20Animal%20Park%20Muggensturm%2001.jpg",
+    "originalUrl": "https://commons.wikimedia.org/wiki/File:Lamb_-_Animal_Park_Muggensturm_01.jpg",
+    "cachedFrom": "Wikimedia Commons"
+  },
+  "goat": {
+    "title": "Gorge du Verdon Goat 0254",
+    "creator": "Dirk Beyer",
+    "license": "CC BY-SA 3.0",
+    "licenseUrl": "http://creativecommons.org/licenses/by-sa/3.0/",
+    "sourceUrl": "https://commons.wikimedia.org/wiki/File%3AGorge%20du%20Verdon%20Goat%200254.jpg",
+    "originalUrl": "https://commons.wikimedia.org/wiki/File:Gorge_du_Verdon_Goat_0254.jpg",
+    "cachedFrom": "Wikimedia Commons"
+  },
+  "horse": {
+    "title": "Horse-racing-4",
+    "creator": "Softeis",
+    "license": "CC BY-SA 3.0",
+    "licenseUrl": "http://creativecommons.org/licenses/by-sa/3.0/",
+    "sourceUrl": "https://commons.wikimedia.org/wiki/File%3AHorse-racing-4.jpg",
+    "originalUrl": "https://commons.wikimedia.org/wiki/File:Horse-racing-4.jpg",
+    "cachedFrom": "Wikimedia Commons"
+  },
+  "foal": {
+    "title": "Clydesdale mare and foal - geograph.org.uk - 168937",
+    "creator": "Eileen Henderson",
+    "license": "CC BY-SA 2.0",
+    "licenseUrl": "https://creativecommons.org/licenses/by-sa/2.0",
+    "sourceUrl": "https://commons.wikimedia.org/wiki/File%3AClydesdale%20mare%20and%20foal%20-%20geograph.org.uk%20-%20168937.jpg",
+    "originalUrl": "https://commons.wikimedia.org/wiki/File:Clydesdale_mare_and_foal_-_geograph.org.uk_-_168937.jpg",
+    "cachedFrom": "Wikimedia Commons"
+  },
+  "donkey": {
+    "title": "Donkey in Clovelly, North Devon, England",
+    "creator": "Adrian Pingstone",
+    "license": "Public domain",
+    "licenseUrl": "https://commons.wikimedia.org/wiki/File%3ADonkey%20in%20Clovelly%2C%20North%20Devon%2C%20England.jpg",
+    "sourceUrl": "https://commons.wikimedia.org/wiki/File%3ADonkey%20in%20Clovelly%2C%20North%20Devon%2C%20England.jpg",
+    "originalUrl": "https://commons.wikimedia.org/wiki/File:Donkey_in_Clovelly,_North_Devon,_England.jpg",
+    "cachedFrom": "Wikimedia Commons"
+  },
+  "mule": {
+    "title": "Mule (1)",
+    "creator": "Sogospelman at English Wikipedia",
+    "license": "CC BY 2.5",
+    "licenseUrl": "https://creativecommons.org/licenses/by/2.5",
+    "sourceUrl": "https://commons.wikimedia.org/wiki/File%3AMule%20(1).jpg",
+    "originalUrl": "https://commons.wikimedia.org/wiki/File:Mule_(1).jpg",
+    "cachedFrom": "Wikimedia Commons"
+  },
+  "chicken": {
+    "title": "Chicken February 2009-1",
+    "creator": "Alvesgaspar",
+    "license": "CC BY-SA 3.0",
+    "licenseUrl": "https://creativecommons.org/licenses/by-sa/3.0",
+    "sourceUrl": "https://commons.wikimedia.org/wiki/File%3AChicken%20February%202009-1.jpg",
+    "originalUrl": "https://commons.wikimedia.org/wiki/File:Chicken_February_2009-1.jpg",
+    "cachedFrom": "Wikimedia Commons"
+  },
+  "rooster": {
+    "title": "Rooster04 adjusted",
+    "creator": "User:Fir0002",
+    "license": "GFDL 1.2",
+    "licenseUrl": "http://www.gnu.org/licenses/old-licenses/fdl-1.2.html",
+    "sourceUrl": "https://commons.wikimedia.org/wiki/File%3ARooster04%20adjusted.jpg",
+    "originalUrl": "https://commons.wikimedia.org/wiki/File:Rooster04_adjusted.jpg",
+    "cachedFrom": "Wikimedia Commons"
+  },
+  "hen": {
+    "title": "Hen with chicks, Raisen district, MP, India",
+    "creator": "Yann (talk)",
+    "license": "CC BY-SA 4.0",
+    "licenseUrl": "https://creativecommons.org/licenses/by-sa/4.0",
+    "sourceUrl": "https://commons.wikimedia.org/wiki/File%3AHen%20with%20chicks%2C%20Raisen%20district%2C%20MP%2C%20India.jpg",
+    "originalUrl": "https://commons.wikimedia.org/wiki/File:Hen_with_chicks,_Raisen_district,_MP,_India.jpg",
+    "cachedFrom": "Wikimedia Commons"
+  },
+  "chick": {
+    "title": "Day old chick black background",
+    "creator": "fir0002 flagstaffotos [at] gmail.com Canon 20D + Tamron 28-75mm f/2.8",
+    "license": "GFDL 1.2",
+    "licenseUrl": "http://www.gnu.org/licenses/old-licenses/fdl-1.2.html",
+    "sourceUrl": "https://commons.wikimedia.org/wiki/File%3ADay%20old%20chick%20black%20background.jpg",
+    "originalUrl": "https://commons.wikimedia.org/wiki/File:Day_old_chick_black_background.jpg",
+    "cachedFrom": "Wikimedia Commons"
+  },
+  "duck": {
+    "title": "Female Mallard Duck Rest 3",
+    "creator": "Acarpentier",
+    "license": "CC BY 3.0",
+    "licenseUrl": "https://creativecommons.org/licenses/by/3.0",
+    "sourceUrl": "https://commons.wikimedia.org/wiki/File%3AFemale%20Mallard%20Duck%20Rest%203.jpg",
+    "originalUrl": "https://commons.wikimedia.org/wiki/File:Female_Mallard_Duck_Rest_3.jpg",
+    "cachedFrom": "Wikimedia Commons"
+  },
+  "goose": {
+    "title": "Canada goose flight cropped and NR",
+    "creator": "Image taken by Alan D. Wilson, and modified by Diliff (cropped and noise reduction applied).",
+    "license": "CC BY-SA 2.5",
+    "licenseUrl": "https://creativecommons.org/licenses/by-sa/2.5",
+    "sourceUrl": "https://commons.wikimedia.org/wiki/File%3ACanada%20goose%20flight%20cropped%20and%20NR.jpg",
+    "originalUrl": "https://commons.wikimedia.org/wiki/File:Canada_goose_flight_cropped_and_NR.jpg",
+    "cachedFrom": "Wikimedia Commons"
+  },
+  "turkey": {
+    "title": "Turkey vulture (Cathartes aura) in flight",
+    "creator": "Charles J. Sharp",
+    "license": "CC BY-SA 4.0",
+    "licenseUrl": "https://creativecommons.org/licenses/by-sa/4.0",
+    "sourceUrl": "https://commons.wikimedia.org/wiki/File%3ATurkey%20vulture%20(Cathartes%20aura)%20in%20flight.JPG",
+    "originalUrl": "https://commons.wikimedia.org/wiki/File:Turkey_vulture_(Cathartes_aura)_in_flight.JPG",
+    "cachedFrom": "Wikimedia Commons"
+  },
+  "llama": {
+    "title": "Llama (Lama glama), Tierpark Hellabrunn, Múnich, Alemania, 2012-06-17, DD 01",
+    "creator": "Diego Delso",
+    "license": "CC BY-SA 3.0",
+    "licenseUrl": "https://creativecommons.org/licenses/by-sa/3.0",
+    "sourceUrl": "https://commons.wikimedia.org/wiki/File%3ALlama%20(Lama%20glama)%2C%20Tierpark%20Hellabrunn%2C%20M%C3%BAnich%2C%20Alemania%2C%202012-06-17%2C%20DD%2001.JPG",
+    "originalUrl": "https://commons.wikimedia.org/wiki/File:Llama_(Lama_glama),_Tierpark_Hellabrunn,_M%C3%BAnich,_Alemania,_2012-06-17,_DD_01.JPG",
+    "cachedFrom": "Wikimedia Commons"
+  },
+  "alpaca": {
+    "title": "Dia Nacional de la Alpaca 05",
+    "creator": "Elwinlhq",
+    "license": "CC BY-SA 4.0",
+    "licenseUrl": "https://creativecommons.org/licenses/by-sa/4.0",
+    "sourceUrl": "https://commons.wikimedia.org/wiki/File%3ADia%20Nacional%20de%20la%20Alpaca%2005.jpg",
+    "originalUrl": "https://commons.wikimedia.org/wiki/File:Dia_Nacional_de_la_Alpaca_05.jpg",
+    "cachedFrom": "Wikimedia Commons"
+  },
+  "lion": {
+    "title": "Lion waiting in Namibia",
+    "creator": "Kevin Pluck",
+    "license": "CC BY 2.0",
+    "licenseUrl": "https://creativecommons.org/licenses/by/2.0",
+    "sourceUrl": "https://commons.wikimedia.org/wiki/File%3ALion%20waiting%20in%20Namibia.jpg",
+    "originalUrl": "https://commons.wikimedia.org/wiki/File:Lion_waiting_in_Namibia.jpg",
+    "cachedFrom": "Wikimedia Commons"
+  },
+  "leopard": {
+    "title": "Amur Leopard Pittsburgh Zoo",
+    "creator": "Colin Hines www.ColinHinesPhotography.com",
+    "license": "CC BY 2.5",
+    "licenseUrl": "https://creativecommons.org/licenses/by/2.5",
+    "sourceUrl": "https://commons.wikimedia.org/wiki/File%3AAmur%20Leopard%20Pittsburgh%20Zoo.jpg",
+    "originalUrl": "https://commons.wikimedia.org/wiki/File:Amur_Leopard_Pittsburgh_Zoo.jpg",
+    "cachedFrom": "Wikimedia Commons"
+  },
+  "cheetah": {
+    "title": "Cheetah portrait Whipsnade Zoo",
+    "creator": "William Warby",
+    "license": "CC BY 2.0",
+    "licenseUrl": "https://creativecommons.org/licenses/by/2.0",
+    "sourceUrl": "https://commons.wikimedia.org/wiki/File%3ACheetah%20portrait%20Whipsnade%20Zoo.jpg",
+    "originalUrl": "https://commons.wikimedia.org/wiki/File:Cheetah_portrait_Whipsnade_Zoo.jpg",
+    "cachedFrom": "Wikimedia Commons"
+  },
+  "jaguar": {
+    "title": "Jaguar head shot-edit2",
+    "creator": "Cburnett at English Wikipedia",
+    "license": "CC BY-SA 3.0",
+    "licenseUrl": "http://creativecommons.org/licenses/by-sa/3.0/",
+    "sourceUrl": "https://commons.wikimedia.org/wiki/File%3AJaguar%20head%20shot-edit2.jpg",
+    "originalUrl": "https://commons.wikimedia.org/wiki/File:Jaguar_head_shot-edit2.jpg",
+    "cachedFrom": "Wikimedia Commons"
+  },
+  "panther": {
+    "title": "Black Panther Leopard (8455637704)",
+    "creator": "shankar s. from Dubai, united arab emirates",
+    "license": "CC BY 2.0",
+    "licenseUrl": "https://creativecommons.org/licenses/by/2.0",
+    "sourceUrl": "https://commons.wikimedia.org/wiki/File%3ABlack%20Panther%20Leopard%20(8455637704).jpg",
+    "originalUrl": "https://commons.wikimedia.org/wiki/File:Black_Panther_Leopard_(8455637704).jpg",
+    "cachedFrom": "Wikimedia Commons"
+  },
+  "cougar": {
+    "title": "Puma concolor stanleyana - Texas Park - Lanzarote -PC08",
+    "creator": "Luis Miguel Bugallo Sánchez (Lmbuga)",
+    "license": "CC BY-SA 3.0",
+    "licenseUrl": "https://creativecommons.org/licenses/by-sa/3.0",
+    "sourceUrl": "https://commons.wikimedia.org/wiki/File%3APuma%20concolor%20stanleyana%20-%20Texas%20Park%20-%20Lanzarote%20-PC08.jpg",
+    "originalUrl": "https://commons.wikimedia.org/wiki/File:Puma_concolor_stanleyana_-_Texas_Park_-_Lanzarote_-PC08.jpg",
+    "cachedFrom": "Wikimedia Commons"
+  },
+  "lynx": {
+    "title": "Lynx kitten",
+    "creator": "taken by Bernard Landgraf",
+    "license": "CC BY-SA 3.0",
+    "licenseUrl": "http://creativecommons.org/licenses/by-sa/3.0/",
+    "sourceUrl": "https://commons.wikimedia.org/wiki/File%3ALynx%20kitten.jpg",
+    "originalUrl": "https://commons.wikimedia.org/wiki/File:Lynx_kitten.jpg",
+    "cachedFrom": "Wikimedia Commons"
+  },
+  "monkey": {
+    "title": "Monkey eating",
+    "creator": "Muhammad Mahdi Karim",
+    "license": "GFDL 1.2",
+    "licenseUrl": "http://www.gnu.org/licenses/old-licenses/fdl-1.2.html",
+    "sourceUrl": "https://commons.wikimedia.org/wiki/File%3AMonkey%20eating.jpg",
+    "originalUrl": "https://commons.wikimedia.org/wiki/File:Monkey_eating.jpg",
+    "cachedFrom": "Wikimedia Commons"
+  },
+  "gorilla": {
+    "title": "Mountain gorilla (Gorilla beringei beringei) eyes",
+    "creator": "Charles J. Sharp",
+    "license": "CC BY-SA 4.0",
+    "licenseUrl": "https://creativecommons.org/licenses/by-sa/4.0",
+    "sourceUrl": "https://commons.wikimedia.org/wiki/File%3AMountain%20gorilla%20(Gorilla%20beringei%20beringei)%20eyes.jpg",
+    "originalUrl": "https://commons.wikimedia.org/wiki/File:Mountain_gorilla_(Gorilla_beringei_beringei)_eyes.jpg",
+    "cachedFrom": "Wikimedia Commons"
+  },
+  "chimpanzee": {
+    "title": "Common chimpanzee (Pan troglodytes schweinfurthii) feeding",
+    "creator": "Charles J. Sharp",
+    "license": "CC BY-SA 4.0",
+    "licenseUrl": "https://creativecommons.org/licenses/by-sa/4.0",
+    "sourceUrl": "https://commons.wikimedia.org/wiki/File%3ACommon%20chimpanzee%20(Pan%20troglodytes%20schweinfurthii)%20feeding.jpg",
+    "originalUrl": "https://commons.wikimedia.org/wiki/File:Common_chimpanzee_(Pan_troglodytes_schweinfurthii)_feeding.jpg",
+    "cachedFrom": "Wikimedia Commons"
+  },
+  "orangutan": {
+    "title": "Pongo pygmaeus (orangutang)",
+    "creator": "Malene Thyssen",
+    "license": "CC BY 2.5",
+    "licenseUrl": "https://creativecommons.org/licenses/by/2.5",
+    "sourceUrl": "https://commons.wikimedia.org/wiki/File%3APongo%20pygmaeus%20(orangutang).jpg",
+    "originalUrl": "https://commons.wikimedia.org/wiki/File:Pongo_pygmaeus_(orangutang).jpg",
+    "cachedFrom": "Wikimedia Commons"
+  },
+  "baboon": {
+    "title": "Olive baboon Ngorongoro",
+    "creator": "Muhammad Mahdi Karim",
+    "license": "GFDL 1.2",
+    "licenseUrl": "http://www.gnu.org/licenses/old-licenses/fdl-1.2.html",
+    "sourceUrl": "https://commons.wikimedia.org/wiki/File%3AOlive%20baboon%20Ngorongoro.jpg",
+    "originalUrl": "https://commons.wikimedia.org/wiki/File:Olive_baboon_Ngorongoro.jpg",
+    "cachedFrom": "Wikimedia Commons"
+  },
+  "gibbon": {
+    "title": "Gibbon collage",
+    "creator": "PaleoMatt",
+    "license": "CC BY-SA 4.0",
+    "licenseUrl": "https://creativecommons.org/licenses/by-sa/4.0",
+    "sourceUrl": "https://commons.wikimedia.org/wiki/File%3AGibbon%20collage.png",
+    "originalUrl": "https://commons.wikimedia.org/wiki/File:Gibbon_collage.png",
+    "cachedFrom": "Wikimedia Commons"
+  },
+  "lemur": {
+    "title": "Ring tailed lemur and twins",
+    "creator": "Sannse at English Wikipedia",
+    "license": "CC BY-SA 3.0",
+    "licenseUrl": "http://creativecommons.org/licenses/by-sa/3.0/",
+    "sourceUrl": "https://commons.wikimedia.org/wiki/File%3ARing%20tailed%20lemur%20and%20twins.jpg",
+    "originalUrl": "https://commons.wikimedia.org/wiki/File:Ring_tailed_lemur_and_twins.jpg",
+    "cachedFrom": "Wikimedia Commons"
+  },
+  "mammoth": {
+    "title": "Columbian mammoth",
+    "creator": "WolfmanSF",
+    "license": "CC BY-SA 3.0",
+    "licenseUrl": "https://creativecommons.org/licenses/by-sa/3.0",
+    "sourceUrl": "https://commons.wikimedia.org/wiki/File%3AColumbian%20mammoth.JPG",
+    "originalUrl": "https://commons.wikimedia.org/wiki/File:Columbian_mammoth.JPG",
+    "cachedFrom": "Wikimedia Commons"
+  },
+  "rhinoceros": {
+    "title": "Rhinoceros in South Africa adjusted",
+    "creator": "Komencanto, modified by ArtMechanic",
+    "license": "Public domain",
+    "licenseUrl": "https://commons.wikimedia.org/wiki/File%3ARhinoceros%20in%20South%20Africa%20adjusted.jpg",
+    "sourceUrl": "https://commons.wikimedia.org/wiki/File%3ARhinoceros%20in%20South%20Africa%20adjusted.jpg",
+    "originalUrl": "https://commons.wikimedia.org/wiki/File:Rhinoceros_in_South_Africa_adjusted.jpg",
+    "cachedFrom": "Wikimedia Commons"
+  },
+  "hippopotamus": {
+    "title": "Hippopotamus @ Barcelona zoo",
+    "creator": "Pedroserafin",
+    "license": "Public domain",
+    "licenseUrl": "https://commons.wikimedia.org/wiki/File%3AHippopotamus%20%40%20Barcelona%20zoo.jpg",
+    "sourceUrl": "https://commons.wikimedia.org/wiki/File%3AHippopotamus%20%40%20Barcelona%20zoo.jpg",
+    "originalUrl": "https://commons.wikimedia.org/wiki/File:Hippopotamus_@_Barcelona_zoo.jpg",
+    "cachedFrom": "Wikimedia Commons"
+  },
+  "giraffe": {
+    "title": "Giraffe-closeup-head",
+    "creator": "Rob Hooft",
+    "license": "CC BY-SA 3.0",
+    "licenseUrl": "http://creativecommons.org/licenses/by-sa/3.0/",
+    "sourceUrl": "https://commons.wikimedia.org/wiki/File%3AGiraffe-closeup-head.jpg",
+    "originalUrl": "https://commons.wikimedia.org/wiki/File:Giraffe-closeup-head.jpg",
+    "cachedFrom": "Wikimedia Commons"
+  },
+  "zebra": {
+    "title": "Zebra Botswana edit02",
+    "creator": "Taken &amp; submitted by Paul Maritz (PaulmazModified by Pharaoh Hound, Fir0002",
+    "license": "CC BY 2.5",
+    "licenseUrl": "https://creativecommons.org/licenses/by/2.5",
+    "sourceUrl": "https://commons.wikimedia.org/wiki/File%3AZebra%20Botswana%20edit02.jpg",
+    "originalUrl": "https://commons.wikimedia.org/wiki/File:Zebra_Botswana_edit02.jpg",
+    "cachedFrom": "Wikimedia Commons"
+  },
+  "bear": {
+    "title": "Polar Bear AdF",
+    "creator": "Arturo de Frias Marques",
+    "license": "CC BY-SA 4.0",
+    "licenseUrl": "https://creativecommons.org/licenses/by-sa/4.0",
+    "sourceUrl": "https://commons.wikimedia.org/wiki/File%3APolar%20Bear%20AdF.jpg",
+    "originalUrl": "https://commons.wikimedia.org/wiki/File:Polar_Bear_AdF.jpg",
+    "cachedFrom": "Wikimedia Commons"
+  },
+  "panda": {
+    "title": "Lightmatter panda",
+    "creator": "Aaron Logan",
+    "license": "CC BY 1.0",
+    "licenseUrl": "https://creativecommons.org/licenses/by/1.0",
+    "sourceUrl": "https://commons.wikimedia.org/wiki/File%3ALightmatter%20panda.jpg",
+    "originalUrl": "https://commons.wikimedia.org/wiki/File:Lightmatter_panda.jpg",
+    "cachedFrom": "Wikimedia Commons"
+  },
+  "polar bear": {
+    "title": "Polar bears near north pole",
+    "creator": "Chief Yeoman Alphonso Braggs, US-Navy",
+    "license": "Public domain",
+    "licenseUrl": "https://commons.wikimedia.org/wiki/File%3APolar%20bears%20near%20north%20pole.jpg",
+    "sourceUrl": "https://commons.wikimedia.org/wiki/File%3APolar%20bears%20near%20north%20pole.jpg",
+    "originalUrl": "https://commons.wikimedia.org/wiki/File:Polar_bears_near_north_pole.jpg",
+    "cachedFrom": "Wikimedia Commons"
+  },
+  "koala": {
+    "title": "Australia Cairns Koala",
+    "creator": "Guillaume Blanchard at French Wikipedia",
+    "license": "CC BY-SA 1.0",
+    "licenseUrl": "https://creativecommons.org/licenses/by-sa/1.0",
+    "sourceUrl": "https://commons.wikimedia.org/wiki/File%3AAustralia%20Cairns%20Koala.jpg",
+    "originalUrl": "https://commons.wikimedia.org/wiki/File:Australia_Cairns_Koala.jpg",
+    "cachedFrom": "Wikimedia Commons"
+  },
+  "kangaroo": {
+    "title": "Eastern grey kangaroo dec07 02",
+    "creator": "fir0002 flagstaffotos [at] gmail.com Canon 20D + Canon 400mm f/5.6 L",
+    "license": "GFDL 1.2",
+    "licenseUrl": "http://www.gnu.org/licenses/old-licenses/fdl-1.2.html",
+    "sourceUrl": "https://commons.wikimedia.org/wiki/File%3AEastern%20grey%20kangaroo%20dec07%2002.jpg",
+    "originalUrl": "https://commons.wikimedia.org/wiki/File:Eastern_grey_kangaroo_dec07_02.jpg",
+    "cachedFrom": "Wikimedia Commons"
+  },
+  "camel": {
+    "title": "07. Camel Profile, near Silverton, NSW, 07.07.2007",
+    "creator": "Jjron",
+    "license": "CC BY-SA 3.0",
+    "licenseUrl": "http://creativecommons.org/licenses/by-sa/3.0/",
+    "sourceUrl": "https://commons.wikimedia.org/wiki/File%3A07.%20Camel%20Profile%2C%20near%20Silverton%2C%20NSW%2C%2007.07.2007.jpg",
+    "originalUrl": "https://commons.wikimedia.org/wiki/File:07._Camel_Profile,_near_Silverton,_NSW,_07.07.2007.jpg",
+    "cachedFrom": "Wikimedia Commons"
+  },
+  "dromedary": {
+    "title": "Dromedary in Thar desert",
+    "creator": "Clément Bardot",
+    "license": "CC BY-SA 4.0",
+    "licenseUrl": "https://creativecommons.org/licenses/by-sa/4.0",
+    "sourceUrl": "https://commons.wikimedia.org/wiki/File%3ADromedary%20in%20Thar%20desert.jpg",
+    "originalUrl": "https://commons.wikimedia.org/wiki/File:Dromedary_in_Thar_desert.jpg",
+    "cachedFrom": "Wikimedia Commons"
+  },
+  "bison": {
+    "title": "American bison k5680-1",
+    "creator": "Jack Dykinga",
+    "license": "Public domain",
+    "licenseUrl": "https://commons.wikimedia.org/wiki/File%3AAmerican%20bison%20k5680-1.jpg",
+    "sourceUrl": "https://commons.wikimedia.org/wiki/File%3AAmerican%20bison%20k5680-1.jpg",
+    "originalUrl": "https://commons.wikimedia.org/wiki/File:American_bison_k5680-1.jpg",
+    "cachedFrom": "Wikimedia Commons"
+  },
+  "moose": {
+    "title": "Moose in Grand Teton National Park 3 (8007698498)",
+    "creator": "Tony Hisgett from Birmingham, UK",
+    "license": "CC BY 2.0",
+    "licenseUrl": "https://creativecommons.org/licenses/by/2.0",
+    "sourceUrl": "https://commons.wikimedia.org/wiki/File%3AMoose%20in%20Grand%20Teton%20National%20Park%203%20(8007698498).jpg",
+    "originalUrl": "https://commons.wikimedia.org/wiki/File:Moose_in_Grand_Teton_National_Park_3_(8007698498).jpg",
+    "cachedFrom": "Wikimedia Commons"
+  },
+  "elk": {
+    "title": "Juvenile male tule elk, Point Reyes National Seashore",
+    "creator": "Frank Schulenburg",
+    "license": "CC BY-SA 4.0",
+    "licenseUrl": "https://creativecommons.org/licenses/by-sa/4.0",
+    "sourceUrl": "https://commons.wikimedia.org/wiki/File%3AJuvenile%20male%20tule%20elk%2C%20Point%20Reyes%20National%20Seashore.jpg",
+    "originalUrl": "https://commons.wikimedia.org/wiki/File:Juvenile_male_tule_elk,_Point_Reyes_National_Seashore.jpg",
+    "cachedFrom": "Wikimedia Commons"
+  },
+  "deer": {
+    "title": "Fallow Deer in the German wood",
+    "creator": "Michael Gäbler",
+    "license": "CC BY 3.0",
+    "licenseUrl": "https://creativecommons.org/licenses/by/3.0",
+    "sourceUrl": "https://commons.wikimedia.org/wiki/File%3AFallow%20Deer%20in%20the%20German%20wood.jpg",
+    "originalUrl": "https://commons.wikimedia.org/wiki/File:Fallow_Deer_in_the_German_wood.jpg",
+    "cachedFrom": "Wikimedia Commons"
+  },
+  "reindeer": {
+    "title": "20070818-0001-strolling reindeer",
+    "creator": "Alexandre Buisse (Nattfodd)",
+    "license": "CC BY-SA 3.0",
+    "licenseUrl": "https://creativecommons.org/licenses/by-sa/3.0",
+    "sourceUrl": "https://commons.wikimedia.org/wiki/File%3A20070818-0001-strolling%20reindeer.jpg",
+    "originalUrl": "https://commons.wikimedia.org/wiki/File:20070818-0001-strolling_reindeer.jpg",
+    "cachedFrom": "Wikimedia Commons"
+  },
+  "antelope": {
+    "title": "Antelope at the Wild Animal Park, NY",
+    "creator": "MattCC716",
+    "license": "CC BY-SA 2.0",
+    "licenseUrl": "https://creativecommons.org/licenses/by-sa/2.0",
+    "sourceUrl": "https://commons.wikimedia.org/wiki/File%3AAntelope%20at%20the%20Wild%20Animal%20Park%2C%20NY.jpg",
+    "originalUrl": "https://commons.wikimedia.org/wiki/File:Antelope_at_the_Wild_Animal_Park,_NY.jpg",
+    "cachedFrom": "Wikimedia Commons"
+  },
+  "gazelle": {
+    "title": "Gazelles of Sunset",
+    "creator": "Anass Errihani",
+    "license": "CC BY-SA 3.0",
+    "licenseUrl": "https://creativecommons.org/licenses/by-sa/3.0",
+    "sourceUrl": "https://commons.wikimedia.org/wiki/File%3AGazelles%20of%20Sunset.jpg",
+    "originalUrl": "https://commons.wikimedia.org/wiki/File:Gazelles_of_Sunset.jpg",
+    "cachedFrom": "Wikimedia Commons"
+  },
+  "wolf": {
+    "title": "Scandinavian grey wolf Canis lupus",
+    "creator": "Malene Thyssen",
+    "license": "CC BY-SA 3.0",
+    "licenseUrl": "http://creativecommons.org/licenses/by-sa/3.0/",
+    "sourceUrl": "https://commons.wikimedia.org/wiki/File%3AScandinavian%20grey%20wolf%20Canis%20lupus.jpg",
+    "originalUrl": "https://commons.wikimedia.org/wiki/File:Scandinavian_grey_wolf_Canis_lupus.jpg",
+    "cachedFrom": "Wikimedia Commons"
+  },
+  "fox": {
+    "title": "Common foxes in the snow",
+    "creator": "Wilhelm Kuhnert",
+    "license": "Public domain",
+    "licenseUrl": "https://commons.wikimedia.org/wiki/File%3ACommon%20foxes%20in%20the%20snow.jpg",
+    "sourceUrl": "https://commons.wikimedia.org/wiki/File%3ACommon%20foxes%20in%20the%20snow.jpg",
+    "originalUrl": "https://commons.wikimedia.org/wiki/File:Common_foxes_in_the_snow.jpg",
+    "cachedFrom": "Wikimedia Commons"
+  },
+  "coyote": {
+    "title": "Coyote portrait",
+    "creator": "Christopher Bruno",
+    "license": "CC BY-SA 3.0",
+    "licenseUrl": "http://creativecommons.org/licenses/by-sa/3.0/",
+    "sourceUrl": "https://commons.wikimedia.org/wiki/File%3ACoyote%20portrait.jpg",
+    "originalUrl": "https://commons.wikimedia.org/wiki/File:Coyote_portrait.jpg",
+    "cachedFrom": "Wikimedia Commons"
+  },
+  "hyena": {
+    "title": "Spotted hyena (Crocuta crocuta)",
+    "creator": "Charles J. Sharp",
+    "license": "CC BY-SA 4.0",
+    "licenseUrl": "https://creativecommons.org/licenses/by-sa/4.0",
+    "sourceUrl": "https://commons.wikimedia.org/wiki/File%3ASpotted%20hyena%20(Crocuta%20crocuta).jpg",
+    "originalUrl": "https://commons.wikimedia.org/wiki/File:Spotted_hyena_(Crocuta_crocuta).jpg",
+    "cachedFrom": "Wikimedia Commons"
+  },
+  "jackal": {
+    "title": "2012-bb-jackal-1",
+    "creator": "Yathin S Krishnappa",
+    "license": "CC BY-SA 3.0",
+    "licenseUrl": "https://creativecommons.org/licenses/by-sa/3.0",
+    "sourceUrl": "https://commons.wikimedia.org/wiki/File%3A2012-bb-jackal-1.jpg",
+    "originalUrl": "https://commons.wikimedia.org/wiki/File:2012-bb-jackal-1.jpg",
+    "cachedFrom": "Wikimedia Commons"
+  },
+  "wild boar": {
+    "title": "Wild Boar Habbitat 2",
+    "creator": "Richard Bartz, Munich Makro Freak",
+    "license": "CC BY-SA 2.5",
+    "licenseUrl": "https://creativecommons.org/licenses/by-sa/2.5",
+    "sourceUrl": "https://commons.wikimedia.org/wiki/File%3AWild%20Boar%20Habbitat%202.jpg",
+    "originalUrl": "https://commons.wikimedia.org/wiki/File:Wild_Boar_Habbitat_2.jpg",
+    "cachedFrom": "Wikimedia Commons"
+  },
+  "tapir": {
+    "title": "Tapirus terrestris",
+    "creator": "No machine-readable author provided. Exlibris~commonswiki assumed (based on copyright claims).",
+    "license": "CC BY-SA 2.5",
+    "licenseUrl": "https://creativecommons.org/licenses/by-sa/2.5",
+    "sourceUrl": "https://commons.wikimedia.org/wiki/File%3ATapirus%20terrestris.jpg",
+    "originalUrl": "https://commons.wikimedia.org/wiki/File:Tapirus_terrestris.jpg",
+    "cachedFrom": "Wikimedia Commons"
+  },
+  "sloth": {
+    "title": "Mother and baby sloth crossing the road",
+    "creator": "Syedidia",
+    "license": "CC BY-SA 4.0",
+    "licenseUrl": "https://creativecommons.org/licenses/by-sa/4.0",
+    "sourceUrl": "https://commons.wikimedia.org/wiki/File%3AMother%20and%20baby%20sloth%20crossing%20the%20road.jpg",
+    "originalUrl": "https://commons.wikimedia.org/wiki/File:Mother_and_baby_sloth_crossing_the_road.jpg",
+    "cachedFrom": "Wikimedia Commons"
+  },
+  "anteater": {
+    "title": "Giant anteater - Oso hormiguero (Myrmecophaga tridactyla) (9864451663)",
+    "creator": "Fernando Flores from Caracas, Venezuela",
+    "license": "CC BY-SA 2.0",
+    "licenseUrl": "https://creativecommons.org/licenses/by-sa/2.0",
+    "sourceUrl": "https://commons.wikimedia.org/wiki/File%3AGiant%20anteater%20-%20Oso%20hormiguero%20(Myrmecophaga%20tridactyla)%20(9864451663).jpg",
+    "originalUrl": "https://commons.wikimedia.org/wiki/File:Giant_anteater_-_Oso_hormiguero_(Myrmecophaga_tridactyla)_(9864451663).jpg",
+    "cachedFrom": "Wikimedia Commons"
+  },
+  "armadillo": {
+    "title": "Nine-banded Armadillo",
+    "creator": "http://www.birdphotos.com",
+    "license": "CC BY 3.0",
+    "licenseUrl": "https://creativecommons.org/licenses/by/3.0",
+    "sourceUrl": "https://commons.wikimedia.org/wiki/File%3ANine-banded%20Armadillo.jpg",
+    "originalUrl": "https://commons.wikimedia.org/wiki/File:Nine-banded_Armadillo.jpg",
+    "cachedFrom": "Wikimedia Commons"
+  },
+  "hedgehog": {
+    "title": "West European Hedgehog (Erinaceus europaeus)1",
+    "creator": "Hrald",
+    "license": "CC BY-SA 3.0",
+    "licenseUrl": "https://creativecommons.org/licenses/by-sa/3.0",
+    "sourceUrl": "https://commons.wikimedia.org/wiki/File%3AWest%20European%20Hedgehog%20(Erinaceus%20europaeus)1.jpg",
+    "originalUrl": "https://commons.wikimedia.org/wiki/File:West_European_Hedgehog_(Erinaceus_europaeus)1.jpg",
+    "cachedFrom": "Wikimedia Commons"
+  },
+  "porcupine": {
+    "title": "Crested porcupine. Photo 1",
+    "creator": "Alina Vozna",
+    "license": "CC BY 4.0",
+    "licenseUrl": "https://creativecommons.org/licenses/by/4.0",
+    "sourceUrl": "https://commons.wikimedia.org/wiki/File%3ACrested%20porcupine.%20Photo%201.jpg",
+    "originalUrl": "https://commons.wikimedia.org/wiki/File:Crested_porcupine._Photo_1.jpg",
+    "cachedFrom": "Wikimedia Commons"
+  },
+  "otter": {
+    "title": "Sea-otter-morro-bay 13",
+    "creator": "Mike Baird from Morro Bay, USA (bairdphotos.com)",
+    "license": "CC BY 2.0",
+    "licenseUrl": "https://creativecommons.org/licenses/by/2.0",
+    "sourceUrl": "https://commons.wikimedia.org/wiki/File%3ASea-otter-morro-bay%2013.jpg",
+    "originalUrl": "https://commons.wikimedia.org/wiki/File:Sea-otter-morro-bay_13.jpg",
+    "cachedFrom": "Wikimedia Commons"
+  },
+  "raccoon": {
+    "title": "Raccoon (Procyon lotor) 2",
+    "creator": "Darkone",
+    "license": "CC BY-SA 2.5",
+    "licenseUrl": "https://creativecommons.org/licenses/by-sa/2.5",
+    "sourceUrl": "https://commons.wikimedia.org/wiki/File%3ARaccoon%20(Procyon%20lotor)%202.jpg",
+    "originalUrl": "https://commons.wikimedia.org/wiki/File:Raccoon_(Procyon_lotor)_2.jpg",
+    "cachedFrom": "Wikimedia Commons"
+  },
+  "skunk": {
+    "title": "Striped Skunk",
+    "creator": "http://www.birdphotos.com",
+    "license": "CC BY 3.0",
+    "licenseUrl": "https://creativecommons.org/licenses/by/3.0",
+    "sourceUrl": "https://commons.wikimedia.org/wiki/File%3AStriped%20Skunk.jpg",
+    "originalUrl": "https://commons.wikimedia.org/wiki/File:Striped_Skunk.jpg",
+    "cachedFrom": "Wikimedia Commons"
+  },
+  "badger": {
+    "title": "Badger-badger",
+    "creator": "BadgerHero",
+    "license": "CC BY-SA 3.0",
+    "licenseUrl": "https://creativecommons.org/licenses/by-sa/3.0",
+    "sourceUrl": "https://commons.wikimedia.org/wiki/File%3ABadger-badger.jpg",
+    "originalUrl": "https://commons.wikimedia.org/wiki/File:Badger-badger.jpg",
+    "cachedFrom": "Wikimedia Commons"
+  },
+  "beaver": {
+    "title": "American Beaver",
+    "creator": "Steve from Washington, DC, USA",
+    "license": "CC BY-SA 2.0",
+    "licenseUrl": "https://creativecommons.org/licenses/by-sa/2.0",
+    "sourceUrl": "https://commons.wikimedia.org/wiki/File%3AAmerican%20Beaver.jpg",
+    "originalUrl": "https://commons.wikimedia.org/wiki/File:American_Beaver.jpg",
+    "cachedFrom": "Wikimedia Commons"
+  },
+  "mongoose": {
+    "title": "Mongoose pile",
+    "creator": "Mathias Appel",
+    "license": "CC0",
+    "licenseUrl": "http://creativecommons.org/publicdomain/zero/1.0/deed.en",
+    "sourceUrl": "https://commons.wikimedia.org/wiki/File%3AMongoose%20pile.jpg",
+    "originalUrl": "https://commons.wikimedia.org/wiki/File:Mongoose_pile.jpg",
+    "cachedFrom": "Wikimedia Commons"
+  },
+  "meerkat": {
+    "title": "Meerkat (Suricata suricatta)",
+    "creator": "Hans Hillewaert",
+    "license": "CC BY-SA 4.0",
+    "licenseUrl": "https://creativecommons.org/licenses/by-sa/4.0",
+    "sourceUrl": "https://commons.wikimedia.org/wiki/File%3AMeerkat%20(Suricata%20suricatta).jpg",
+    "originalUrl": "https://commons.wikimedia.org/wiki/File:Meerkat_(Suricata_suricatta).jpg",
+    "cachedFrom": "Wikimedia Commons"
+  },
+  "platypus": {
+    "title": "Duck-billed platypus (Ornithorhynchus anatinus) Scottsdale",
+    "creator": "Charles J. Sharp",
+    "license": "CC BY-SA 4.0",
+    "licenseUrl": "https://creativecommons.org/licenses/by-sa/4.0",
+    "sourceUrl": "https://commons.wikimedia.org/wiki/File%3ADuck-billed%20platypus%20(Ornithorhynchus%20anatinus)%20Scottsdale.jpg",
+    "originalUrl": "https://commons.wikimedia.org/wiki/File:Duck-billed_platypus_(Ornithorhynchus_anatinus)_Scottsdale.jpg",
+    "cachedFrom": "Wikimedia Commons"
+  },
+  "mole": {
+    "title": "Mol (Talpa europaea) 03",
+    "creator": "Dominicus Johannes Bergsma",
+    "license": "CC BY-SA 3.0",
+    "licenseUrl": "https://creativecommons.org/licenses/by-sa/3.0",
+    "sourceUrl": "https://commons.wikimedia.org/wiki/File%3AMol%20(Talpa%20europaea)%2003.JPG",
+    "originalUrl": "https://commons.wikimedia.org/wiki/File:Mol_(Talpa_europaea)_03.JPG",
+    "cachedFrom": "Wikimedia Commons"
+  },
+  "weasel": {
+    "title": "WEASEL",
+    "creator": "Wikimedia Commons contributor",
+    "license": "Public domain",
+    "licenseUrl": "https://commons.wikimedia.org/wiki/File%3AWEASEL.JPG",
+    "sourceUrl": "https://commons.wikimedia.org/wiki/File%3AWEASEL.JPG",
+    "originalUrl": "https://commons.wikimedia.org/wiki/File:WEASEL.JPG",
+    "cachedFrom": "Wikimedia Commons"
+  },
+  "yak": {
+    "title": "Yak102",
+    "creator": "Alexandr frolov",
+    "license": "CC BY-SA 4.0",
+    "licenseUrl": "https://creativecommons.org/licenses/by-sa/4.0",
+    "sourceUrl": "https://commons.wikimedia.org/wiki/File%3AYak102.jpg",
+    "originalUrl": "https://commons.wikimedia.org/wiki/File:Yak102.jpg",
+    "cachedFrom": "Wikimedia Commons"
+  },
+  "capybara": {
+    "title": "Cattle tyrant (Machetornis rixosa) on Capybara",
+    "creator": "Charles J. Sharp",
+    "license": "CC BY-SA 4.0",
+    "licenseUrl": "https://creativecommons.org/licenses/by-sa/4.0",
+    "sourceUrl": "https://commons.wikimedia.org/wiki/File%3ACattle%20tyrant%20(Machetornis%20rixosa)%20on%20Capybara.jpg",
+    "originalUrl": "https://commons.wikimedia.org/wiki/File:Cattle_tyrant_(Machetornis_rixosa)_on_Capybara.jpg",
+    "cachedFrom": "Wikimedia Commons"
+  },
+  "wildebeest": {
+    "title": "Blue Wildebeest, Ngorongoro",
+    "creator": "Muhammad Mahdi Karim",
+    "license": "GFDL 1.2",
+    "licenseUrl": "http://www.gnu.org/licenses/old-licenses/fdl-1.2.html",
+    "sourceUrl": "https://commons.wikimedia.org/wiki/File%3ABlue%20Wildebeest%2C%20Ngorongoro.jpg",
+    "originalUrl": "https://commons.wikimedia.org/wiki/File:Blue_Wildebeest,_Ngorongoro.jpg",
+    "cachedFrom": "Wikimedia Commons"
+  },
+  "mouse": {
+    "title": "Mouse in snow",
+    "creator": "Alex Kard",
+    "license": "CC0",
+    "licenseUrl": "http://creativecommons.org/publicdomain/zero/1.0/deed.en",
+    "sourceUrl": "https://commons.wikimedia.org/wiki/File%3AMouse%20in%20snow.jpg",
+    "originalUrl": "https://commons.wikimedia.org/wiki/File:Mouse_in_snow.jpg",
+    "cachedFrom": "Wikimedia Commons"
+  },
+  "rat": {
+    "title": "Rattus norvegicus - Brown rat 01",
+    "creator": "Zeynel Cebeci",
+    "license": "CC BY-SA 4.0",
+    "licenseUrl": "https://creativecommons.org/licenses/by-sa/4.0",
+    "sourceUrl": "https://commons.wikimedia.org/wiki/File%3ARattus%20norvegicus%20-%20Brown%20rat%2001.jpg",
+    "originalUrl": "https://commons.wikimedia.org/wiki/File:Rattus_norvegicus_-_Brown_rat_01.jpg",
+    "cachedFrom": "Wikimedia Commons"
+  },
+  "squirrel": {
+    "title": "Eastern Grey Squirrel in St James's Park, London - Nov 2006 edit",
+    "creator": "Diliff",
+    "license": "CC BY-SA 3.0",
+    "licenseUrl": "https://creativecommons.org/licenses/by-sa/3.0",
+    "sourceUrl": "https://commons.wikimedia.org/wiki/File%3AEastern%20Grey%20Squirrel%20in%20St%20James's%20Park%2C%20London%20-%20Nov%202006%20edit.jpg",
+    "originalUrl": "https://commons.wikimedia.org/wiki/File:Eastern_Grey_Squirrel_in_St_James%27s_Park,_London_-_Nov_2006_edit.jpg",
+    "cachedFrom": "Wikimedia Commons"
+  },
+  "chipmunk": {
+    "title": "Chipmunk (by Steven Pavlov)",
+    "creator": "Steven Pavlov",
+    "license": "CC BY-SA 4.0",
+    "licenseUrl": "https://creativecommons.org/licenses/by-sa/4.0",
+    "sourceUrl": "https://commons.wikimedia.org/wiki/File%3AChipmunk%20(by%20Steven%20Pavlov).jpg",
+    "originalUrl": "https://commons.wikimedia.org/wiki/File:Chipmunk_(by_Steven_Pavlov).jpg",
+    "cachedFrom": "Wikimedia Commons"
+  },
+  "bat": {
+    "title": "Wikipedia-Bats-001-v01",
+    "creator": "MathKnight",
+    "license": "CC BY-SA 4.0",
+    "licenseUrl": "https://creativecommons.org/licenses/by-sa/4.0",
+    "sourceUrl": "https://commons.wikimedia.org/wiki/File%3AWikipedia-Bats-001-v01.jpg",
+    "originalUrl": "https://commons.wikimedia.org/wiki/File:Wikipedia-Bats-001-v01.jpg",
+    "cachedFrom": "Wikimedia Commons"
+  },
+  "hare": {
+    "title": "Arctic Hare (Lepus arcticus) 02",
+    "creator": "Stephan Sprinz",
+    "license": "CC BY 4.0",
+    "licenseUrl": "https://creativecommons.org/licenses/by/4.0",
+    "sourceUrl": "https://commons.wikimedia.org/wiki/File%3AArctic%20Hare%20(Lepus%20arcticus)%2002.jpg",
+    "originalUrl": "https://commons.wikimedia.org/wiki/File:Arctic_Hare_(Lepus_arcticus)_02.jpg",
+    "cachedFrom": "Wikimedia Commons"
+  },
+  "whale": {
+    "title": "Mother and baby sperm whale",
+    "creator": "Gabriel Barathieu",
+    "license": "CC BY-SA 2.0",
+    "licenseUrl": "https://creativecommons.org/licenses/by-sa/2.0",
+    "sourceUrl": "https://commons.wikimedia.org/wiki/File%3AMother%20and%20baby%20sperm%20whale.jpg",
+    "originalUrl": "https://commons.wikimedia.org/wiki/File:Mother_and_baby_sperm_whale.jpg",
+    "cachedFrom": "Wikimedia Commons"
+  },
+  "dolphin": {
+    "title": "010 Atlantic bottlenose dolphin jumping at Pelican point Photo by Giles Laurent",
+    "creator": "Giles Laurent",
+    "license": "CC BY-SA 4.0",
+    "licenseUrl": "https://creativecommons.org/licenses/by-sa/4.0",
+    "sourceUrl": "https://commons.wikimedia.org/wiki/File%3A010%20Atlantic%20bottlenose%20dolphin%20jumping%20at%20Pelican%20point%20Photo%20by%20Giles%20Laurent.jpg",
+    "originalUrl": "https://commons.wikimedia.org/wiki/File:010_Atlantic_bottlenose_dolphin_jumping_at_Pelican_point_Photo_by_Giles_Laurent.jpg",
+    "cachedFrom": "Wikimedia Commons"
+  },
+  "shark": {
+    "title": "Male whale shark at Georgia Aquarium",
+    "creator": "Zac Wolf",
+    "license": "CC BY-SA 2.5",
+    "licenseUrl": "https://creativecommons.org/licenses/by-sa/2.5",
+    "sourceUrl": "https://commons.wikimedia.org/wiki/File%3AMale%20whale%20shark%20at%20Georgia%20Aquarium.jpg",
+    "originalUrl": "https://commons.wikimedia.org/wiki/File:Male_whale_shark_at_Georgia_Aquarium.jpg",
+    "cachedFrom": "Wikimedia Commons"
+  },
+  "octopus": {
+    "title": "Octopus2",
+    "creator": "albert kok",
+    "license": "CC BY-SA 3.0",
+    "licenseUrl": "https://creativecommons.org/licenses/by-sa/3.0",
+    "sourceUrl": "https://commons.wikimedia.org/wiki/File%3AOctopus2.jpg",
+    "originalUrl": "https://commons.wikimedia.org/wiki/File:Octopus2.jpg",
+    "cachedFrom": "Wikimedia Commons"
+  },
+  "squid": {
+    "title": "Iwami squid drying DSC01868",
+    "creator": "David Monniaux",
+    "license": "CC BY-SA 3.0",
+    "licenseUrl": "http://creativecommons.org/licenses/by-sa/3.0/",
+    "sourceUrl": "https://commons.wikimedia.org/wiki/File%3AIwami%20squid%20drying%20DSC01868.jpg",
+    "originalUrl": "https://commons.wikimedia.org/wiki/File:Iwami_squid_drying_DSC01868.jpg",
+    "cachedFrom": "Wikimedia Commons"
+  },
+  "crab": {
+    "title": "Ocypode-ceratophthalma-horned-ghost-crab-krabi-thailand",
+    "creator": "Rushenb",
+    "license": "CC BY-SA 3.0",
+    "licenseUrl": "https://creativecommons.org/licenses/by-sa/3.0",
+    "sourceUrl": "https://commons.wikimedia.org/wiki/File%3AOcypode-ceratophthalma-horned-ghost-crab-krabi-thailand.jpg",
+    "originalUrl": "https://commons.wikimedia.org/wiki/File:Ocypode-ceratophthalma-horned-ghost-crab-krabi-thailand.jpg",
+    "cachedFrom": "Wikimedia Commons"
+  },
+  "lobster": {
+    "title": "American lobster, Homarus americanus in Newfoundland, Canada (20996277348)",
+    "creator": "Derek Keats from Johannesburg, South Africa",
+    "license": "CC BY 2.0",
+    "licenseUrl": "https://creativecommons.org/licenses/by/2.0",
+    "sourceUrl": "https://commons.wikimedia.org/wiki/File%3AAmerican%20lobster%2C%20Homarus%20americanus%20in%20Newfoundland%2C%20Canada%20(20996277348).jpg",
+    "originalUrl": "https://commons.wikimedia.org/wiki/File:American_lobster,_Homarus_americanus_in_Newfoundland,_Canada_(20996277348).jpg",
+    "cachedFrom": "Wikimedia Commons"
+  },
+  "shrimp": {
+    "title": "Palaemon serratus Croazia",
+    "creator": "Etrusko25",
+    "license": "Public domain",
+    "licenseUrl": "https://commons.wikimedia.org/wiki/File%3APalaemon%20serratus%20Croazia.jpg",
+    "sourceUrl": "https://commons.wikimedia.org/wiki/File%3APalaemon%20serratus%20Croazia.jpg",
+    "originalUrl": "https://commons.wikimedia.org/wiki/File:Palaemon_serratus_Croazia.jpg",
+    "cachedFrom": "Wikimedia Commons"
+  },
+  "jellyfish": {
+    "title": "Moon jellyfish at Gota Sagher",
+    "creator": "Alexander Vasenin",
+    "license": "CC BY-SA 3.0",
+    "licenseUrl": "https://creativecommons.org/licenses/by-sa/3.0",
+    "sourceUrl": "https://commons.wikimedia.org/wiki/File%3AMoon%20jellyfish%20at%20Gota%20Sagher.JPG",
+    "originalUrl": "https://commons.wikimedia.org/wiki/File:Moon_jellyfish_at_Gota_Sagher.JPG",
+    "cachedFrom": "Wikimedia Commons"
+  },
+  "starfish": {
+    "title": "Common starfish - torbay",
+    "creator": "Herbythyme",
+    "license": "CC BY-SA 4.0",
+    "licenseUrl": "https://creativecommons.org/licenses/by-sa/4.0",
+    "sourceUrl": "https://commons.wikimedia.org/wiki/File%3ACommon%20starfish%20-%20torbay.jpg",
+    "originalUrl": "https://commons.wikimedia.org/wiki/File:Common_starfish_-_torbay.jpg",
+    "cachedFrom": "Wikimedia Commons"
+  },
+  "seahorse": {
+    "title": "Seahorse Skeleton Macro 8",
+    "creator": "“Jon Zander (Digon3)\"",
+    "license": "CC BY-SA 3.0",
+    "licenseUrl": "http://creativecommons.org/licenses/by-sa/3.0/",
+    "sourceUrl": "https://commons.wikimedia.org/wiki/File%3ASeahorse%20Skeleton%20Macro%208.JPG",
+    "originalUrl": "https://commons.wikimedia.org/wiki/File:Seahorse_Skeleton_Macro_8.JPG",
+    "cachedFrom": "Wikimedia Commons"
+  },
+  "stingray": {
+    "title": "Stingray (Myliobatoidei) in Cozumel, Mexico",
+    "creator": "Matthew T Rader",
+    "license": "CC BY-SA 4.0",
+    "licenseUrl": "https://creativecommons.org/licenses/by-sa/4.0",
+    "sourceUrl": "https://commons.wikimedia.org/wiki/File%3AStingray%20(Myliobatoidei)%20in%20Cozumel%2C%20Mexico.jpg",
+    "originalUrl": "https://commons.wikimedia.org/wiki/File:Stingray_(Myliobatoidei)_in_Cozumel,_Mexico.jpg",
+    "cachedFrom": "Wikimedia Commons"
+  },
+  "eel": {
+    "title": "Green Moray Eel (Gymnothorax funebris), Cozumel",
+    "creator": "P.Lindgren",
+    "license": "CC BY-SA 3.0",
+    "licenseUrl": "https://creativecommons.org/licenses/by-sa/3.0",
+    "sourceUrl": "https://commons.wikimedia.org/wiki/File%3AGreen%20Moray%20Eel%20(Gymnothorax%20funebris)%2C%20Cozumel.jpg",
+    "originalUrl": "https://commons.wikimedia.org/wiki/File:Green_Moray_Eel_(Gymnothorax_funebris),_Cozumel.jpg",
+    "cachedFrom": "Wikimedia Commons"
+  },
+  "seal": {
+    "title": "Grey Seal on seaweed, Iceland",
+    "creator": "Waitblock This is a retouched picture, which means that it has been digitally altered from its original version. Modifications: Removed seaweed in background.",
+    "license": "CC BY-SA 4.0",
+    "licenseUrl": "https://creativecommons.org/licenses/by-sa/4.0",
+    "sourceUrl": "https://commons.wikimedia.org/wiki/File%3AGrey%20Seal%20on%20seaweed%2C%20Iceland.jpg",
+    "originalUrl": "https://commons.wikimedia.org/wiki/File:Grey_Seal_on_seaweed,_Iceland.jpg",
+    "cachedFrom": "Wikimedia Commons"
+  },
+  "walrus": {
+    "title": "Noaa-walrus22",
+    "creator": "Captain Budd Christman, NOAA Corps",
+    "license": "Public domain",
+    "licenseUrl": "https://commons.wikimedia.org/wiki/File%3ANoaa-walrus22.jpg",
+    "sourceUrl": "https://commons.wikimedia.org/wiki/File%3ANoaa-walrus22.jpg",
+    "originalUrl": "https://commons.wikimedia.org/wiki/File:Noaa-walrus22.jpg",
+    "cachedFrom": "Wikimedia Commons"
+  },
+  "clam": {
+    "title": "Giant clam black&white komodo",
+    "creator": "Nhobgood Nick Hobgood",
+    "license": "CC BY-SA 3.0",
+    "licenseUrl": "https://creativecommons.org/licenses/by-sa/3.0",
+    "sourceUrl": "https://commons.wikimedia.org/wiki/File%3AGiant%20clam%20black%26white%20komodo.jpg",
+    "originalUrl": "https://commons.wikimedia.org/wiki/File:Giant_clam_black%26white_komodo.jpg",
+    "cachedFrom": "Wikimedia Commons"
+  },
+  "fish": {
+    "title": "Ensenada fish market 2",
+    "creator": "Tomascastelazo",
+    "license": "CC BY-SA 3.0",
+    "licenseUrl": "https://creativecommons.org/licenses/by-sa/3.0",
+    "sourceUrl": "https://commons.wikimedia.org/wiki/File%3AEnsenada%20fish%20market%202.jpg",
+    "originalUrl": "https://commons.wikimedia.org/wiki/File:Ensenada_fish_market_2.jpg",
+    "cachedFrom": "Wikimedia Commons"
+  },
+  "pufferfish": {
+    "title": "Finepatterned Pufferfish (Takifugu poecilonotus) - GRB",
+    "creator": "George Berninger Jr.",
+    "license": "CC BY-SA 4.0",
+    "licenseUrl": "https://creativecommons.org/licenses/by-sa/4.0",
+    "sourceUrl": "https://commons.wikimedia.org/wiki/File%3AFinepatterned%20Pufferfish%20(Takifugu%20poecilonotus)%20-%20GRB.jpg",
+    "originalUrl": "https://commons.wikimedia.org/wiki/File:Finepatterned_Pufferfish_(Takifugu_poecilonotus)_-_GRB.jpg",
+    "cachedFrom": "Wikimedia Commons"
+  },
+  "tropical fish": {
+    "title": "Tropical Fish - 50574256171",
+    "creator": "Martin Pettitt",
+    "license": "CC BY 2.0",
+    "licenseUrl": "https://creativecommons.org/licenses/by/2.0",
+    "sourceUrl": "https://commons.wikimedia.org/wiki/File%3ATropical%20Fish%20-%2050574256171.jpg",
+    "originalUrl": "https://commons.wikimedia.org/wiki/File:Tropical_Fish_-_50574256171.jpg",
+    "cachedFrom": "Wikimedia Commons"
+  },
+  "tuna": {
+    "title": "Tuna assortment",
+    "creator": "NOAA",
+    "license": "Public domain",
+    "licenseUrl": "https://commons.wikimedia.org/wiki/File%3ATuna%20assortment.png",
+    "sourceUrl": "https://commons.wikimedia.org/wiki/File%3ATuna%20assortment.png",
+    "originalUrl": "https://commons.wikimedia.org/wiki/File:Tuna_assortment.png",
+    "cachedFrom": "Wikimedia Commons"
+  },
+  "salmon": {
+    "title": "Pink salmon FWS",
+    "creator": "Timothy Knepp",
+    "license": "Public domain",
+    "licenseUrl": "https://commons.wikimedia.org/wiki/File%3APink%20salmon%20FWS.jpg",
+    "sourceUrl": "https://commons.wikimedia.org/wiki/File%3APink%20salmon%20FWS.jpg",
+    "originalUrl": "https://commons.wikimedia.org/wiki/File:Pink_salmon_FWS.jpg",
+    "cachedFrom": "Wikimedia Commons"
+  },
+  "catfish": {
+    "title": "Catfish for dinner",
+    "creator": "Sungusia1st",
+    "license": "CC BY-SA 4.0",
+    "licenseUrl": "https://creativecommons.org/licenses/by-sa/4.0",
+    "sourceUrl": "https://commons.wikimedia.org/wiki/File%3ACatfish%20for%20dinner.jpg",
+    "originalUrl": "https://commons.wikimedia.org/wiki/File:Catfish_for_dinner.jpg",
+    "cachedFrom": "Wikimedia Commons"
+  },
+  "sea turtle": {
+    "title": "Green Sea Turtle grazing seagrass",
+    "creator": "P.Lindgren",
+    "license": "CC BY-SA 3.0",
+    "licenseUrl": "https://creativecommons.org/licenses/by-sa/3.0",
+    "sourceUrl": "https://commons.wikimedia.org/wiki/File%3AGreen%20Sea%20Turtle%20grazing%20seagrass.jpg",
+    "originalUrl": "https://commons.wikimedia.org/wiki/File:Green_Sea_Turtle_grazing_seagrass.jpg",
+    "cachedFrom": "Wikimedia Commons"
+  },
+  "coral": {
+    "title": "Soft coral peach komodo",
+    "creator": "Nhobgood Nick Hobgood",
+    "license": "CC BY-SA 3.0",
+    "licenseUrl": "https://creativecommons.org/licenses/by-sa/3.0",
+    "sourceUrl": "https://commons.wikimedia.org/wiki/File%3ASoft%20coral%20peach%20komodo.jpg",
+    "originalUrl": "https://commons.wikimedia.org/wiki/File:Soft_coral_peach_komodo.jpg",
+    "cachedFrom": "Wikimedia Commons"
+  },
+  "bird": {
+    "title": "Melanerpes-erythrocephalus-003",
+    "creator": "Mdf",
+    "license": "CC BY-SA 3.0",
+    "licenseUrl": "http://creativecommons.org/licenses/by-sa/3.0/",
+    "sourceUrl": "https://commons.wikimedia.org/wiki/File%3AMelanerpes-erythrocephalus-003.jpg",
+    "originalUrl": "https://commons.wikimedia.org/wiki/File:Melanerpes-erythrocephalus-003.jpg",
+    "cachedFrom": "Wikimedia Commons"
+  },
+  "eagle": {
+    "title": "Bald Eagle Head sq",
+    "creator": "Martin Falbisoner",
+    "license": "CC BY-SA 3.0",
+    "licenseUrl": "https://creativecommons.org/licenses/by-sa/3.0",
+    "sourceUrl": "https://commons.wikimedia.org/wiki/File%3ABald%20Eagle%20Head%20sq.jpg",
+    "originalUrl": "https://commons.wikimedia.org/wiki/File:Bald_Eagle_Head_sq.jpg",
+    "cachedFrom": "Wikimedia Commons"
+  },
+  "hawk": {
+    "title": "Roadside hawk (Rupornis magnirostris) immature 2",
+    "creator": "Charles J. Sharp",
+    "license": "CC BY-SA 4.0",
+    "licenseUrl": "https://creativecommons.org/licenses/by-sa/4.0",
+    "sourceUrl": "https://commons.wikimedia.org/wiki/File%3ARoadside%20hawk%20(Rupornis%20magnirostris)%20immature%202.jpg",
+    "originalUrl": "https://commons.wikimedia.org/wiki/File:Roadside_hawk_(Rupornis_magnirostris)_immature_2.jpg",
+    "cachedFrom": "Wikimedia Commons"
+  },
+  "falcon": {
+    "title": "Brown falcon1444",
+    "creator": "Benjamint444",
+    "license": "CC BY-SA 3.0",
+    "licenseUrl": "http://creativecommons.org/licenses/by-sa/3.0/",
+    "sourceUrl": "https://commons.wikimedia.org/wiki/File%3ABrown%20falcon1444.jpg",
+    "originalUrl": "https://commons.wikimedia.org/wiki/File:Brown_falcon1444.jpg",
+    "cachedFrom": "Wikimedia Commons"
+  },
+  "owl": {
+    "title": "Burrowing Owl 4354",
+    "creator": "Dori",
+    "license": "CC BY-SA 3.0",
+    "licenseUrl": "https://creativecommons.org/licenses/by-sa/3.0",
+    "sourceUrl": "https://commons.wikimedia.org/wiki/File%3ABurrowing%20Owl%204354.jpg",
+    "originalUrl": "https://commons.wikimedia.org/wiki/File:Burrowing_Owl_4354.jpg",
+    "cachedFrom": "Wikimedia Commons"
+  },
+  "vulture": {
+    "title": "Vulture beak sideview A",
+    "creator": "Thermos",
+    "license": "CC BY-SA 2.5",
+    "licenseUrl": "https://creativecommons.org/licenses/by-sa/2.5",
+    "sourceUrl": "https://commons.wikimedia.org/wiki/File%3AVulture%20beak%20sideview%20A.jpg",
+    "originalUrl": "https://commons.wikimedia.org/wiki/File:Vulture_beak_sideview_A.jpg",
+    "cachedFrom": "Wikimedia Commons"
+  },
+  "sparrow": {
+    "title": "House sparrow portrait",
+    "creator": "Muhammad Mahdi Karim",
+    "license": "GFDL 1.2",
+    "licenseUrl": "http://www.gnu.org/licenses/old-licenses/fdl-1.2.html",
+    "sourceUrl": "https://commons.wikimedia.org/wiki/File%3AHouse%20sparrow%20portrait.jpg",
+    "originalUrl": "https://commons.wikimedia.org/wiki/File:House_sparrow_portrait.jpg",
+    "cachedFrom": "Wikimedia Commons"
+  },
+  "crow": {
+    "title": "2014-04-29 01 Northwestern crow (Corvus brachyrhynchos caurinus)",
+    "creator": "Gordon Leggett",
+    "license": "CC BY-SA 4.0",
+    "licenseUrl": "https://creativecommons.org/licenses/by-sa/4.0",
+    "sourceUrl": "https://commons.wikimedia.org/wiki/File%3A2014-04-29%2001%20Northwestern%20crow%20(Corvus%20brachyrhynchos%20caurinus).jpg",
+    "originalUrl": "https://commons.wikimedia.org/wiki/File:2014-04-29_01_Northwestern_crow_(Corvus_brachyrhynchos_caurinus).jpg",
+    "cachedFrom": "Wikimedia Commons"
+  },
+  "raven": {
+    "title": "Corvus corax (Common Raven), Yosemite NP, CA, US - Diliff",
+    "creator": "Diliff",
+    "license": "CC BY-SA 3.0",
+    "licenseUrl": "https://creativecommons.org/licenses/by-sa/3.0",
+    "sourceUrl": "https://commons.wikimedia.org/wiki/File%3ACorvus%20corax%20(Common%20Raven)%2C%20Yosemite%20NP%2C%20CA%2C%20US%20-%20Diliff.jpg",
+    "originalUrl": "https://commons.wikimedia.org/wiki/File:Corvus_corax_(Common_Raven),_Yosemite_NP,_CA,_US_-_Diliff.jpg",
+    "cachedFrom": "Wikimedia Commons"
+  },
+  "pigeon": {
+    "title": "Pigeon portrait 4861",
+    "creator": "Dori",
+    "license": "CC BY-SA 3.0 us",
+    "licenseUrl": "https://creativecommons.org/licenses/by-sa/3.0/us/deed.en",
+    "sourceUrl": "https://commons.wikimedia.org/wiki/File%3APigeon%20portrait%204861.jpg",
+    "originalUrl": "https://commons.wikimedia.org/wiki/File:Pigeon_portrait_4861.jpg",
+    "cachedFrom": "Wikimedia Commons"
+  },
+  "dove": {
+    "title": "Rock dove - natures pics",
+    "creator": "Alan D. Wilson, www.naturespicsonline.com",
+    "license": "CC BY-SA 2.5",
+    "licenseUrl": "https://creativecommons.org/licenses/by-sa/2.5",
+    "sourceUrl": "https://commons.wikimedia.org/wiki/File%3ARock%20dove%20-%20natures%20pics.jpg",
+    "originalUrl": "https://commons.wikimedia.org/wiki/File:Rock_dove_-_natures_pics.jpg",
+    "cachedFrom": "Wikimedia Commons"
+  },
+  "seagull": {
+    "title": "Seagull July 2014-2",
+    "creator": "Alvesgaspar",
+    "license": "CC BY-SA 3.0",
+    "licenseUrl": "https://creativecommons.org/licenses/by-sa/3.0",
+    "sourceUrl": "https://commons.wikimedia.org/wiki/File%3ASeagull%20July%202014-2.jpg",
+    "originalUrl": "https://commons.wikimedia.org/wiki/File:Seagull_July_2014-2.jpg",
+    "cachedFrom": "Wikimedia Commons"
+  },
+  "swan": {
+    "title": "Mute swans (Cygnus olor) and cygnets",
+    "creator": "Charles J. Sharp",
+    "license": "CC BY-SA 4.0",
+    "licenseUrl": "https://creativecommons.org/licenses/by-sa/4.0",
+    "sourceUrl": "https://commons.wikimedia.org/wiki/File%3AMute%20swans%20(Cygnus%20olor)%20and%20cygnets.jpg",
+    "originalUrl": "https://commons.wikimedia.org/wiki/File:Mute_swans_(Cygnus_olor)_and_cygnets.jpg",
+    "cachedFrom": "Wikimedia Commons"
+  },
+  "flamingo": {
+    "title": "001 Greater flamingo in flight in the Camargue Photo by Giles Laurent",
+    "creator": "Giles Laurent",
+    "license": "CC BY-SA 4.0",
+    "licenseUrl": "https://creativecommons.org/licenses/by-sa/4.0",
+    "sourceUrl": "https://commons.wikimedia.org/wiki/File%3A001%20Greater%20flamingo%20in%20flight%20in%20the%20Camargue%20Photo%20by%20Giles%20Laurent.jpg",
+    "originalUrl": "https://commons.wikimedia.org/wiki/File:001_Greater_flamingo_in_flight_in_the_Camargue_Photo_by_Giles_Laurent.jpg",
+    "cachedFrom": "Wikimedia Commons"
+  },
+  "peacock": {
+    "title": "White Peacock, Palmitos Park, May 2018",
+    "creator": "Martin Falbisoner",
+    "license": "CC BY-SA 4.0",
+    "licenseUrl": "https://creativecommons.org/licenses/by-sa/4.0",
+    "sourceUrl": "https://commons.wikimedia.org/wiki/File%3AWhite%20Peacock%2C%20Palmitos%20Park%2C%20May%202018.jpg",
+    "originalUrl": "https://commons.wikimedia.org/wiki/File:White_Peacock,_Palmitos_Park,_May_2018.jpg",
+    "cachedFrom": "Wikimedia Commons"
+  },
+  "ostrich": {
+    "title": "Ostrich eggs - Dghoumes National Park",
+    "creator": "Bill.pix",
+    "license": "CC BY-SA 4.0",
+    "licenseUrl": "https://creativecommons.org/licenses/by-sa/4.0",
+    "sourceUrl": "https://commons.wikimedia.org/wiki/File%3AOstrich%20eggs%20-%20Dghoumes%20National%20Park.jpg",
+    "originalUrl": "https://commons.wikimedia.org/wiki/File:Ostrich_eggs_-_Dghoumes_National_Park.jpg",
+    "cachedFrom": "Wikimedia Commons"
+  },
+  "emu": {
+    "title": "Emu (Dromaius novaehollandiae) looking backwards at Auckland Zoo",
+    "creator": "Avenue",
+    "license": "CC BY-SA 3.0",
+    "licenseUrl": "https://creativecommons.org/licenses/by-sa/3.0",
+    "sourceUrl": "https://commons.wikimedia.org/wiki/File%3AEmu%20(Dromaius%20novaehollandiae)%20looking%20backwards%20at%20Auckland%20Zoo.jpg",
+    "originalUrl": "https://commons.wikimedia.org/wiki/File:Emu_(Dromaius_novaehollandiae)_looking_backwards_at_Auckland_Zoo.jpg",
+    "cachedFrom": "Wikimedia Commons"
+  },
+  "parrot": {
+    "title": "Portrait of Yellow-headed Amazon Parrot",
+    "creator": "Joe Ravi",
+    "license": "CC BY-SA 3.0",
+    "licenseUrl": "https://creativecommons.org/licenses/by-sa/3.0",
+    "sourceUrl": "https://commons.wikimedia.org/wiki/File%3APortrait%20of%20Yellow-headed%20Amazon%20Parrot.jpg",
+    "originalUrl": "https://commons.wikimedia.org/wiki/File:Portrait_of_Yellow-headed_Amazon_Parrot.jpg",
+    "cachedFrom": "Wikimedia Commons"
+  },
+  "penguin": {
+    "title": "Yellow-eyed Penguin crying MC",
+    "creator": "Christian Mehlführer, User:Chmehl",
+    "license": "CC BY 2.5",
+    "licenseUrl": "https://creativecommons.org/licenses/by/2.5",
+    "sourceUrl": "https://commons.wikimedia.org/wiki/File%3AYellow-eyed%20Penguin%20crying%20MC.jpg",
+    "originalUrl": "https://commons.wikimedia.org/wiki/File:Yellow-eyed_Penguin_crying_MC.jpg",
+    "cachedFrom": "Wikimedia Commons"
+  },
+  "woodpecker": {
+    "title": "Acorn woodpecker holding a nut in its beak-0225",
+    "creator": "Frank Schulenburg",
+    "license": "CC BY-SA 4.0",
+    "licenseUrl": "https://creativecommons.org/licenses/by-sa/4.0",
+    "sourceUrl": "https://commons.wikimedia.org/wiki/File%3AAcorn%20woodpecker%20holding%20a%20nut%20in%20its%20beak-0225.jpg",
+    "originalUrl": "https://commons.wikimedia.org/wiki/File:Acorn_woodpecker_holding_a_nut_in_its_beak-0225.jpg",
+    "cachedFrom": "Wikimedia Commons"
+  },
+  "hummingbird": {
+    "title": "Colibrí Cola de Oro (Golden-tailed Sapphire Hummingbird) Bigger File",
+    "creator": "Marcial4",
+    "license": "CC BY-SA 3.0",
+    "licenseUrl": "https://creativecommons.org/licenses/by-sa/3.0",
+    "sourceUrl": "https://commons.wikimedia.org/wiki/File%3AColibr%C3%AD%20Cola%20de%20Oro%20(Golden-tailed%20Sapphire%20Hummingbird)%20Bigger%20File.jpg",
+    "originalUrl": "https://commons.wikimedia.org/wiki/File:Colibr%C3%AD_Cola_de_Oro_(Golden-tailed_Sapphire_Hummingbird)_Bigger_File.jpg",
+    "cachedFrom": "Wikimedia Commons"
+  },
+  "pelican": {
+    "title": "Brown Pelican, Pelagic Boat Trip",
+    "creator": "Mike Baird from Morro Bay, USA",
+    "license": "CC BY 2.0",
+    "licenseUrl": "https://creativecommons.org/licenses/by/2.0",
+    "sourceUrl": "https://commons.wikimedia.org/wiki/File%3ABrown%20Pelican%2C%20Pelagic%20Boat%20Trip.jpg",
+    "originalUrl": "https://commons.wikimedia.org/wiki/File:Brown_Pelican,_Pelagic_Boat_Trip.jpg",
+    "cachedFrom": "Wikimedia Commons"
+  },
+  "stork": {
+    "title": "Marabou stork (Leptoptilos crumenifer) head",
+    "creator": "Charles J. Sharp",
+    "license": "CC BY-SA 4.0",
+    "licenseUrl": "https://creativecommons.org/licenses/by-sa/4.0",
+    "sourceUrl": "https://commons.wikimedia.org/wiki/File%3AMarabou%20stork%20(Leptoptilos%20crumenifer)%20head.jpg",
+    "originalUrl": "https://commons.wikimedia.org/wiki/File:Marabou_stork_(Leptoptilos_crumenifer)_head.jpg",
+    "cachedFrom": "Wikimedia Commons"
+  },
+  "crane": {
+    "title": "Cranes made by Origami paper",
+    "creator": "Laitche",
+    "license": "Public domain",
+    "licenseUrl": "https://commons.wikimedia.org/wiki/File%3ACranes%20made%20by%20Origami%20paper.jpg",
+    "sourceUrl": "https://commons.wikimedia.org/wiki/File%3ACranes%20made%20by%20Origami%20paper.jpg",
+    "originalUrl": "https://commons.wikimedia.org/wiki/File:Cranes_made_by_Origami_paper.jpg",
+    "cachedFrom": "Wikimedia Commons"
+  },
+  "heron": {
+    "title": "Ardea cinerea (Grey heron) eating fish",
+    "creator": "Basile Morin",
+    "license": "CC BY-SA 4.0",
+    "licenseUrl": "https://creativecommons.org/licenses/by-sa/4.0",
+    "sourceUrl": "https://commons.wikimedia.org/wiki/File%3AArdea%20cinerea%20(Grey%20heron)%20eating%20fish.jpg",
+    "originalUrl": "https://commons.wikimedia.org/wiki/File:Ardea_cinerea_(Grey_heron)_eating_fish.jpg",
+    "cachedFrom": "Wikimedia Commons"
+  },
+  "swallow": {
+    "title": "Swallow chicks444",
+    "creator": "Benjamint444",
+    "license": "CC BY-SA 3.0",
+    "licenseUrl": "http://creativecommons.org/licenses/by-sa/3.0/",
+    "sourceUrl": "https://commons.wikimedia.org/wiki/File%3ASwallow%20chicks444.jpg",
+    "originalUrl": "https://commons.wikimedia.org/wiki/File:Swallow_chicks444.jpg",
+    "cachedFrom": "Wikimedia Commons"
+  },
+  "cuckoo": {
+    "title": "Banded Bay Cuckoo in Ajodhya Hills July 2024 by Tisha Mukherjee 01",
+    "creator": "Tisha Mukherjee",
+    "license": "CC BY-SA 4.0",
+    "licenseUrl": "https://creativecommons.org/licenses/by-sa/4.0",
+    "sourceUrl": "https://commons.wikimedia.org/wiki/File%3ABanded%20Bay%20Cuckoo%20in%20Ajodhya%20Hills%20July%202024%20by%20Tisha%20Mukherjee%2001.jpg",
+    "originalUrl": "https://commons.wikimedia.org/wiki/File:Banded_Bay_Cuckoo_in_Ajodhya_Hills_July_2024_by_Tisha_Mukherjee_01.jpg",
+    "cachedFrom": "Wikimedia Commons"
+  },
+  "kingfisher": {
+    "title": "Sacred kingfisher nov08",
+    "creator": "fir0002 flagstaffotos [at] gmail.com Canon 20D + Canon 400mm f/5.6 L",
+    "license": "GFDL 1.2",
+    "licenseUrl": "http://www.gnu.org/licenses/old-licenses/fdl-1.2.html",
+    "sourceUrl": "https://commons.wikimedia.org/wiki/File%3ASacred%20kingfisher%20nov08.jpg",
+    "originalUrl": "https://commons.wikimedia.org/wiki/File:Sacred_kingfisher_nov08.jpg",
+    "cachedFrom": "Wikimedia Commons"
+  },
+  "turkey bird": {
+    "title": "Meleagris gallopavo qtl1",
+    "creator": "Quartl",
+    "license": "CC BY-SA 3.0",
+    "licenseUrl": "https://creativecommons.org/licenses/by-sa/3.0",
+    "sourceUrl": "https://commons.wikimedia.org/wiki/File%3AMeleagris%20gallopavo%20qtl1.jpg",
+    "originalUrl": "https://commons.wikimedia.org/wiki/File:Meleagris_gallopavo_qtl1.jpg",
+    "cachedFrom": "Wikimedia Commons"
+  },
+  "snake": {
+    "title": "The Grass Snake - Natrix natrix",
+    "creator": "Darius Bauzys",
+    "license": "CC BY 3.0",
+    "licenseUrl": "https://creativecommons.org/licenses/by/3.0",
+    "sourceUrl": "https://commons.wikimedia.org/wiki/File%3AThe%20Grass%20Snake%20-%20Natrix%20natrix.jpg",
+    "originalUrl": "https://commons.wikimedia.org/wiki/File:The_Grass_Snake_-_Natrix_natrix.jpg",
+    "cachedFrom": "Wikimedia Commons"
+  },
+  "cobra": {
+    "title": "Naja naja cobra a lunettes 69",
+    "creator": "Patrick JEAN",
+    "license": "Attribution",
+    "licenseUrl": "https://commons.wikimedia.org/wiki/File%3ANaja%20naja%20cobra%20a%20lunettes%2069.JPG",
+    "sourceUrl": "https://commons.wikimedia.org/wiki/File%3ANaja%20naja%20cobra%20a%20lunettes%2069.JPG",
+    "originalUrl": "https://commons.wikimedia.org/wiki/File:Naja_naja_cobra_a_lunettes_69.JPG",
+    "cachedFrom": "Wikimedia Commons"
+  },
+  "python": {
+    "title": "Heller Tigerpython Python molurus molurus",
+    "creator": "Holger Krisp",
+    "license": "CC BY 3.0",
+    "licenseUrl": "https://creativecommons.org/licenses/by/3.0",
+    "sourceUrl": "https://commons.wikimedia.org/wiki/File%3AHeller%20Tigerpython%20Python%20molurus%20molurus.jpg",
+    "originalUrl": "https://commons.wikimedia.org/wiki/File:Heller_Tigerpython_Python_molurus_molurus.jpg",
+    "cachedFrom": "Wikimedia Commons"
+  },
+  "viper": {
+    "title": "Red-tailed bamboo pit viper in Sundarbans National Park October 2025 by Tisha Mukherjee 03",
+    "creator": "Tisha Mukherjee",
+    "license": "CC BY-SA 4.0",
+    "licenseUrl": "https://creativecommons.org/licenses/by-sa/4.0",
+    "sourceUrl": "https://commons.wikimedia.org/wiki/File%3ARed-tailed%20bamboo%20pit%20viper%20in%20Sundarbans%20National%20Park%20October%202025%20by%20Tisha%20Mukherjee%2003.jpg",
+    "originalUrl": "https://commons.wikimedia.org/wiki/File:Red-tailed_bamboo_pit_viper_in_Sundarbans_National_Park_October_2025_by_Tisha_Mukherjee_03.jpg",
+    "cachedFrom": "Wikimedia Commons"
+  },
+  "lizard": {
+    "title": "Nile monitor lizard (Varanus niloticus) head",
+    "creator": "Charles J. Sharp",
+    "license": "CC BY-SA 4.0",
+    "licenseUrl": "https://creativecommons.org/licenses/by-sa/4.0",
+    "sourceUrl": "https://commons.wikimedia.org/wiki/File%3ANile%20monitor%20lizard%20(Varanus%20niloticus)%20head.jpg",
+    "originalUrl": "https://commons.wikimedia.org/wiki/File:Nile_monitor_lizard_(Varanus_niloticus)_head.jpg",
+    "cachedFrom": "Wikimedia Commons"
+  },
+  "gecko": {
+    "title": "Dwarf Yellow-headed gecko edit",
+    "creator": "Muhammad Mahdi Karim derivative work: Fletcher6 (talk)",
+    "license": "GFDL 1.2",
+    "licenseUrl": "http://www.gnu.org/licenses/old-licenses/fdl-1.2.html",
+    "sourceUrl": "https://commons.wikimedia.org/wiki/File%3ADwarf%20Yellow-headed%20gecko%20edit.jpg",
+    "originalUrl": "https://commons.wikimedia.org/wiki/File:Dwarf_Yellow-headed_gecko_edit.jpg",
+    "cachedFrom": "Wikimedia Commons"
+  },
+  "iguana": {
+    "title": "Portrait of an Iguana",
+    "creator": "Bjørn Christian Tørrissen",
+    "license": "CC BY-SA 4.0",
+    "licenseUrl": "https://creativecommons.org/licenses/by-sa/4.0",
+    "sourceUrl": "https://commons.wikimedia.org/wiki/File%3APortrait%20of%20an%20Iguana.jpg",
+    "originalUrl": "https://commons.wikimedia.org/wiki/File:Portrait_of_an_Iguana.jpg",
+    "cachedFrom": "Wikimedia Commons"
+  },
+  "chameleon": {
+    "title": "Chameleon (16139192778)",
+    "creator": "Laika ac from UK",
+    "license": "CC BY-SA 2.0",
+    "licenseUrl": "https://creativecommons.org/licenses/by-sa/2.0",
+    "sourceUrl": "https://commons.wikimedia.org/wiki/File%3AChameleon%20(16139192778).jpg",
+    "originalUrl": "https://commons.wikimedia.org/wiki/File:Chameleon_(16139192778).jpg",
+    "cachedFrom": "Wikimedia Commons"
+  },
+  "crocodile": {
+    "title": "Nile crocodile head",
+    "creator": "Leigh Bedford",
+    "license": "CC BY 2.0",
+    "licenseUrl": "https://creativecommons.org/licenses/by/2.0",
+    "sourceUrl": "https://commons.wikimedia.org/wiki/File%3ANile%20crocodile%20head.jpg",
+    "originalUrl": "https://commons.wikimedia.org/wiki/File:Nile_crocodile_head.jpg",
+    "cachedFrom": "Wikimedia Commons"
+  },
+  "alligator": {
+    "title": "Alligator mississippiensis 2 babies",
+    "creator": "Ianaré Sévi",
+    "license": "CC BY-SA 3.0",
+    "licenseUrl": "https://creativecommons.org/licenses/by-sa/3.0",
+    "sourceUrl": "https://commons.wikimedia.org/wiki/File%3AAlligator%20mississippiensis%202%20babies.jpg",
+    "originalUrl": "https://commons.wikimedia.org/wiki/File:Alligator_mississippiensis_2_babies.jpg",
+    "cachedFrom": "Wikimedia Commons"
+  },
+  "turtle": {
+    "title": "Hawaii turtle 2",
+    "creator": "Brocken Inaglory",
+    "license": "CC BY-SA 3.0",
+    "licenseUrl": "http://creativecommons.org/licenses/by-sa/3.0/",
+    "sourceUrl": "https://commons.wikimedia.org/wiki/File%3AHawaii%20turtle%202.JPG",
+    "originalUrl": "https://commons.wikimedia.org/wiki/File:Hawaii_turtle_2.JPG",
+    "cachedFrom": "Wikimedia Commons"
+  },
+  "tortoise": {
+    "title": "Tortoise portrait",
+    "creator": "Moise Nicu",
+    "license": "CC BY 3.0",
+    "licenseUrl": "https://creativecommons.org/licenses/by/3.0",
+    "sourceUrl": "https://commons.wikimedia.org/wiki/File%3ATortoise%20portrait.JPG",
+    "originalUrl": "https://commons.wikimedia.org/wiki/File:Tortoise_portrait.JPG",
+    "cachedFrom": "Wikimedia Commons"
+  },
+  "frog": {
+    "title": "Australia green tree frog (Litoria caerulea) crop",
+    "creator": "LiquidGhoul",
+    "license": "Public domain",
+    "licenseUrl": "https://commons.wikimedia.org/wiki/File%3AAustralia%20green%20tree%20frog%20(Litoria%20caerulea)%20crop.jpg",
+    "sourceUrl": "https://commons.wikimedia.org/wiki/File%3AAustralia%20green%20tree%20frog%20(Litoria%20caerulea)%20crop.jpg",
+    "originalUrl": "https://commons.wikimedia.org/wiki/File:Australia_green_tree_frog_(Litoria_caerulea)_crop.jpg",
+    "cachedFrom": "Wikimedia Commons"
+  },
+  "toad": {
+    "title": "Bufo bufo couple during migration(2005)",
+    "creator": "Janekpfeifer at de.wikipedia",
+    "license": "CC BY-SA 3.0",
+    "licenseUrl": "http://creativecommons.org/licenses/by-sa/3.0/",
+    "sourceUrl": "https://commons.wikimedia.org/wiki/File%3ABufo%20bufo%20couple%20during%20migration(2005).jpg",
+    "originalUrl": "https://commons.wikimedia.org/wiki/File:Bufo_bufo_couple_during_migration(2005).jpg",
+    "cachedFrom": "Wikimedia Commons"
+  },
+  "salamander": {
+    "title": "Fire salamander (Salamandra Salamandra)",
+    "creator": "Petar Milošević",
+    "license": "CC BY-SA 4.0",
+    "licenseUrl": "https://creativecommons.org/licenses/by-sa/4.0",
+    "sourceUrl": "https://commons.wikimedia.org/wiki/File%3AFire%20salamander%20(Salamandra%20Salamandra).jpg",
+    "originalUrl": "https://commons.wikimedia.org/wiki/File:Fire_salamander_(Salamandra_Salamandra).jpg",
+    "cachedFrom": "Wikimedia Commons"
+  },
+  "newt": {
+    "title": "Eastern Newt",
+    "creator": "Chris M",
+    "license": "CC BY 2.0",
+    "licenseUrl": "https://creativecommons.org/licenses/by/2.0",
+    "sourceUrl": "https://commons.wikimedia.org/wiki/File%3AEastern%20Newt.jpg",
+    "originalUrl": "https://commons.wikimedia.org/wiki/File:Eastern_Newt.jpg",
+    "cachedFrom": "Wikimedia Commons"
+  },
+  "dinosaur": {
+    "title": "Carved tree with reliefs of dinosaur and other animals",
+    "creator": "Basile Morin",
+    "license": "CC BY-SA 4.0",
+    "licenseUrl": "https://creativecommons.org/licenses/by-sa/4.0",
+    "sourceUrl": "https://commons.wikimedia.org/wiki/File%3ACarved%20tree%20with%20reliefs%20of%20dinosaur%20and%20other%20animals.jpg",
+    "originalUrl": "https://commons.wikimedia.org/wiki/File:Carved_tree_with_reliefs_of_dinosaur_and_other_animals.jpg",
+    "cachedFrom": "Wikimedia Commons"
+  },
+  "t-rex": {
+    "title": "Baby T-rex 0496",
+    "creator": "Conty",
+    "license": "CC BY-SA 4.0",
+    "licenseUrl": "https://creativecommons.org/licenses/by-sa/4.0",
+    "sourceUrl": "https://commons.wikimedia.org/wiki/File%3ABaby%20T-rex%200496.JPG",
+    "originalUrl": "https://commons.wikimedia.org/wiki/File:Baby_T-rex_0496.JPG",
+    "cachedFrom": "Wikimedia Commons"
+  },
+  "bee": {
+    "title": "Bee mid air",
+    "creator": "Fir0002",
+    "license": "GFDL 1.2",
+    "licenseUrl": "http://www.gnu.org/licenses/old-licenses/fdl-1.2.html",
+    "sourceUrl": "https://commons.wikimedia.org/wiki/File%3ABee%20mid%20air.jpg",
+    "originalUrl": "https://commons.wikimedia.org/wiki/File:Bee_mid_air.jpg",
+    "cachedFrom": "Wikimedia Commons"
+  },
+  "wasp": {
+    "title": "Wasp March 2008-1",
+    "creator": "Alvesgaspar",
+    "license": "CC BY-SA 3.0",
+    "licenseUrl": "https://creativecommons.org/licenses/by-sa/3.0",
+    "sourceUrl": "https://commons.wikimedia.org/wiki/File%3AWasp%20March%202008-1.jpg",
+    "originalUrl": "https://commons.wikimedia.org/wiki/File:Wasp_March_2008-1.jpg",
+    "cachedFrom": "Wikimedia Commons"
+  },
+  "hornet": {
+    "title": "Hornet-vespa",
+    "creator": "PiccoloNamek",
+    "license": "CC BY-SA 3.0",
+    "licenseUrl": "http://creativecommons.org/licenses/by-sa/3.0/",
+    "sourceUrl": "https://commons.wikimedia.org/wiki/File%3AHornet-vespa.jpg",
+    "originalUrl": "https://commons.wikimedia.org/wiki/File:Hornet-vespa.jpg",
+    "cachedFrom": "Wikimedia Commons"
+  },
+  "ant": {
+    "title": "An Ant in Colombian amber",
+    "creator": "Brocken Inaglory",
+    "license": "CC BY-SA 3.0",
+    "licenseUrl": "https://creativecommons.org/licenses/by-sa/3.0",
+    "sourceUrl": "https://commons.wikimedia.org/wiki/File%3AAn%20Ant%20in%20Colombian%20amber.jpg",
+    "originalUrl": "https://commons.wikimedia.org/wiki/File:An_Ant_in_Colombian_amber.jpg",
+    "cachedFrom": "Wikimedia Commons"
+  },
+  "butterfly": {
+    "title": "Monarch Butterfly Pink Zinnia 1800px",
+    "creator": "Photo (c)2006 Derek Ramsey (Ram-Man)",
+    "license": "GFDL 1.2",
+    "licenseUrl": "http://www.gnu.org/licenses/old-licenses/fdl-1.2.html",
+    "sourceUrl": "https://commons.wikimedia.org/wiki/File%3AMonarch%20Butterfly%20Pink%20Zinnia%201800px.jpg",
+    "originalUrl": "https://commons.wikimedia.org/wiki/File:Monarch_Butterfly_Pink_Zinnia_1800px.jpg",
+    "cachedFrom": "Wikimedia Commons"
+  },
+  "moth": {
+    "title": "Brahmaea wallichii insulata (Brahmeid Moth)",
+    "creator": "Arthur Chapman",
+    "license": "CC BY 2.0",
+    "licenseUrl": "https://creativecommons.org/licenses/by/2.0",
+    "sourceUrl": "https://commons.wikimedia.org/wiki/File%3ABrahmaea%20wallichii%20insulata%20(Brahmeid%20Moth).jpg",
+    "originalUrl": "https://commons.wikimedia.org/wiki/File:Brahmaea_wallichii_insulata_(Brahmeid_Moth).jpg",
+    "cachedFrom": "Wikimedia Commons"
+  },
+  "dragonfly": {
+    "title": "Ruddy darter dragonfly (Sympetrum sanguineum) adult male head",
+    "creator": "Charles J. Sharp",
+    "license": "CC BY-SA 4.0",
+    "licenseUrl": "https://creativecommons.org/licenses/by-sa/4.0",
+    "sourceUrl": "https://commons.wikimedia.org/wiki/File%3ARuddy%20darter%20dragonfly%20(Sympetrum%20sanguineum)%20adult%20male%20head.jpg",
+    "originalUrl": "https://commons.wikimedia.org/wiki/File:Ruddy_darter_dragonfly_(Sympetrum_sanguineum)_adult_male_head.jpg",
+    "cachedFrom": "Wikimedia Commons"
+  },
+  "ladybug": {
+    "title": "Ladybug aphids",
+    "creator": "Greyson Orlando",
+    "license": "CC BY-SA 3.0",
+    "licenseUrl": "http://creativecommons.org/licenses/by-sa/3.0/",
+    "sourceUrl": "https://commons.wikimedia.org/wiki/File%3ALadybug%20aphids.JPG",
+    "originalUrl": "https://commons.wikimedia.org/wiki/File:Ladybug_aphids.JPG",
+    "cachedFrom": "Wikimedia Commons"
+  },
+  "beetle": {
+    "title": "Longhorn Beetle Whitespotted Sawyer USA",
+    "creator": "Thomas Schoch",
+    "license": "CC BY-SA 3.0",
+    "licenseUrl": "https://creativecommons.org/licenses/by-sa/3.0",
+    "sourceUrl": "https://commons.wikimedia.org/wiki/File%3ALonghorn%20Beetle%20Whitespotted%20Sawyer%20USA.jpg",
+    "originalUrl": "https://commons.wikimedia.org/wiki/File:Longhorn_Beetle_Whitespotted_Sawyer_USA.jpg",
+    "cachedFrom": "Wikimedia Commons"
+  },
+  "cockroach": {
+    "title": "Cockroach May 2007-1",
+    "creator": "Alvesgaspar",
+    "license": "CC BY-SA 4.0",
+    "licenseUrl": "https://creativecommons.org/licenses/by-sa/4.0",
+    "sourceUrl": "https://commons.wikimedia.org/wiki/File%3ACockroach%20May%202007-1.jpg",
+    "originalUrl": "https://commons.wikimedia.org/wiki/File:Cockroach_May_2007-1.jpg",
+    "cachedFrom": "Wikimedia Commons"
+  },
+  "cricket": {
+    "title": "Cricket insect near Lantana flower Karnataka India",
+    "creator": "Tutikpitik",
+    "license": "CC BY-SA 4.0",
+    "licenseUrl": "https://creativecommons.org/licenses/by-sa/4.0",
+    "sourceUrl": "https://commons.wikimedia.org/wiki/File%3ACricket%20insect%20near%20Lantana%20flower%20Karnataka%20India.jpg",
+    "originalUrl": "https://commons.wikimedia.org/wiki/File:Cricket_insect_near_Lantana_flower_Karnataka_India.jpg",
+    "cachedFrom": "Wikimedia Commons"
+  },
+  "grasshopper": {
+    "title": "Short-horned grasshopper (Traulia azureipennis) brown form nymph",
+    "creator": "Charles J. Sharp",
+    "license": "CC BY-SA 4.0",
+    "licenseUrl": "https://creativecommons.org/licenses/by-sa/4.0",
+    "sourceUrl": "https://commons.wikimedia.org/wiki/File%3AShort-horned%20grasshopper%20(Traulia%20azureipennis)%20brown%20form%20nymph.jpg",
+    "originalUrl": "https://commons.wikimedia.org/wiki/File:Short-horned_grasshopper_(Traulia_azureipennis)_brown_form_nymph.jpg",
+    "cachedFrom": "Wikimedia Commons"
+  },
+  "mosquito": {
+    "title": "Mosquito 2007-2",
+    "creator": "Alvesgaspar",
+    "license": "CC BY-SA 3.0",
+    "licenseUrl": "https://creativecommons.org/licenses/by-sa/3.0",
+    "sourceUrl": "https://commons.wikimedia.org/wiki/File%3AMosquito%202007-2.jpg",
+    "originalUrl": "https://commons.wikimedia.org/wiki/File:Mosquito_2007-2.jpg",
+    "cachedFrom": "Wikimedia Commons"
+  },
+  "fly": {
+    "title": "Fly November 2007-10",
+    "creator": "Alvesgaspar",
+    "license": "CC BY-SA 3.0",
+    "licenseUrl": "https://creativecommons.org/licenses/by-sa/3.0",
+    "sourceUrl": "https://commons.wikimedia.org/wiki/File%3AFly%20November%202007-10.jpg",
+    "originalUrl": "https://commons.wikimedia.org/wiki/File:Fly_November_2007-10.jpg",
+    "cachedFrom": "Wikimedia Commons"
+  },
+  "spider": {
+    "title": "Wasp and spider 02",
+    "creator": "Tony Wills",
+    "license": "CC BY 2.5",
+    "licenseUrl": "https://creativecommons.org/licenses/by/2.5",
+    "sourceUrl": "https://commons.wikimedia.org/wiki/File%3AWasp%20and%20spider%2002.jpg",
+    "originalUrl": "https://commons.wikimedia.org/wiki/File:Wasp_and_spider_02.jpg",
+    "cachedFrom": "Wikimedia Commons"
+  },
+  "scorpion": {
+    "title": "Asian forest scorpion in Khao Yai National Park",
+    "creator": "Chris huh",
+    "license": "CC BY-SA 3.0",
+    "licenseUrl": "http://creativecommons.org/licenses/by-sa/3.0/",
+    "sourceUrl": "https://commons.wikimedia.org/wiki/File%3AAsian%20forest%20scorpion%20in%20Khao%20Yai%20National%20Park.JPG",
+    "originalUrl": "https://commons.wikimedia.org/wiki/File:Asian_forest_scorpion_in_Khao_Yai_National_Park.JPG",
+    "cachedFrom": "Wikimedia Commons"
+  },
+  "centipede": {
+    "title": "Female centipede with eggs",
+    "creator": "Marshal Hedin",
+    "license": "CC BY-SA 2.5",
+    "licenseUrl": "https://creativecommons.org/licenses/by-sa/2.5",
+    "sourceUrl": "https://commons.wikimedia.org/wiki/File%3AFemale%20centipede%20with%20eggs.jpg",
+    "originalUrl": "https://commons.wikimedia.org/wiki/File:Female_centipede_with_eggs.jpg",
+    "cachedFrom": "Wikimedia Commons"
+  },
+  "caterpillar": {
+    "title": "Malacosoma castrense caterpillar (top view) - Kulna",
+    "creator": "Ivar Leidus",
+    "license": "CC BY-SA 4.0",
+    "licenseUrl": "https://creativecommons.org/licenses/by-sa/4.0",
+    "sourceUrl": "https://commons.wikimedia.org/wiki/File%3AMalacosoma%20castrense%20caterpillar%20(top%20view)%20-%20Kulna.jpg",
+    "originalUrl": "https://commons.wikimedia.org/wiki/File:Malacosoma_castrense_caterpillar_(top_view)_-_Kulna.jpg",
+    "cachedFrom": "Wikimedia Commons"
+  },
+  "worm": {
+    "title": "Lumbricus terrestris (26559560801)",
+    "creator": "Donald Hobern from Copenhagen, Denmark",
+    "license": "CC BY 2.0",
+    "licenseUrl": "https://creativecommons.org/licenses/by/2.0",
+    "sourceUrl": "https://commons.wikimedia.org/wiki/File%3ALumbricus%20terrestris%20(26559560801).jpg",
+    "originalUrl": "https://commons.wikimedia.org/wiki/File:Lumbricus_terrestris_(26559560801).jpg",
+    "cachedFrom": "Wikimedia Commons"
+  },
+  "snail": {
+    "title": "Common snail",
+    "creator": "macrophile on Flickr",
+    "license": "CC BY 2.0",
+    "licenseUrl": "https://creativecommons.org/licenses/by/2.0",
+    "sourceUrl": "https://commons.wikimedia.org/wiki/File%3ACommon%20snail.jpg",
+    "originalUrl": "https://commons.wikimedia.org/wiki/File:Common_snail.jpg",
+    "cachedFrom": "Wikimedia Commons"
+  },
+  "firefly": {
+    "title": "Images from Ezhimala",
+    "creator": "Manoj Karingamadathil",
+    "license": "CC BY-SA 4.0",
+    "licenseUrl": "https://creativecommons.org/licenses/by-sa/4.0",
+    "sourceUrl": "https://commons.wikimedia.org/wiki/File%3AInsect%20Firefly%20(Lampyridae)%20from%20Ezhimala%20DSCN1742.jpg",
+    "originalUrl": "https://commons.wikimedia.org/wiki/File:Insect_Firefly_(Lampyridae)_from_Ezhimala_DSCN1742.jpg",
+    "cachedFrom": "Wikimedia Commons"
+  },
+  "mantis": {
+    "title": "Praying mantis india",
+    "creator": "Shiva shankar",
+    "license": "CC BY-SA 2.0",
+    "licenseUrl": "https://creativecommons.org/licenses/by-sa/2.0",
+    "sourceUrl": "https://commons.wikimedia.org/wiki/File%3APraying%20mantis%20india.jpg",
+    "originalUrl": "https://commons.wikimedia.org/wiki/File:Praying_mantis_india.jpg",
+    "cachedFrom": "Wikimedia Commons"
+  },
+  "termite": {
+    "title": "Termite mount",
+    "creator": "irvin calicut",
+    "license": "CC BY-SA 3.0",
+    "licenseUrl": "https://creativecommons.org/licenses/by-sa/3.0",
+    "sourceUrl": "https://commons.wikimedia.org/wiki/File%3ATermite%20mount.JPG",
+    "originalUrl": "https://commons.wikimedia.org/wiki/File:Termite_mount.JPG",
+    "cachedFrom": "Wikimedia Commons"
+  },
+  "flea": {
+    "title": "Ctenocephalides felis subsp. felis, Hayling Island (53138287149)",
+    "creator": "Sam Thomas",
+    "license": "CC BY-SA 2.0",
+    "licenseUrl": "https://creativecommons.org/licenses/by-sa/2.0",
+    "sourceUrl": "https://commons.wikimedia.org/wiki/File%3ACtenocephalides%20felis%20subsp.%20felis%2C%20Hayling%20Island%20(53138287149).jpg",
+    "originalUrl": "https://commons.wikimedia.org/wiki/File:Ctenocephalides_felis_subsp._felis,_Hayling_Island_(53138287149).jpg",
+    "cachedFrom": "Wikimedia Commons"
+  },
+  "tick": {
+    "title": "Adult deer tick",
+    "creator": "Photo by Scott Bauer.",
+    "license": "Public domain",
+    "licenseUrl": "https://commons.wikimedia.org/wiki/File%3AAdult%20deer%20tick.jpg",
+    "sourceUrl": "https://commons.wikimedia.org/wiki/File%3AAdult%20deer%20tick.jpg",
+    "originalUrl": "https://commons.wikimedia.org/wiki/File:Adult_deer_tick.jpg",
+    "cachedFrom": "Wikimedia Commons"
+  },
+  "slug": {
+    "title": "Black Slug",
+    "creator": "Prashanthns",
+    "license": "CC BY-SA 3.0",
+    "licenseUrl": "https://creativecommons.org/licenses/by-sa/3.0",
+    "sourceUrl": "https://commons.wikimedia.org/wiki/File%3ABlack%20Slug.jpg",
+    "originalUrl": "https://commons.wikimedia.org/wiki/File:Black_Slug.jpg",
+    "cachedFrom": "Wikimedia Commons"
+  },
+  "kitten": {
+    "title": "Black kitten July August 2009-1",
+    "creator": "Alvesgaspar (talk)",
+    "license": "CC BY-SA 3.0",
+    "licenseUrl": "https://creativecommons.org/licenses/by-sa/3.0",
+    "sourceUrl": "https://commons.wikimedia.org/wiki/File%3ABlack%20kitten%20July%20August%202009-1.jpg",
+    "originalUrl": "https://commons.wikimedia.org/wiki/File:Black_kitten_July_August_2009-1.jpg",
+    "cachedFrom": "Wikimedia Commons"
+  },
+  "puppy": {
+    "title": "Keeshond Siberian Husky crossbreed puppy",
+    "creator": "Richard Bartz, Munich aka Makro Freak",
+    "license": "CC BY-SA 2.5",
+    "licenseUrl": "https://creativecommons.org/licenses/by-sa/2.5",
+    "sourceUrl": "https://commons.wikimedia.org/wiki/File%3AKeeshond%20Siberian%20Husky%20crossbreed%20puppy.jpg",
+    "originalUrl": "https://commons.wikimedia.org/wiki/File:Keeshond_Siberian_Husky_crossbreed_puppy.jpg",
+    "cachedFrom": "Wikimedia Commons"
+  },
+  "swordfish": {
+    "title": "Xiphias gladius in the sea",
+    "creator": "sylvain_eichhorn",
+    "license": "CC BY 4.0",
+    "licenseUrl": "https://creativecommons.org/licenses/by/4.0",
+    "sourceUrl": "https://commons.wikimedia.org/wiki/File%3AXiphias%20gladius%20in%20the%20sea.jpg",
+    "originalUrl": "https://commons.wikimedia.org/wiki/File:Xiphias_gladius_in_the_sea.jpg",
+    "cachedFrom": "Wikimedia Commons"
+  },
+  "clownfish": {
+    "title": "Common clownfish",
+    "creator": "Janderk",
+    "license": "Public domain",
+    "licenseUrl": "https://commons.wikimedia.org/wiki/File%3ACommon%20clownfish.jpg",
+    "sourceUrl": "https://commons.wikimedia.org/wiki/File%3ACommon%20clownfish.jpg",
+    "originalUrl": "https://commons.wikimedia.org/wiki/File:Common_clownfish.jpg",
+    "cachedFrom": "Wikimedia Commons"
+  },
+  "puffin": {
+    "title": "Puffin Latrabjarg Iceland",
+    "creator": "Boaworm",
+    "license": "CC BY 3.0",
+    "licenseUrl": "https://creativecommons.org/licenses/by/3.0",
+    "sourceUrl": "https://commons.wikimedia.org/wiki/File%3APuffin%20Latrabjarg%20Iceland.jpg",
+    "originalUrl": "https://commons.wikimedia.org/wiki/File:Puffin_Latrabjarg_Iceland.jpg",
+    "cachedFrom": "Wikimedia Commons"
+  },
+  "toucan": {
+    "title": "Toco toucan london",
+    "creator": "jon hanson",
+    "license": "CC BY-SA 2.0",
+    "licenseUrl": "https://creativecommons.org/licenses/by-sa/2.0",
+    "sourceUrl": "https://commons.wikimedia.org/wiki/File%3AToco%20toucan%20london.jpg",
+    "originalUrl": "https://commons.wikimedia.org/wiki/File:Toco_toucan_london.jpg",
+    "cachedFrom": "Wikimedia Commons"
+  },
+  "wombat": {
+    "title": "Wilsons Promontory National Park (AU), Tidal River (village), Wombat -- 2019 -- 1602",
+    "creator": "Dietmar Rabich",
+    "license": "CC BY-SA 4.0",
+    "licenseUrl": "https://creativecommons.org/licenses/by-sa/4.0",
+    "sourceUrl": "https://commons.wikimedia.org/wiki/File%3AWilsons%20Promontory%20National%20Park%20(AU)%2C%20Tidal%20River%20(village)%2C%20Wombat%20--%202019%20--%201602.jpg",
+    "originalUrl": "https://commons.wikimedia.org/wiki/File:Wilsons_Promontory_National_Park_(AU),_Tidal_River_(village),_Wombat_--_2019_--_1602.jpg",
+    "cachedFrom": "Wikimedia Commons"
+  },
+  "aardvark": {
+    "title": "Aardvark (Orycteropus afer)",
+    "creator": "Theo Kruse Burgers' Zoo",
+    "license": "CC BY-SA 4.0",
+    "licenseUrl": "https://creativecommons.org/licenses/by-sa/4.0",
+    "sourceUrl": "https://commons.wikimedia.org/wiki/File%3AAardvark%20(Orycteropus%20afer).jpg",
+    "originalUrl": "https://commons.wikimedia.org/wiki/File:Aardvark_(Orycteropus_afer).jpg",
+    "cachedFrom": "Wikimedia Commons"
+  },
+  "tadpole": {
+    "title": "Tadpoles 10 days",
+    "creator": "The original uploader was Tarquin at English Wikipedia.",
+    "license": "CC BY-SA 3.0",
+    "licenseUrl": "http://creativecommons.org/licenses/by-sa/3.0/",
+    "sourceUrl": "https://commons.wikimedia.org/wiki/File%3ATadpoles%2010%20days.jpg",
+    "originalUrl": "https://commons.wikimedia.org/wiki/File:Tadpoles_10_days.jpg",
+    "cachedFrom": "Wikimedia Commons"
+  },
+  "locust": {
+    "title": "Italian locust (Calliptamus italicus) female",
+    "creator": "Charles J. Sharp",
+    "license": "CC BY-SA 4.0",
+    "licenseUrl": "https://creativecommons.org/licenses/by-sa/4.0",
+    "sourceUrl": "https://commons.wikimedia.org/wiki/File%3AItalian%20locust%20(Calliptamus%20italicus)%20female.jpg",
+    "originalUrl": "https://commons.wikimedia.org/wiki/File:Italian_locust_(Calliptamus_italicus)_female.jpg",
+    "cachedFrom": "Wikimedia Commons"
+  }
+}

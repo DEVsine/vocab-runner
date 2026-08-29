@@ -3,209 +3,1733 @@
   "name": "🐘 สัตว์ (Animals)",
   "description": "ชื่อสัตว์กว่า 200 ชนิด สัตว์เลี้ยง ฟาร์ม ป่า ทะเล นก สัตว์เลื้อยคลาน และแมลง — หลายคำมี emoji ให้เดาแบบเห็นภาพ",
   "words": [
-    { "en": "cat", "th": "แมว", "pos": "noun", "level": 1, "topic": "pet", "emoji": "🐱" },
-    { "en": "dog", "th": "สุนัข", "pos": "noun", "level": 1, "topic": "pet", "emoji": "🐶" },
-    { "en": "rabbit", "th": "กระต่าย", "pos": "noun", "level": 1, "topic": "pet", "emoji": "🐰" },
-    { "en": "hamster", "th": "หนูแฮมสเตอร์", "pos": "noun", "level": 2, "topic": "pet", "emoji": "🐹" },
-    { "en": "guinea pig", "th": "หนูตะเภา", "pos": "noun", "level": 2, "topic": "pet" },
-    { "en": "ferret", "th": "เฟอร์เร็ต", "pos": "noun", "level": 3, "topic": "pet" },
-    { "en": "goldfish", "th": "ปลาทอง", "pos": "noun", "level": 2, "topic": "pet" },
-    { "en": "canary", "th": "นกคีรีบูน", "pos": "noun", "level": 3, "topic": "pet" },
-    { "en": "cow", "th": "วัว", "pos": "noun", "level": 1, "topic": "farm", "emoji": "🐮" },
-    { "en": "bull", "th": "วัวกระทิง", "pos": "noun", "level": 2, "topic": "farm" },
-    { "en": "ox", "th": "วัวตัวผู้", "pos": "noun", "level": 2, "topic": "farm", "emoji": "🐂" },
-    { "en": "buffalo", "th": "ควาย", "pos": "noun", "level": 1, "topic": "farm", "emoji": "🐃" },
-    { "en": "calf", "th": "ลูกวัว", "pos": "noun", "level": 2, "topic": "farm" },
-    { "en": "pig", "th": "หมู", "pos": "noun", "level": 1, "topic": "farm", "emoji": "🐷" },
-    { "en": "piglet", "th": "ลูกหมู", "pos": "noun", "level": 2, "topic": "farm" },
-    { "en": "sheep", "th": "แกะ", "pos": "noun", "level": 1, "topic": "farm", "emoji": "🐑" },
-    { "en": "lamb", "th": "ลูกแกะ", "pos": "noun", "level": 2, "topic": "farm" },
-    { "en": "goat", "th": "แพะ", "pos": "noun", "level": 1, "topic": "farm", "emoji": "🐐" },
-    { "en": "horse", "th": "ม้า", "pos": "noun", "level": 1, "topic": "farm", "emoji": "🐴" },
-    { "en": "foal", "th": "ลูกม้า", "pos": "noun", "level": 2, "topic": "farm" },
-    { "en": "donkey", "th": "ลา", "pos": "noun", "level": 2, "topic": "farm" },
-    { "en": "mule", "th": "ล่อ", "pos": "noun", "level": 3, "topic": "farm" },
-    { "en": "chicken", "th": "ไก่", "pos": "noun", "level": 1, "topic": "farm", "emoji": "🐔" },
-    { "en": "rooster", "th": "ไก่ตัวผู้", "pos": "noun", "level": 2, "topic": "farm", "emoji": "🐓" },
-    { "en": "hen", "th": "แม่ไก่", "pos": "noun", "level": 2, "topic": "farm" },
-    { "en": "chick", "th": "ลูกไก่", "pos": "noun", "level": 1, "topic": "farm", "emoji": "🐤" },
-    { "en": "duck", "th": "เป็ด", "pos": "noun", "level": 1, "topic": "farm", "emoji": "🦆" },
-    { "en": "goose", "th": "ห่าน", "pos": "noun", "level": 2, "topic": "farm", "emoji": "🪿" },
-    { "en": "turkey", "th": "ไก่งวง", "pos": "noun", "level": 2, "topic": "farm", "emoji": "🦃" },
-    { "en": "llama", "th": "ลามะ", "pos": "noun", "level": 2, "topic": "farm", "emoji": "🦙" },
-    { "en": "alpaca", "th": "อัลปากา", "pos": "noun", "level": 3, "topic": "farm" },
-    { "en": "lion", "th": "สิงโต", "pos": "noun", "level": 1, "topic": "bigcat", "emoji": "🦁" },
-    { "en": "tiger", "th": "เสือโคร่ง", "pos": "noun", "level": 1, "topic": "bigcat", "emoji": "🐯" },
-    { "en": "leopard", "th": "เสือดาว", "pos": "noun", "level": 2, "topic": "bigcat" },
-    { "en": "cheetah", "th": "เสือชีตาห์", "pos": "noun", "level": 2, "topic": "bigcat" },
-    { "en": "jaguar", "th": "เสือจากัวร์", "pos": "noun", "level": 3, "topic": "bigcat" },
-    { "en": "panther", "th": "เสือดำ", "pos": "noun", "level": 2, "topic": "bigcat" },
-    { "en": "cougar", "th": "เสือภูเขา", "pos": "noun", "level": 3, "topic": "bigcat" },
-    { "en": "lynx", "th": "แมวป่าลิงซ์", "pos": "noun", "level": 3, "topic": "bigcat" },
-    { "en": "monkey", "th": "ลิง", "pos": "noun", "level": 1, "topic": "primate", "emoji": "🐵" },
-    { "en": "gorilla", "th": "กอริลลา", "pos": "noun", "level": 2, "topic": "primate", "emoji": "🦍" },
-    { "en": "chimpanzee", "th": "ชิมแปนซี", "pos": "noun", "level": 2, "topic": "primate" },
-    { "en": "orangutan", "th": "อุรังอุตัง", "pos": "noun", "level": 3, "topic": "primate", "emoji": "🦧" },
-    { "en": "baboon", "th": "ลิงบาบูน", "pos": "noun", "level": 3, "topic": "primate" },
-    { "en": "gibbon", "th": "ชะนี", "pos": "noun", "level": 2, "topic": "primate" },
-    { "en": "lemur", "th": "ลีเมอร์", "pos": "noun", "level": 3, "topic": "primate" },
-    { "en": "elephant", "th": "ช้าง", "pos": "noun", "level": 1, "topic": "mammal", "emoji": "🐘" },
-    { "en": "mammoth", "th": "แมมมอธ", "pos": "noun", "level": 3, "topic": "mammal", "emoji": "🦣" },
-    { "en": "rhinoceros", "th": "แรด", "pos": "noun", "level": 2, "topic": "mammal", "emoji": "🦏" },
-    { "en": "hippopotamus", "th": "ฮิปโปโปเตมัส", "pos": "noun", "level": 2, "topic": "mammal", "emoji": "🦛" },
-    { "en": "giraffe", "th": "ยีราฟ", "pos": "noun", "level": 1, "topic": "mammal", "emoji": "🦒" },
-    { "en": "zebra", "th": "ม้าลาย", "pos": "noun", "level": 1, "topic": "mammal", "emoji": "🦓" },
-    { "en": "bear", "th": "หมี", "pos": "noun", "level": 1, "topic": "mammal", "emoji": "🐻" },
-    { "en": "panda", "th": "แพนด้า", "pos": "noun", "level": 2, "topic": "mammal", "emoji": "🐼" },
-    { "en": "polar bear", "th": "หมีขั้วโลก", "pos": "noun", "level": 2, "topic": "mammal", "emoji": "🐻‍❄️" },
-    { "en": "koala", "th": "โคอาลา", "pos": "noun", "level": 2, "topic": "mammal", "emoji": "🐨" },
-    { "en": "kangaroo", "th": "จิงโจ้", "pos": "noun", "level": 2, "topic": "mammal", "emoji": "🦘" },
-    { "en": "camel", "th": "อูฐสองหนอก", "pos": "noun", "level": 2, "topic": "mammal", "emoji": "🐫" },
-    { "en": "dromedary", "th": "อูฐหนอกเดียว", "pos": "noun", "level": 3, "topic": "mammal", "emoji": "🐪" },
-    { "en": "bison", "th": "ไบซัน", "pos": "noun", "level": 3, "topic": "mammal", "emoji": "🦬" },
-    { "en": "moose", "th": "มูส", "pos": "noun", "level": 3, "topic": "mammal" },
-    { "en": "elk", "th": "กวางเอลก์", "pos": "noun", "level": 3, "topic": "mammal" },
-    { "en": "deer", "th": "กวาง", "pos": "noun", "level": 1, "topic": "mammal", "emoji": "🦌" },
-    { "en": "reindeer", "th": "กวางเรนเดียร์", "pos": "noun", "level": 2, "topic": "mammal" },
-    { "en": "antelope", "th": "แอนทิโลป", "pos": "noun", "level": 3, "topic": "mammal" },
-    { "en": "gazelle", "th": "ละมั่ง", "pos": "noun", "level": 3, "topic": "mammal" },
-    { "en": "wolf", "th": "หมาป่า", "pos": "noun", "level": 1, "topic": "mammal", "emoji": "🐺" },
-    { "en": "fox", "th": "สุนัขจิ้งจอก", "pos": "noun", "level": 2, "topic": "mammal", "emoji": "🦊" },
-    { "en": "coyote", "th": "หมาป่าไคโยตี", "pos": "noun", "level": 3, "topic": "mammal" },
-    { "en": "hyena", "th": "ไฮยีนา", "pos": "noun", "level": 3, "topic": "mammal" },
-    { "en": "jackal", "th": "หมาจิ้งจอก", "pos": "noun", "level": 3, "topic": "mammal" },
-    { "en": "wild boar", "th": "หมูป่า", "pos": "noun", "level": 2, "topic": "mammal", "emoji": "🐗" },
-    { "en": "tapir", "th": "สมเสร็จ", "pos": "noun", "level": 3, "topic": "mammal" },
-    { "en": "sloth", "th": "สลอธ", "pos": "noun", "level": 2, "topic": "mammal", "emoji": "🦥" },
-    { "en": "anteater", "th": "ตัวกินมด", "pos": "noun", "level": 3, "topic": "mammal" },
-    { "en": "armadillo", "th": "อาร์มาดิลโล", "pos": "noun", "level": 3, "topic": "mammal" },
-    { "en": "hedgehog", "th": "เม่นแคระ", "pos": "noun", "level": 2, "topic": "mammal", "emoji": "🦔" },
-    { "en": "porcupine", "th": "เม่น", "pos": "noun", "level": 2, "topic": "mammal" },
-    { "en": "otter", "th": "นาก", "pos": "noun", "level": 2, "topic": "mammal", "emoji": "🦦" },
-    { "en": "raccoon", "th": "แรคคูน", "pos": "noun", "level": 2, "topic": "mammal", "emoji": "🦝" },
-    { "en": "skunk", "th": "สกังก์", "pos": "noun", "level": 3, "topic": "mammal", "emoji": "🦨" },
-    { "en": "badger", "th": "แบดเจอร์", "pos": "noun", "level": 3, "topic": "mammal", "emoji": "🦡" },
-    { "en": "beaver", "th": "บีเวอร์", "pos": "noun", "level": 2, "topic": "mammal", "emoji": "🦫" },
-    { "en": "mongoose", "th": "พังพอน", "pos": "noun", "level": 3, "topic": "mammal" },
-    { "en": "meerkat", "th": "เมียร์แคต", "pos": "noun", "level": 3, "topic": "mammal" },
-    { "en": "platypus", "th": "ตุ่นปากเป็ด", "pos": "noun", "level": 3, "topic": "mammal" },
-    { "en": "mole", "th": "ตัวตุ่น", "pos": "noun", "level": 2, "topic": "mammal" },
-    { "en": "weasel", "th": "วีเซิล", "pos": "noun", "level": 3, "topic": "mammal" },
-    { "en": "yak", "th": "จามรี", "pos": "noun", "level": 3, "topic": "mammal" },
-    { "en": "capybara", "th": "คาปิบารา", "pos": "noun", "level": 3, "topic": "mammal" },
-    { "en": "wildebeest", "th": "วิลเดอบีสต์", "pos": "noun", "level": 3, "topic": "mammal" },
-    { "en": "mouse", "th": "หนู", "pos": "noun", "level": 1, "topic": "rodent", "emoji": "🐭" },
-    { "en": "rat", "th": "หนูตัวใหญ่", "pos": "noun", "level": 2, "topic": "rodent", "emoji": "🐀" },
-    { "en": "squirrel", "th": "กระรอก", "pos": "noun", "level": 1, "topic": "rodent", "emoji": "🐿️" },
-    { "en": "chipmunk", "th": "ชิพมังก์", "pos": "noun", "level": 3, "topic": "rodent" },
-    { "en": "bat", "th": "ค้างคาว", "pos": "noun", "level": 2, "topic": "rodent", "emoji": "🦇" },
-    { "en": "hare", "th": "กระต่ายป่า", "pos": "noun", "level": 2, "topic": "rodent" },
-    { "en": "whale", "th": "วาฬ", "pos": "noun", "level": 2, "topic": "sea", "emoji": "🐳" },
-    { "en": "dolphin", "th": "โลมา", "pos": "noun", "level": 2, "topic": "sea", "emoji": "🐬" },
-    { "en": "shark", "th": "ฉลาม", "pos": "noun", "level": 2, "topic": "sea", "emoji": "🦈" },
-    { "en": "octopus", "th": "ปลาหมึกยักษ์", "pos": "noun", "level": 2, "topic": "sea", "emoji": "🐙" },
-    { "en": "squid", "th": "ปลาหมึก", "pos": "noun", "level": 2, "topic": "sea", "emoji": "🦑" },
-    { "en": "crab", "th": "ปู", "pos": "noun", "level": 1, "topic": "sea", "emoji": "🦀" },
-    { "en": "lobster", "th": "กุ้งมังกร", "pos": "noun", "level": 2, "topic": "sea", "emoji": "🦞" },
-    { "en": "shrimp", "th": "กุ้ง", "pos": "noun", "level": 1, "topic": "sea", "emoji": "🦐" },
-    { "en": "jellyfish", "th": "แมงกะพรุน", "pos": "noun", "level": 2, "topic": "sea", "emoji": "🪼" },
-    { "en": "starfish", "th": "ปลาดาว", "pos": "noun", "level": 2, "topic": "sea" },
-    { "en": "seahorse", "th": "ม้าน้ำ", "pos": "noun", "level": 2, "topic": "sea" },
-    { "en": "stingray", "th": "ปลากระเบน", "pos": "noun", "level": 3, "topic": "sea" },
-    { "en": "eel", "th": "ปลาไหล", "pos": "noun", "level": 2, "topic": "sea" },
-    { "en": "seal", "th": "แมวน้ำ", "pos": "noun", "level": 2, "topic": "sea", "emoji": "🦭" },
-    { "en": "walrus", "th": "วอลรัส", "pos": "noun", "level": 3, "topic": "sea" },
-    { "en": "clam", "th": "หอยกาบ", "pos": "noun", "level": 2, "topic": "sea", "emoji": "🦪" },
-    { "en": "fish", "th": "ปลา", "pos": "noun", "level": 1, "topic": "sea", "emoji": "🐟" },
-    { "en": "pufferfish", "th": "ปลาปักเป้า", "pos": "noun", "level": 2, "topic": "sea", "emoji": "🐡" },
-    { "en": "tropical fish", "th": "ปลาเขตร้อน", "pos": "noun", "level": 2, "topic": "sea", "emoji": "🐠" },
-    { "en": "tuna", "th": "ปลาทูน่า", "pos": "noun", "level": 2, "topic": "sea" },
-    { "en": "salmon", "th": "ปลาแซลมอน", "pos": "noun", "level": 2, "topic": "sea" },
-    { "en": "catfish", "th": "ปลาดุก", "pos": "noun", "level": 1, "topic": "sea" },
-    { "en": "sea turtle", "th": "เต่าทะเล", "pos": "noun", "level": 2, "topic": "sea" },
-    { "en": "coral", "th": "ปะการัง", "pos": "noun", "level": 2, "topic": "sea" },
-    { "en": "bird", "th": "นก", "pos": "noun", "level": 1, "topic": "bird", "emoji": "🐦" },
-    { "en": "eagle", "th": "นกอินทรี", "pos": "noun", "level": 2, "topic": "bird", "emoji": "🦅" },
-    { "en": "hawk", "th": "เหยี่ยว", "pos": "noun", "level": 2, "topic": "bird" },
-    { "en": "falcon", "th": "เหยี่ยวเพเรกริน", "pos": "noun", "level": 3, "topic": "bird" },
-    { "en": "owl", "th": "นกฮูก", "pos": "noun", "level": 2, "topic": "bird", "emoji": "🦉" },
-    { "en": "vulture", "th": "นกแร้ง", "pos": "noun", "level": 3, "topic": "bird" },
-    { "en": "sparrow", "th": "นกกระจอก", "pos": "noun", "level": 2, "topic": "bird" },
-    { "en": "crow", "th": "อีกา", "pos": "noun", "level": 2, "topic": "bird" },
-    { "en": "raven", "th": "นกเรเวน", "pos": "noun", "level": 3, "topic": "bird" },
-    { "en": "pigeon", "th": "นกพิราบ", "pos": "noun", "level": 2, "topic": "bird" },
-    { "en": "dove", "th": "นกเขา", "pos": "noun", "level": 2, "topic": "bird", "emoji": "🕊️" },
-    { "en": "seagull", "th": "นกนางนวล", "pos": "noun", "level": 2, "topic": "bird" },
-    { "en": "swan", "th": "หงส์", "pos": "noun", "level": 2, "topic": "bird", "emoji": "🦢" },
-    { "en": "flamingo", "th": "นกฟลามิงโก", "pos": "noun", "level": 2, "topic": "bird", "emoji": "🦩" },
-    { "en": "peacock", "th": "นกยูง", "pos": "noun", "level": 2, "topic": "bird", "emoji": "🦚" },
-    { "en": "ostrich", "th": "นกกระจอกเทศ", "pos": "noun", "level": 2, "topic": "bird" },
-    { "en": "emu", "th": "นกอีมู", "pos": "noun", "level": 3, "topic": "bird" },
-    { "en": "parrot", "th": "นกแก้ว", "pos": "noun", "level": 2, "topic": "bird", "emoji": "🦜" },
-    { "en": "penguin", "th": "เพนกวิน", "pos": "noun", "level": 2, "topic": "bird", "emoji": "🐧" },
-    { "en": "woodpecker", "th": "นกหัวขวาน", "pos": "noun", "level": 3, "topic": "bird" },
-    { "en": "hummingbird", "th": "นกฮัมมิงเบิร์ด", "pos": "noun", "level": 3, "topic": "bird" },
-    { "en": "pelican", "th": "นกกระทุง", "pos": "noun", "level": 3, "topic": "bird" },
-    { "en": "stork", "th": "นกกระสา", "pos": "noun", "level": 3, "topic": "bird" },
-    { "en": "crane", "th": "นกกระเรียน", "pos": "noun", "level": 3, "topic": "bird" },
-    { "en": "heron", "th": "นกยาง", "pos": "noun", "level": 3, "topic": "bird" },
-    { "en": "swallow", "th": "นกนางแอ่น", "pos": "noun", "level": 3, "topic": "bird" },
-    { "en": "cuckoo", "th": "นกกาเหว่า", "pos": "noun", "level": 3, "topic": "bird" },
-    { "en": "kingfisher", "th": "นกกระเต็น", "pos": "noun", "level": 3, "topic": "bird" },
-    { "en": "turkey bird", "th": "ไก่งวงป่า", "pos": "noun", "level": 3, "topic": "bird" },
-    { "en": "snake", "th": "งู", "pos": "noun", "level": 1, "topic": "reptile", "emoji": "🐍" },
-    { "en": "cobra", "th": "งูเห่า", "pos": "noun", "level": 2, "topic": "reptile" },
-    { "en": "python", "th": "งูเหลือม", "pos": "noun", "level": 2, "topic": "reptile" },
-    { "en": "viper", "th": "งูแมวเซา", "pos": "noun", "level": 3, "topic": "reptile" },
-    { "en": "lizard", "th": "กิ้งก่า", "pos": "noun", "level": 2, "topic": "reptile", "emoji": "🦎" },
-    { "en": "gecko", "th": "ตุ๊กแก", "pos": "noun", "level": 2, "topic": "reptile" },
-    { "en": "iguana", "th": "อีกัวนา", "pos": "noun", "level": 3, "topic": "reptile" },
-    { "en": "chameleon", "th": "กิ้งก่าคาเมเลียน", "pos": "noun", "level": 3, "topic": "reptile" },
-    { "en": "crocodile", "th": "จระเข้", "pos": "noun", "level": 2, "topic": "reptile", "emoji": "🐊" },
-    { "en": "alligator", "th": "แอลลิเกเตอร์", "pos": "noun", "level": 3, "topic": "reptile" },
-    { "en": "turtle", "th": "เต่า", "pos": "noun", "level": 1, "topic": "reptile", "emoji": "🐢" },
-    { "en": "tortoise", "th": "เต่าบก", "pos": "noun", "level": 2, "topic": "reptile" },
-    { "en": "frog", "th": "กบ", "pos": "noun", "level": 1, "topic": "amphibian", "emoji": "🐸" },
-    { "en": "toad", "th": "คางคก", "pos": "noun", "level": 2, "topic": "amphibian" },
-    { "en": "salamander", "th": "ซาลาแมนเดอร์", "pos": "noun", "level": 3, "topic": "amphibian" },
-    { "en": "newt", "th": "นิวต์", "pos": "noun", "level": 3, "topic": "amphibian" },
-    { "en": "dinosaur", "th": "ไดโนเสาร์", "pos": "noun", "level": 1, "topic": "reptile", "emoji": "🦕" },
-    { "en": "t-rex", "th": "ไทแรนโนซอรัส", "pos": "noun", "level": 2, "topic": "reptile", "emoji": "🦖" },
-    { "en": "bee", "th": "ผึ้ง", "pos": "noun", "level": 1, "topic": "insect", "emoji": "🐝" },
-    { "en": "wasp", "th": "ตัวต่อ", "pos": "noun", "level": 2, "topic": "insect" },
-    { "en": "hornet", "th": "แตน", "pos": "noun", "level": 3, "topic": "insect" },
-    { "en": "ant", "th": "มด", "pos": "noun", "level": 1, "topic": "insect", "emoji": "🐜" },
-    { "en": "butterfly", "th": "ผีเสื้อ", "pos": "noun", "level": 1, "topic": "insect", "emoji": "🦋" },
-    { "en": "moth", "th": "ผีเสื้อกลางคืน", "pos": "noun", "level": 2, "topic": "insect" },
-    { "en": "dragonfly", "th": "แมลงปอ", "pos": "noun", "level": 2, "topic": "insect" },
-    { "en": "ladybug", "th": "เต่าทอง", "pos": "noun", "level": 2, "topic": "insect", "emoji": "🐞" },
-    { "en": "beetle", "th": "ด้วง", "pos": "noun", "level": 2, "topic": "insect", "emoji": "🪲" },
-    { "en": "cockroach", "th": "แมลงสาบ", "pos": "noun", "level": 1, "topic": "insect", "emoji": "🪳" },
-    { "en": "cricket", "th": "จิ้งหรีด", "pos": "noun", "level": 2, "topic": "insect", "emoji": "🦗" },
-    { "en": "grasshopper", "th": "ตั๊กแตน", "pos": "noun", "level": 2, "topic": "insect" },
-    { "en": "mosquito", "th": "ยุง", "pos": "noun", "level": 1, "topic": "insect", "emoji": "🦟" },
-    { "en": "fly", "th": "แมลงวัน", "pos": "noun", "level": 1, "topic": "insect", "emoji": "🪰" },
-    { "en": "spider", "th": "แมงมุม", "pos": "noun", "level": 2, "topic": "insect", "emoji": "🕷️" },
-    { "en": "scorpion", "th": "แมงป่อง", "pos": "noun", "level": 2, "topic": "insect", "emoji": "🦂" },
-    { "en": "centipede", "th": "ตะขาบ", "pos": "noun", "level": 2, "topic": "insect" },
-    { "en": "caterpillar", "th": "หนอนผีเสื้อ", "pos": "noun", "level": 2, "topic": "insect", "emoji": "🐛" },
-    { "en": "worm", "th": "ไส้เดือน", "pos": "noun", "level": 1, "topic": "insect", "emoji": "🪱" },
-    { "en": "snail", "th": "หอยทาก", "pos": "noun", "level": 2, "topic": "insect", "emoji": "🐌" },
-    { "en": "firefly", "th": "หิ่งห้อย", "pos": "noun", "level": 2, "topic": "insect" },
-    { "en": "mantis", "th": "ตั๊กแตนตำข้าว", "pos": "noun", "level": 3, "topic": "insect" },
-    { "en": "termite", "th": "ปลวก", "pos": "noun", "level": 2, "topic": "insect" },
-    { "en": "flea", "th": "หมัด", "pos": "noun", "level": 2, "topic": "insect" },
-    { "en": "tick", "th": "เห็บ", "pos": "noun", "level": 2, "topic": "insect" },
-    { "en": "slug", "th": "ทาก", "pos": "noun", "level": 2, "topic": "insect" },
-    { "en": "kitten", "th": "ลูกแมว", "pos": "noun", "level": 1, "topic": "pet" },
-    { "en": "puppy", "th": "ลูกสุนัข", "pos": "noun", "level": 1, "topic": "pet" },
-    { "en": "swordfish", "th": "ปลาฉนาก", "pos": "noun", "level": 3, "topic": "sea" },
-    { "en": "clownfish", "th": "ปลาการ์ตูน", "pos": "noun", "level": 2, "topic": "sea" },
-    { "en": "puffin", "th": "นกพัฟฟิน", "pos": "noun", "level": 3, "topic": "bird" },
-    { "en": "toucan", "th": "นกทูแคน", "pos": "noun", "level": 3, "topic": "bird" },
-    { "en": "wombat", "th": "วอมแบต", "pos": "noun", "level": 3, "topic": "mammal" },
-    { "en": "aardvark", "th": "แอร์ดวาก", "pos": "noun", "level": 3, "topic": "mammal" },
-    { "en": "tadpole", "th": "ลูกอ๊อด", "pos": "noun", "level": 2, "topic": "amphibian" },
-    { "en": "locust", "th": "ตั๊กแตนฝูง", "pos": "noun", "level": 3, "topic": "insect" }
+    {
+      "en": "cat",
+      "th": "แมว",
+      "pos": "noun",
+      "level": 1,
+      "topic": "pet",
+      "emoji": "🐱",
+      "img": "animals/cat.webp"
+    },
+    {
+      "en": "dog",
+      "th": "สุนัข",
+      "pos": "noun",
+      "level": 1,
+      "topic": "pet",
+      "emoji": "🐶",
+      "img": "animals/dog.webp"
+    },
+    {
+      "en": "rabbit",
+      "th": "กระต่าย",
+      "pos": "noun",
+      "level": 1,
+      "topic": "pet",
+      "emoji": "🐰",
+      "img": "animals/rabbit.webp"
+    },
+    {
+      "en": "hamster",
+      "th": "หนูแฮมสเตอร์",
+      "pos": "noun",
+      "level": 2,
+      "topic": "pet",
+      "emoji": "🐹",
+      "img": "animals/hamster.webp"
+    },
+    {
+      "en": "guinea pig",
+      "th": "หนูตะเภา",
+      "pos": "noun",
+      "level": 2,
+      "topic": "pet",
+      "img": "animals/guinea-pig.webp"
+    },
+    {
+      "en": "ferret",
+      "th": "เฟอร์เร็ต",
+      "pos": "noun",
+      "level": 3,
+      "topic": "pet",
+      "img": "animals/ferret.webp"
+    },
+    {
+      "en": "goldfish",
+      "th": "ปลาทอง",
+      "pos": "noun",
+      "level": 2,
+      "topic": "pet",
+      "img": "animals/goldfish.webp"
+    },
+    {
+      "en": "canary",
+      "th": "นกคีรีบูน",
+      "pos": "noun",
+      "level": 3,
+      "topic": "pet",
+      "img": "animals/canary.webp"
+    },
+    {
+      "en": "cow",
+      "th": "วัว",
+      "pos": "noun",
+      "level": 1,
+      "topic": "farm",
+      "emoji": "🐮",
+      "img": "animals/cow.webp"
+    },
+    {
+      "en": "bull",
+      "th": "วัวกระทิง",
+      "pos": "noun",
+      "level": 2,
+      "topic": "farm",
+      "img": "animals/bull.webp"
+    },
+    {
+      "en": "ox",
+      "th": "วัวตัวผู้",
+      "pos": "noun",
+      "level": 2,
+      "topic": "farm",
+      "emoji": "🐂",
+      "img": "animals/ox.webp"
+    },
+    {
+      "en": "buffalo",
+      "th": "ควาย",
+      "pos": "noun",
+      "level": 1,
+      "topic": "farm",
+      "emoji": "🐃",
+      "img": "animals/buffalo.webp"
+    },
+    {
+      "en": "calf",
+      "th": "ลูกวัว",
+      "pos": "noun",
+      "level": 2,
+      "topic": "farm",
+      "img": "animals/calf.webp"
+    },
+    {
+      "en": "pig",
+      "th": "หมู",
+      "pos": "noun",
+      "level": 1,
+      "topic": "farm",
+      "emoji": "🐷",
+      "img": "animals/pig.webp"
+    },
+    {
+      "en": "piglet",
+      "th": "ลูกหมู",
+      "pos": "noun",
+      "level": 2,
+      "topic": "farm",
+      "img": "animals/piglet.webp"
+    },
+    {
+      "en": "sheep",
+      "th": "แกะ",
+      "pos": "noun",
+      "level": 1,
+      "topic": "farm",
+      "emoji": "🐑",
+      "img": "animals/sheep.webp"
+    },
+    {
+      "en": "lamb",
+      "th": "ลูกแกะ",
+      "pos": "noun",
+      "level": 2,
+      "topic": "farm",
+      "img": "animals/lamb.webp"
+    },
+    {
+      "en": "goat",
+      "th": "แพะ",
+      "pos": "noun",
+      "level": 1,
+      "topic": "farm",
+      "emoji": "🐐",
+      "img": "animals/goat.webp"
+    },
+    {
+      "en": "horse",
+      "th": "ม้า",
+      "pos": "noun",
+      "level": 1,
+      "topic": "farm",
+      "emoji": "🐴",
+      "img": "animals/horse.webp"
+    },
+    {
+      "en": "foal",
+      "th": "ลูกม้า",
+      "pos": "noun",
+      "level": 2,
+      "topic": "farm",
+      "img": "animals/foal.webp"
+    },
+    {
+      "en": "donkey",
+      "th": "ลา",
+      "pos": "noun",
+      "level": 2,
+      "topic": "farm",
+      "img": "animals/donkey.webp"
+    },
+    {
+      "en": "mule",
+      "th": "ล่อ",
+      "pos": "noun",
+      "level": 3,
+      "topic": "farm",
+      "img": "animals/mule.webp"
+    },
+    {
+      "en": "chicken",
+      "th": "ไก่",
+      "pos": "noun",
+      "level": 1,
+      "topic": "farm",
+      "emoji": "🐔",
+      "img": "animals/chicken.webp"
+    },
+    {
+      "en": "rooster",
+      "th": "ไก่ตัวผู้",
+      "pos": "noun",
+      "level": 2,
+      "topic": "farm",
+      "emoji": "🐓",
+      "img": "animals/rooster.webp"
+    },
+    {
+      "en": "hen",
+      "th": "แม่ไก่",
+      "pos": "noun",
+      "level": 2,
+      "topic": "farm",
+      "img": "animals/hen.webp"
+    },
+    {
+      "en": "chick",
+      "th": "ลูกไก่",
+      "pos": "noun",
+      "level": 1,
+      "topic": "farm",
+      "emoji": "🐤",
+      "img": "animals/chick.webp"
+    },
+    {
+      "en": "duck",
+      "th": "เป็ด",
+      "pos": "noun",
+      "level": 1,
+      "topic": "farm",
+      "emoji": "🦆",
+      "img": "animals/duck.webp"
+    },
+    {
+      "en": "goose",
+      "th": "ห่าน",
+      "pos": "noun",
+      "level": 2,
+      "topic": "farm",
+      "emoji": "🪿",
+      "img": "animals/goose.webp"
+    },
+    {
+      "en": "turkey",
+      "th": "ไก่งวง",
+      "pos": "noun",
+      "level": 2,
+      "topic": "farm",
+      "emoji": "🦃",
+      "img": "animals/turkey.webp"
+    },
+    {
+      "en": "llama",
+      "th": "ลามะ",
+      "pos": "noun",
+      "level": 2,
+      "topic": "farm",
+      "emoji": "🦙",
+      "img": "animals/llama.webp"
+    },
+    {
+      "en": "alpaca",
+      "th": "อัลปากา",
+      "pos": "noun",
+      "level": 3,
+      "topic": "farm",
+      "img": "animals/alpaca.webp"
+    },
+    {
+      "en": "lion",
+      "th": "สิงโต",
+      "pos": "noun",
+      "level": 1,
+      "topic": "bigcat",
+      "emoji": "🦁",
+      "img": "animals/lion.webp"
+    },
+    {
+      "en": "tiger",
+      "th": "เสือโคร่ง",
+      "pos": "noun",
+      "level": 1,
+      "topic": "bigcat",
+      "emoji": "🐯",
+      "img": "animals/tiger.webp"
+    },
+    {
+      "en": "leopard",
+      "th": "เสือดาว",
+      "pos": "noun",
+      "level": 2,
+      "topic": "bigcat",
+      "img": "animals/leopard.webp"
+    },
+    {
+      "en": "cheetah",
+      "th": "เสือชีตาห์",
+      "pos": "noun",
+      "level": 2,
+      "topic": "bigcat",
+      "img": "animals/cheetah.webp"
+    },
+    {
+      "en": "jaguar",
+      "th": "เสือจากัวร์",
+      "pos": "noun",
+      "level": 3,
+      "topic": "bigcat",
+      "img": "animals/jaguar.webp"
+    },
+    {
+      "en": "panther",
+      "th": "เสือดำ",
+      "pos": "noun",
+      "level": 2,
+      "topic": "bigcat",
+      "img": "animals/panther.webp"
+    },
+    {
+      "en": "cougar",
+      "th": "เสือภูเขา",
+      "pos": "noun",
+      "level": 3,
+      "topic": "bigcat",
+      "img": "animals/cougar.webp"
+    },
+    {
+      "en": "lynx",
+      "th": "แมวป่าลิงซ์",
+      "pos": "noun",
+      "level": 3,
+      "topic": "bigcat",
+      "img": "animals/lynx.webp"
+    },
+    {
+      "en": "monkey",
+      "th": "ลิง",
+      "pos": "noun",
+      "level": 1,
+      "topic": "primate",
+      "emoji": "🐵",
+      "img": "animals/monkey.webp"
+    },
+    {
+      "en": "gorilla",
+      "th": "กอริลลา",
+      "pos": "noun",
+      "level": 2,
+      "topic": "primate",
+      "emoji": "🦍",
+      "img": "animals/gorilla.webp"
+    },
+    {
+      "en": "chimpanzee",
+      "th": "ชิมแปนซี",
+      "pos": "noun",
+      "level": 2,
+      "topic": "primate",
+      "img": "animals/chimpanzee.webp"
+    },
+    {
+      "en": "orangutan",
+      "th": "อุรังอุตัง",
+      "pos": "noun",
+      "level": 3,
+      "topic": "primate",
+      "emoji": "🦧",
+      "img": "animals/orangutan.webp"
+    },
+    {
+      "en": "baboon",
+      "th": "ลิงบาบูน",
+      "pos": "noun",
+      "level": 3,
+      "topic": "primate",
+      "img": "animals/baboon.webp"
+    },
+    {
+      "en": "gibbon",
+      "th": "ชะนี",
+      "pos": "noun",
+      "level": 2,
+      "topic": "primate",
+      "img": "animals/gibbon.webp"
+    },
+    {
+      "en": "lemur",
+      "th": "ลีเมอร์",
+      "pos": "noun",
+      "level": 3,
+      "topic": "primate",
+      "img": "animals/lemur.webp"
+    },
+    {
+      "en": "elephant",
+      "th": "ช้าง",
+      "pos": "noun",
+      "level": 1,
+      "topic": "mammal",
+      "emoji": "🐘",
+      "img": "animals/elephant.webp"
+    },
+    {
+      "en": "mammoth",
+      "th": "แมมมอธ",
+      "pos": "noun",
+      "level": 3,
+      "topic": "mammal",
+      "emoji": "🦣",
+      "img": "animals/mammoth.webp"
+    },
+    {
+      "en": "rhinoceros",
+      "th": "แรด",
+      "pos": "noun",
+      "level": 2,
+      "topic": "mammal",
+      "emoji": "🦏",
+      "img": "animals/rhinoceros.webp"
+    },
+    {
+      "en": "hippopotamus",
+      "th": "ฮิปโปโปเตมัส",
+      "pos": "noun",
+      "level": 2,
+      "topic": "mammal",
+      "emoji": "🦛",
+      "img": "animals/hippopotamus.webp"
+    },
+    {
+      "en": "giraffe",
+      "th": "ยีราฟ",
+      "pos": "noun",
+      "level": 1,
+      "topic": "mammal",
+      "emoji": "🦒",
+      "img": "animals/giraffe.webp"
+    },
+    {
+      "en": "zebra",
+      "th": "ม้าลาย",
+      "pos": "noun",
+      "level": 1,
+      "topic": "mammal",
+      "emoji": "🦓",
+      "img": "animals/zebra.webp"
+    },
+    {
+      "en": "bear",
+      "th": "หมี",
+      "pos": "noun",
+      "level": 1,
+      "topic": "mammal",
+      "emoji": "🐻",
+      "img": "animals/bear.webp"
+    },
+    {
+      "en": "panda",
+      "th": "แพนด้า",
+      "pos": "noun",
+      "level": 2,
+      "topic": "mammal",
+      "emoji": "🐼",
+      "img": "animals/panda.webp"
+    },
+    {
+      "en": "polar bear",
+      "th": "หมีขั้วโลก",
+      "pos": "noun",
+      "level": 2,
+      "topic": "mammal",
+      "emoji": "🐻‍❄️",
+      "img": "animals/polar-bear.webp"
+    },
+    {
+      "en": "koala",
+      "th": "โคอาลา",
+      "pos": "noun",
+      "level": 2,
+      "topic": "mammal",
+      "emoji": "🐨",
+      "img": "animals/koala.webp"
+    },
+    {
+      "en": "kangaroo",
+      "th": "จิงโจ้",
+      "pos": "noun",
+      "level": 2,
+      "topic": "mammal",
+      "emoji": "🦘",
+      "img": "animals/kangaroo.webp"
+    },
+    {
+      "en": "camel",
+      "th": "อูฐสองหนอก",
+      "pos": "noun",
+      "level": 2,
+      "topic": "mammal",
+      "emoji": "🐫",
+      "img": "animals/camel.webp"
+    },
+    {
+      "en": "dromedary",
+      "th": "อูฐหนอกเดียว",
+      "pos": "noun",
+      "level": 3,
+      "topic": "mammal",
+      "emoji": "🐪",
+      "img": "animals/dromedary.webp"
+    },
+    {
+      "en": "bison",
+      "th": "ไบซัน",
+      "pos": "noun",
+      "level": 3,
+      "topic": "mammal",
+      "emoji": "🦬",
+      "img": "animals/bison.webp"
+    },
+    {
+      "en": "moose",
+      "th": "มูส",
+      "pos": "noun",
+      "level": 3,
+      "topic": "mammal",
+      "img": "animals/moose.webp"
+    },
+    {
+      "en": "elk",
+      "th": "กวางเอลก์",
+      "pos": "noun",
+      "level": 3,
+      "topic": "mammal",
+      "img": "animals/elk.webp"
+    },
+    {
+      "en": "deer",
+      "th": "กวาง",
+      "pos": "noun",
+      "level": 1,
+      "topic": "mammal",
+      "emoji": "🦌",
+      "img": "animals/deer.webp"
+    },
+    {
+      "en": "reindeer",
+      "th": "กวางเรนเดียร์",
+      "pos": "noun",
+      "level": 2,
+      "topic": "mammal",
+      "img": "animals/reindeer.webp"
+    },
+    {
+      "en": "antelope",
+      "th": "แอนทิโลป",
+      "pos": "noun",
+      "level": 3,
+      "topic": "mammal",
+      "img": "animals/antelope.webp"
+    },
+    {
+      "en": "gazelle",
+      "th": "ละมั่ง",
+      "pos": "noun",
+      "level": 3,
+      "topic": "mammal",
+      "img": "animals/gazelle.webp"
+    },
+    {
+      "en": "wolf",
+      "th": "หมาป่า",
+      "pos": "noun",
+      "level": 1,
+      "topic": "mammal",
+      "emoji": "🐺",
+      "img": "animals/wolf.webp"
+    },
+    {
+      "en": "fox",
+      "th": "สุนัขจิ้งจอก",
+      "pos": "noun",
+      "level": 2,
+      "topic": "mammal",
+      "emoji": "🦊",
+      "img": "animals/fox.webp"
+    },
+    {
+      "en": "coyote",
+      "th": "หมาป่าไคโยตี",
+      "pos": "noun",
+      "level": 3,
+      "topic": "mammal",
+      "img": "animals/coyote.webp"
+    },
+    {
+      "en": "hyena",
+      "th": "ไฮยีนา",
+      "pos": "noun",
+      "level": 3,
+      "topic": "mammal",
+      "img": "animals/hyena.webp"
+    },
+    {
+      "en": "jackal",
+      "th": "หมาจิ้งจอก",
+      "pos": "noun",
+      "level": 3,
+      "topic": "mammal",
+      "img": "animals/jackal.webp"
+    },
+    {
+      "en": "wild boar",
+      "th": "หมูป่า",
+      "pos": "noun",
+      "level": 2,
+      "topic": "mammal",
+      "emoji": "🐗",
+      "img": "animals/wild-boar.webp"
+    },
+    {
+      "en": "tapir",
+      "th": "สมเสร็จ",
+      "pos": "noun",
+      "level": 3,
+      "topic": "mammal",
+      "img": "animals/tapir.webp"
+    },
+    {
+      "en": "sloth",
+      "th": "สลอธ",
+      "pos": "noun",
+      "level": 2,
+      "topic": "mammal",
+      "emoji": "🦥",
+      "img": "animals/sloth.webp"
+    },
+    {
+      "en": "anteater",
+      "th": "ตัวกินมด",
+      "pos": "noun",
+      "level": 3,
+      "topic": "mammal",
+      "img": "animals/anteater.webp"
+    },
+    {
+      "en": "armadillo",
+      "th": "อาร์มาดิลโล",
+      "pos": "noun",
+      "level": 3,
+      "topic": "mammal",
+      "img": "animals/armadillo.webp"
+    },
+    {
+      "en": "hedgehog",
+      "th": "เม่นแคระ",
+      "pos": "noun",
+      "level": 2,
+      "topic": "mammal",
+      "emoji": "🦔",
+      "img": "animals/hedgehog.webp"
+    },
+    {
+      "en": "porcupine",
+      "th": "เม่น",
+      "pos": "noun",
+      "level": 2,
+      "topic": "mammal",
+      "img": "animals/porcupine.webp"
+    },
+    {
+      "en": "otter",
+      "th": "นาก",
+      "pos": "noun",
+      "level": 2,
+      "topic": "mammal",
+      "emoji": "🦦",
+      "img": "animals/otter.webp"
+    },
+    {
+      "en": "raccoon",
+      "th": "แรคคูน",
+      "pos": "noun",
+      "level": 2,
+      "topic": "mammal",
+      "emoji": "🦝",
+      "img": "animals/raccoon.webp"
+    },
+    {
+      "en": "skunk",
+      "th": "สกังก์",
+      "pos": "noun",
+      "level": 3,
+      "topic": "mammal",
+      "emoji": "🦨",
+      "img": "animals/skunk.webp"
+    },
+    {
+      "en": "badger",
+      "th": "แบดเจอร์",
+      "pos": "noun",
+      "level": 3,
+      "topic": "mammal",
+      "emoji": "🦡",
+      "img": "animals/badger.webp"
+    },
+    {
+      "en": "beaver",
+      "th": "บีเวอร์",
+      "pos": "noun",
+      "level": 2,
+      "topic": "mammal",
+      "emoji": "🦫",
+      "img": "animals/beaver.webp"
+    },
+    {
+      "en": "mongoose",
+      "th": "พังพอน",
+      "pos": "noun",
+      "level": 3,
+      "topic": "mammal",
+      "img": "animals/mongoose.webp"
+    },
+    {
+      "en": "meerkat",
+      "th": "เมียร์แคต",
+      "pos": "noun",
+      "level": 3,
+      "topic": "mammal",
+      "img": "animals/meerkat.webp"
+    },
+    {
+      "en": "platypus",
+      "th": "ตุ่นปากเป็ด",
+      "pos": "noun",
+      "level": 3,
+      "topic": "mammal",
+      "img": "animals/platypus.webp"
+    },
+    {
+      "en": "mole",
+      "th": "ตัวตุ่น",
+      "pos": "noun",
+      "level": 2,
+      "topic": "mammal",
+      "img": "animals/mole.webp"
+    },
+    {
+      "en": "weasel",
+      "th": "วีเซิล",
+      "pos": "noun",
+      "level": 3,
+      "topic": "mammal",
+      "img": "animals/weasel.webp"
+    },
+    {
+      "en": "yak",
+      "th": "จามรี",
+      "pos": "noun",
+      "level": 3,
+      "topic": "mammal",
+      "img": "animals/yak.webp"
+    },
+    {
+      "en": "capybara",
+      "th": "คาปิบารา",
+      "pos": "noun",
+      "level": 3,
+      "topic": "mammal",
+      "img": "animals/capybara.webp"
+    },
+    {
+      "en": "wildebeest",
+      "th": "วิลเดอบีสต์",
+      "pos": "noun",
+      "level": 3,
+      "topic": "mammal",
+      "img": "animals/wildebeest.webp"
+    },
+    {
+      "en": "mouse",
+      "th": "หนู",
+      "pos": "noun",
+      "level": 1,
+      "topic": "rodent",
+      "emoji": "🐭",
+      "img": "animals/mouse.webp"
+    },
+    {
+      "en": "rat",
+      "th": "หนูตัวใหญ่",
+      "pos": "noun",
+      "level": 2,
+      "topic": "rodent",
+      "emoji": "🐀",
+      "img": "animals/rat.webp"
+    },
+    {
+      "en": "squirrel",
+      "th": "กระรอก",
+      "pos": "noun",
+      "level": 1,
+      "topic": "rodent",
+      "emoji": "🐿️",
+      "img": "animals/squirrel.webp"
+    },
+    {
+      "en": "chipmunk",
+      "th": "ชิพมังก์",
+      "pos": "noun",
+      "level": 3,
+      "topic": "rodent",
+      "img": "animals/chipmunk.webp"
+    },
+    {
+      "en": "bat",
+      "th": "ค้างคาว",
+      "pos": "noun",
+      "level": 2,
+      "topic": "rodent",
+      "emoji": "🦇",
+      "img": "animals/bat.webp"
+    },
+    {
+      "en": "hare",
+      "th": "กระต่ายป่า",
+      "pos": "noun",
+      "level": 2,
+      "topic": "rodent",
+      "img": "animals/hare.webp"
+    },
+    {
+      "en": "whale",
+      "th": "วาฬ",
+      "pos": "noun",
+      "level": 2,
+      "topic": "sea",
+      "emoji": "🐳",
+      "img": "animals/whale.webp"
+    },
+    {
+      "en": "dolphin",
+      "th": "โลมา",
+      "pos": "noun",
+      "level": 2,
+      "topic": "sea",
+      "emoji": "🐬",
+      "img": "animals/dolphin.webp"
+    },
+    {
+      "en": "shark",
+      "th": "ฉลาม",
+      "pos": "noun",
+      "level": 2,
+      "topic": "sea",
+      "emoji": "🦈",
+      "img": "animals/shark.webp"
+    },
+    {
+      "en": "octopus",
+      "th": "ปลาหมึกยักษ์",
+      "pos": "noun",
+      "level": 2,
+      "topic": "sea",
+      "emoji": "🐙",
+      "img": "animals/octopus.webp"
+    },
+    {
+      "en": "squid",
+      "th": "ปลาหมึก",
+      "pos": "noun",
+      "level": 2,
+      "topic": "sea",
+      "emoji": "🦑",
+      "img": "animals/squid.webp"
+    },
+    {
+      "en": "crab",
+      "th": "ปู",
+      "pos": "noun",
+      "level": 1,
+      "topic": "sea",
+      "emoji": "🦀",
+      "img": "animals/crab.webp"
+    },
+    {
+      "en": "lobster",
+      "th": "กุ้งมังกร",
+      "pos": "noun",
+      "level": 2,
+      "topic": "sea",
+      "emoji": "🦞",
+      "img": "animals/lobster.webp"
+    },
+    {
+      "en": "shrimp",
+      "th": "กุ้ง",
+      "pos": "noun",
+      "level": 1,
+      "topic": "sea",
+      "emoji": "🦐",
+      "img": "animals/shrimp.webp"
+    },
+    {
+      "en": "jellyfish",
+      "th": "แมงกะพรุน",
+      "pos": "noun",
+      "level": 2,
+      "topic": "sea",
+      "emoji": "🪼",
+      "img": "animals/jellyfish.webp"
+    },
+    {
+      "en": "starfish",
+      "th": "ปลาดาว",
+      "pos": "noun",
+      "level": 2,
+      "topic": "sea",
+      "img": "animals/starfish.webp"
+    },
+    {
+      "en": "seahorse",
+      "th": "ม้าน้ำ",
+      "pos": "noun",
+      "level": 2,
+      "topic": "sea",
+      "img": "animals/seahorse.webp"
+    },
+    {
+      "en": "stingray",
+      "th": "ปลากระเบน",
+      "pos": "noun",
+      "level": 3,
+      "topic": "sea",
+      "img": "animals/stingray.webp"
+    },
+    {
+      "en": "eel",
+      "th": "ปลาไหล",
+      "pos": "noun",
+      "level": 2,
+      "topic": "sea",
+      "img": "animals/eel.webp"
+    },
+    {
+      "en": "seal",
+      "th": "แมวน้ำ",
+      "pos": "noun",
+      "level": 2,
+      "topic": "sea",
+      "emoji": "🦭",
+      "img": "animals/seal.webp"
+    },
+    {
+      "en": "walrus",
+      "th": "วอลรัส",
+      "pos": "noun",
+      "level": 3,
+      "topic": "sea",
+      "img": "animals/walrus.webp"
+    },
+    {
+      "en": "clam",
+      "th": "หอยกาบ",
+      "pos": "noun",
+      "level": 2,
+      "topic": "sea",
+      "emoji": "🦪",
+      "img": "animals/clam.webp"
+    },
+    {
+      "en": "fish",
+      "th": "ปลา",
+      "pos": "noun",
+      "level": 1,
+      "topic": "sea",
+      "emoji": "🐟",
+      "img": "animals/fish.webp"
+    },
+    {
+      "en": "pufferfish",
+      "th": "ปลาปักเป้า",
+      "pos": "noun",
+      "level": 2,
+      "topic": "sea",
+      "emoji": "🐡",
+      "img": "animals/pufferfish.webp"
+    },
+    {
+      "en": "tropical fish",
+      "th": "ปลาเขตร้อน",
+      "pos": "noun",
+      "level": 2,
+      "topic": "sea",
+      "emoji": "🐠",
+      "img": "animals/tropical-fish.webp"
+    },
+    {
+      "en": "tuna",
+      "th": "ปลาทูน่า",
+      "pos": "noun",
+      "level": 2,
+      "topic": "sea",
+      "img": "animals/tuna.webp"
+    },
+    {
+      "en": "salmon",
+      "th": "ปลาแซลมอน",
+      "pos": "noun",
+      "level": 2,
+      "topic": "sea",
+      "img": "animals/salmon.webp"
+    },
+    {
+      "en": "catfish",
+      "th": "ปลาดุก",
+      "pos": "noun",
+      "level": 1,
+      "topic": "sea",
+      "img": "animals/catfish.webp"
+    },
+    {
+      "en": "sea turtle",
+      "th": "เต่าทะเล",
+      "pos": "noun",
+      "level": 2,
+      "topic": "sea",
+      "img": "animals/sea-turtle.webp"
+    },
+    {
+      "en": "coral",
+      "th": "ปะการัง",
+      "pos": "noun",
+      "level": 2,
+      "topic": "sea",
+      "img": "animals/coral.webp"
+    },
+    {
+      "en": "bird",
+      "th": "นก",
+      "pos": "noun",
+      "level": 1,
+      "topic": "bird",
+      "emoji": "🐦",
+      "img": "animals/bird.webp"
+    },
+    {
+      "en": "eagle",
+      "th": "นกอินทรี",
+      "pos": "noun",
+      "level": 2,
+      "topic": "bird",
+      "emoji": "🦅",
+      "img": "animals/eagle.webp"
+    },
+    {
+      "en": "hawk",
+      "th": "เหยี่ยว",
+      "pos": "noun",
+      "level": 2,
+      "topic": "bird",
+      "img": "animals/hawk.webp"
+    },
+    {
+      "en": "falcon",
+      "th": "เหยี่ยวเพเรกริน",
+      "pos": "noun",
+      "level": 3,
+      "topic": "bird",
+      "img": "animals/falcon.webp"
+    },
+    {
+      "en": "owl",
+      "th": "นกฮูก",
+      "pos": "noun",
+      "level": 2,
+      "topic": "bird",
+      "emoji": "🦉",
+      "img": "animals/owl.webp"
+    },
+    {
+      "en": "vulture",
+      "th": "นกแร้ง",
+      "pos": "noun",
+      "level": 3,
+      "topic": "bird",
+      "img": "animals/vulture.webp"
+    },
+    {
+      "en": "sparrow",
+      "th": "นกกระจอก",
+      "pos": "noun",
+      "level": 2,
+      "topic": "bird",
+      "img": "animals/sparrow.webp"
+    },
+    {
+      "en": "crow",
+      "th": "อีกา",
+      "pos": "noun",
+      "level": 2,
+      "topic": "bird",
+      "img": "animals/crow.webp"
+    },
+    {
+      "en": "raven",
+      "th": "นกเรเวน",
+      "pos": "noun",
+      "level": 3,
+      "topic": "bird",
+      "img": "animals/raven.webp"
+    },
+    {
+      "en": "pigeon",
+      "th": "นกพิราบ",
+      "pos": "noun",
+      "level": 2,
+      "topic": "bird",
+      "img": "animals/pigeon.webp"
+    },
+    {
+      "en": "dove",
+      "th": "นกเขา",
+      "pos": "noun",
+      "level": 2,
+      "topic": "bird",
+      "emoji": "🕊️",
+      "img": "animals/dove.webp"
+    },
+    {
+      "en": "seagull",
+      "th": "นกนางนวล",
+      "pos": "noun",
+      "level": 2,
+      "topic": "bird",
+      "img": "animals/seagull.webp"
+    },
+    {
+      "en": "swan",
+      "th": "หงส์",
+      "pos": "noun",
+      "level": 2,
+      "topic": "bird",
+      "emoji": "🦢",
+      "img": "animals/swan.webp"
+    },
+    {
+      "en": "flamingo",
+      "th": "นกฟลามิงโก",
+      "pos": "noun",
+      "level": 2,
+      "topic": "bird",
+      "emoji": "🦩",
+      "img": "animals/flamingo.webp"
+    },
+    {
+      "en": "peacock",
+      "th": "นกยูง",
+      "pos": "noun",
+      "level": 2,
+      "topic": "bird",
+      "emoji": "🦚",
+      "img": "animals/peacock.webp"
+    },
+    {
+      "en": "ostrich",
+      "th": "นกกระจอกเทศ",
+      "pos": "noun",
+      "level": 2,
+      "topic": "bird",
+      "img": "animals/ostrich.webp"
+    },
+    {
+      "en": "emu",
+      "th": "นกอีมู",
+      "pos": "noun",
+      "level": 3,
+      "topic": "bird",
+      "img": "animals/emu.webp"
+    },
+    {
+      "en": "parrot",
+      "th": "นกแก้ว",
+      "pos": "noun",
+      "level": 2,
+      "topic": "bird",
+      "emoji": "🦜",
+      "img": "animals/parrot.webp"
+    },
+    {
+      "en": "penguin",
+      "th": "เพนกวิน",
+      "pos": "noun",
+      "level": 2,
+      "topic": "bird",
+      "emoji": "🐧",
+      "img": "animals/penguin.webp"
+    },
+    {
+      "en": "woodpecker",
+      "th": "นกหัวขวาน",
+      "pos": "noun",
+      "level": 3,
+      "topic": "bird",
+      "img": "animals/woodpecker.webp"
+    },
+    {
+      "en": "hummingbird",
+      "th": "นกฮัมมิงเบิร์ด",
+      "pos": "noun",
+      "level": 3,
+      "topic": "bird",
+      "img": "animals/hummingbird.webp"
+    },
+    {
+      "en": "pelican",
+      "th": "นกกระทุง",
+      "pos": "noun",
+      "level": 3,
+      "topic": "bird",
+      "img": "animals/pelican.webp"
+    },
+    {
+      "en": "stork",
+      "th": "นกกระสา",
+      "pos": "noun",
+      "level": 3,
+      "topic": "bird",
+      "img": "animals/stork.webp"
+    },
+    {
+      "en": "crane",
+      "th": "นกกระเรียน",
+      "pos": "noun",
+      "level": 3,
+      "topic": "bird",
+      "img": "animals/crane.webp"
+    },
+    {
+      "en": "heron",
+      "th": "นกยาง",
+      "pos": "noun",
+      "level": 3,
+      "topic": "bird",
+      "img": "animals/heron.webp"
+    },
+    {
+      "en": "swallow",
+      "th": "นกนางแอ่น",
+      "pos": "noun",
+      "level": 3,
+      "topic": "bird",
+      "img": "animals/swallow.webp"
+    },
+    {
+      "en": "cuckoo",
+      "th": "นกกาเหว่า",
+      "pos": "noun",
+      "level": 3,
+      "topic": "bird",
+      "img": "animals/cuckoo.webp"
+    },
+    {
+      "en": "kingfisher",
+      "th": "นกกระเต็น",
+      "pos": "noun",
+      "level": 3,
+      "topic": "bird",
+      "img": "animals/kingfisher.webp"
+    },
+    {
+      "en": "turkey bird",
+      "th": "ไก่งวงป่า",
+      "pos": "noun",
+      "level": 3,
+      "topic": "bird",
+      "img": "animals/turkey-bird.webp"
+    },
+    {
+      "en": "snake",
+      "th": "งู",
+      "pos": "noun",
+      "level": 1,
+      "topic": "reptile",
+      "emoji": "🐍",
+      "img": "animals/snake.webp"
+    },
+    {
+      "en": "cobra",
+      "th": "งูเห่า",
+      "pos": "noun",
+      "level": 2,
+      "topic": "reptile",
+      "img": "animals/cobra.webp"
+    },
+    {
+      "en": "python",
+      "th": "งูเหลือม",
+      "pos": "noun",
+      "level": 2,
+      "topic": "reptile",
+      "img": "animals/python.webp"
+    },
+    {
+      "en": "viper",
+      "th": "งูแมวเซา",
+      "pos": "noun",
+      "level": 3,
+      "topic": "reptile",
+      "img": "animals/viper.webp"
+    },
+    {
+      "en": "lizard",
+      "th": "กิ้งก่า",
+      "pos": "noun",
+      "level": 2,
+      "topic": "reptile",
+      "emoji": "🦎",
+      "img": "animals/lizard.webp"
+    },
+    {
+      "en": "gecko",
+      "th": "ตุ๊กแก",
+      "pos": "noun",
+      "level": 2,
+      "topic": "reptile",
+      "img": "animals/gecko.webp"
+    },
+    {
+      "en": "iguana",
+      "th": "อีกัวนา",
+      "pos": "noun",
+      "level": 3,
+      "topic": "reptile",
+      "img": "animals/iguana.webp"
+    },
+    {
+      "en": "chameleon",
+      "th": "กิ้งก่าคาเมเลียน",
+      "pos": "noun",
+      "level": 3,
+      "topic": "reptile",
+      "img": "animals/chameleon.webp"
+    },
+    {
+      "en": "crocodile",
+      "th": "จระเข้",
+      "pos": "noun",
+      "level": 2,
+      "topic": "reptile",
+      "emoji": "🐊",
+      "img": "animals/crocodile.webp"
+    },
+    {
+      "en": "alligator",
+      "th": "แอลลิเกเตอร์",
+      "pos": "noun",
+      "level": 3,
+      "topic": "reptile",
+      "img": "animals/alligator.webp"
+    },
+    {
+      "en": "turtle",
+      "th": "เต่า",
+      "pos": "noun",
+      "level": 1,
+      "topic": "reptile",
+      "emoji": "🐢",
+      "img": "animals/turtle.webp"
+    },
+    {
+      "en": "tortoise",
+      "th": "เต่าบก",
+      "pos": "noun",
+      "level": 2,
+      "topic": "reptile",
+      "img": "animals/tortoise.webp"
+    },
+    {
+      "en": "frog",
+      "th": "กบ",
+      "pos": "noun",
+      "level": 1,
+      "topic": "amphibian",
+      "emoji": "🐸",
+      "img": "animals/frog.webp"
+    },
+    {
+      "en": "toad",
+      "th": "คางคก",
+      "pos": "noun",
+      "level": 2,
+      "topic": "amphibian",
+      "img": "animals/toad.webp"
+    },
+    {
+      "en": "salamander",
+      "th": "ซาลาแมนเดอร์",
+      "pos": "noun",
+      "level": 3,
+      "topic": "amphibian",
+      "img": "animals/salamander.webp"
+    },
+    {
+      "en": "newt",
+      "th": "นิวต์",
+      "pos": "noun",
+      "level": 3,
+      "topic": "amphibian",
+      "img": "animals/newt.webp"
+    },
+    {
+      "en": "dinosaur",
+      "th": "ไดโนเสาร์",
+      "pos": "noun",
+      "level": 1,
+      "topic": "reptile",
+      "emoji": "🦕",
+      "img": "animals/dinosaur.webp"
+    },
+    {
+      "en": "t-rex",
+      "th": "ไทแรนโนซอรัส",
+      "pos": "noun",
+      "level": 2,
+      "topic": "reptile",
+      "emoji": "🦖",
+      "img": "animals/t-rex.webp"
+    },
+    {
+      "en": "bee",
+      "th": "ผึ้ง",
+      "pos": "noun",
+      "level": 1,
+      "topic": "insect",
+      "emoji": "🐝",
+      "img": "animals/bee.webp"
+    },
+    {
+      "en": "wasp",
+      "th": "ตัวต่อ",
+      "pos": "noun",
+      "level": 2,
+      "topic": "insect",
+      "img": "animals/wasp.webp"
+    },
+    {
+      "en": "hornet",
+      "th": "แตน",
+      "pos": "noun",
+      "level": 3,
+      "topic": "insect",
+      "img": "animals/hornet.webp"
+    },
+    {
+      "en": "ant",
+      "th": "มด",
+      "pos": "noun",
+      "level": 1,
+      "topic": "insect",
+      "emoji": "🐜",
+      "img": "animals/ant.webp"
+    },
+    {
+      "en": "butterfly",
+      "th": "ผีเสื้อ",
+      "pos": "noun",
+      "level": 1,
+      "topic": "insect",
+      "emoji": "🦋",
+      "img": "animals/butterfly.webp"
+    },
+    {
+      "en": "moth",
+      "th": "ผีเสื้อกลางคืน",
+      "pos": "noun",
+      "level": 2,
+      "topic": "insect",
+      "img": "animals/moth.webp"
+    },
+    {
+      "en": "dragonfly",
+      "th": "แมลงปอ",
+      "pos": "noun",
+      "level": 2,
+      "topic": "insect",
+      "img": "animals/dragonfly.webp"
+    },
+    {
+      "en": "ladybug",
+      "th": "เต่าทอง",
+      "pos": "noun",
+      "level": 2,
+      "topic": "insect",
+      "emoji": "🐞",
+      "img": "animals/ladybug.webp"
+    },
+    {
+      "en": "beetle",
+      "th": "ด้วง",
+      "pos": "noun",
+      "level": 2,
+      "topic": "insect",
+      "emoji": "🪲",
+      "img": "animals/beetle.webp"
+    },
+    {
+      "en": "cockroach",
+      "th": "แมลงสาบ",
+      "pos": "noun",
+      "level": 1,
+      "topic": "insect",
+      "emoji": "🪳",
+      "img": "animals/cockroach.webp"
+    },
+    {
+      "en": "cricket",
+      "th": "จิ้งหรีด",
+      "pos": "noun",
+      "level": 2,
+      "topic": "insect",
+      "emoji": "🦗",
+      "img": "animals/cricket.webp"
+    },
+    {
+      "en": "grasshopper",
+      "th": "ตั๊กแตน",
+      "pos": "noun",
+      "level": 2,
+      "topic": "insect",
+      "img": "animals/grasshopper.webp"
+    },
+    {
+      "en": "mosquito",
+      "th": "ยุง",
+      "pos": "noun",
+      "level": 1,
+      "topic": "insect",
+      "emoji": "🦟",
+      "img": "animals/mosquito.webp"
+    },
+    {
+      "en": "fly",
+      "th": "แมลงวัน",
+      "pos": "noun",
+      "level": 1,
+      "topic": "insect",
+      "emoji": "🪰",
+      "img": "animals/fly.webp"
+    },
+    {
+      "en": "spider",
+      "th": "แมงมุม",
+      "pos": "noun",
+      "level": 2,
+      "topic": "insect",
+      "emoji": "🕷️",
+      "img": "animals/spider.webp"
+    },
+    {
+      "en": "scorpion",
+      "th": "แมงป่อง",
+      "pos": "noun",
+      "level": 2,
+      "topic": "insect",
+      "emoji": "🦂",
+      "img": "animals/scorpion.webp"
+    },
+    {
+      "en": "centipede",
+      "th": "ตะขาบ",
+      "pos": "noun",
+      "level": 2,
+      "topic": "insect",
+      "img": "animals/centipede.webp"
+    },
+    {
+      "en": "caterpillar",
+      "th": "หนอนผีเสื้อ",
+      "pos": "noun",
+      "level": 2,
+      "topic": "insect",
+      "emoji": "🐛",
+      "img": "animals/caterpillar.webp"
+    },
+    {
+      "en": "worm",
+      "th": "ไส้เดือน",
+      "pos": "noun",
+      "level": 1,
+      "topic": "insect",
+      "emoji": "🪱",
+      "img": "animals/worm.webp"
+    },
+    {
+      "en": "snail",
+      "th": "หอยทาก",
+      "pos": "noun",
+      "level": 2,
+      "topic": "insect",
+      "emoji": "🐌",
+      "img": "animals/snail.webp"
+    },
+    {
+      "en": "firefly",
+      "th": "หิ่งห้อย",
+      "pos": "noun",
+      "level": 2,
+      "topic": "insect",
+      "img": "animals/firefly.webp"
+    },
+    {
+      "en": "mantis",
+      "th": "ตั๊กแตนตำข้าว",
+      "pos": "noun",
+      "level": 3,
+      "topic": "insect",
+      "img": "animals/mantis.webp"
+    },
+    {
+      "en": "termite",
+      "th": "ปลวก",
+      "pos": "noun",
+      "level": 2,
+      "topic": "insect",
+      "img": "animals/termite.webp"
+    },
+    {
+      "en": "flea",
+      "th": "หมัด",
+      "pos": "noun",
+      "level": 2,
+      "topic": "insect",
+      "img": "animals/flea.webp"
+    },
+    {
+      "en": "tick",
+      "th": "เห็บ",
+      "pos": "noun",
+      "level": 2,
+      "topic": "insect",
+      "img": "animals/tick.webp"
+    },
+    {
+      "en": "slug",
+      "th": "ทาก",
+      "pos": "noun",
+      "level": 2,
+      "topic": "insect",
+      "img": "animals/slug.webp"
+    },
+    {
+      "en": "kitten",
+      "th": "ลูกแมว",
+      "pos": "noun",
+      "level": 1,
+      "topic": "pet",
+      "img": "animals/kitten.webp"
+    },
+    {
+      "en": "puppy",
+      "th": "ลูกสุนัข",
+      "pos": "noun",
+      "level": 1,
+      "topic": "pet",
+      "img": "animals/puppy.webp"
+    },
+    {
+      "en": "swordfish",
+      "th": "ปลาฉนาก",
+      "pos": "noun",
+      "level": 3,
+      "topic": "sea",
+      "img": "animals/swordfish.webp"
+    },
+    {
+      "en": "clownfish",
+      "th": "ปลาการ์ตูน",
+      "pos": "noun",
+      "level": 2,
+      "topic": "sea",
+      "img": "animals/clownfish.webp"
+    },
+    {
+      "en": "puffin",
+      "th": "นกพัฟฟิน",
+      "pos": "noun",
+      "level": 3,
+      "topic": "bird",
+      "img": "animals/puffin.webp"
+    },
+    {
+      "en": "toucan",
+      "th": "นกทูแคน",
+      "pos": "noun",
+      "level": 3,
+      "topic": "bird",
+      "img": "animals/toucan.webp"
+    },
+    {
+      "en": "wombat",
+      "th": "วอมแบต",
+      "pos": "noun",
+      "level": 3,
+      "topic": "mammal",
+      "img": "animals/wombat.webp"
+    },
+    {
+      "en": "aardvark",
+      "th": "แอร์ดวาก",
+      "pos": "noun",
+      "level": 3,
+      "topic": "mammal",
+      "img": "animals/aardvark.webp"
+    },
+    {
+      "en": "tadpole",
+      "th": "ลูกอ๊อด",
+      "pos": "noun",
+      "level": 2,
+      "topic": "amphibian",
+      "img": "animals/tadpole.webp"
+    },
+    {
+      "en": "locust",
+      "th": "ตั๊กแตนฝูง",
+      "pos": "noun",
+      "level": 3,
+      "topic": "insect",
+      "img": "animals/locust.webp"
+    }
   ]
 }

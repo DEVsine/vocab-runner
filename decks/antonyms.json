@@ -1,0 +1,807 @@
+{
+  "type": "antonym",
+  "id": "antonyms",
+  "name": "คำตรงข้าม",
+  "words": [
+    {
+      "en": "hot",
+      "ant": "cold",
+      "th": "ร้อน",
+      "antTh": "เย็น",
+      "pos": "adj",
+      "level": 1
+    },
+    {
+      "en": "big",
+      "ant": "small",
+      "th": "ใหญ่",
+      "antTh": "เล็ก",
+      "pos": "adj",
+      "level": 1
+    },
+    {
+      "en": "fast",
+      "ant": "slow",
+      "th": "เร็ว",
+      "antTh": "ช้า",
+      "pos": "adj",
+      "level": 1
+    },
+    {
+      "en": "happy",
+      "ant": "sad",
+      "th": "มีความสุข",
+      "antTh": "เศร้า",
+      "pos": "adj",
+      "level": 1
+    },
+    {
+      "en": "up",
+      "ant": "down",
+      "th": "ขึ้น",
+      "antTh": "ลง",
+      "pos": "adv",
+      "level": 1
+    },
+    {
+      "en": "open",
+      "ant": "closed",
+      "th": "เปิด",
+      "antTh": "ปิด",
+      "pos": "adj",
+      "level": 1
+    },
+    {
+      "en": "early",
+      "ant": "late",
+      "th": "ก่อนเวลา",
+      "antTh": "สาย",
+      "pos": "adj",
+      "level": 1
+    },
+    {
+      "en": "light",
+      "ant": "dark",
+      "th": "สว่าง",
+      "antTh": "มืด",
+      "pos": "adj",
+      "level": 1
+    },
+    {
+      "en": "hard",
+      "ant": "soft",
+      "th": "แข็ง",
+      "antTh": "นุ่ม",
+      "pos": "adj",
+      "level": 1
+    },
+    {
+      "en": "high",
+      "ant": "low",
+      "th": "สูง",
+      "antTh": "ต่ำ",
+      "pos": "adj",
+      "level": 1
+    },
+    {
+      "en": "near",
+      "ant": "far",
+      "th": "ใกล้",
+      "antTh": "ไกล",
+      "pos": "adj",
+      "level": 2
+    },
+    {
+      "en": "old",
+      "ant": "young",
+      "th": "แก่",
+      "antTh": "อ่อนเยาว์",
+      "pos": "adj",
+      "level": 2
+    },
+    {
+      "en": "rich",
+      "ant": "poor",
+      "th": "รวย",
+      "antTh": "จน",
+      "pos": "adj",
+      "level": 2
+    },
+    {
+      "en": "strong",
+      "ant": "weak",
+      "th": "แข็งแรง",
+      "antTh": "อ่อนแอ",
+      "pos": "adj",
+      "level": 2
+    },
+    {
+      "en": "full",
+      "ant": "empty",
+      "th": "เต็ม",
+      "antTh": "ว่างเปล่า",
+      "pos": "adj",
+      "level": 2
+    },
+    {
+      "en": "clean",
+      "ant": "dirty",
+      "th": "สะอาด",
+      "antTh": "สกปรก",
+      "pos": "adj",
+      "level": 2
+    },
+    {
+      "en": "easy",
+      "ant": "difficult",
+      "th": "ง่าย",
+      "antTh": "ยาก",
+      "pos": "adj",
+      "level": 2
+    },
+    {
+      "en": "loud",
+      "ant": "quiet",
+      "th": "เสียงดัง",
+      "antTh": "เงียบ",
+      "pos": "adj",
+      "level": 2
+    },
+    {
+      "en": "thick",
+      "ant": "thin",
+      "th": "หนา",
+      "antTh": "บาง",
+      "pos": "adj",
+      "level": 2
+    },
+    {
+      "en": "wide",
+      "ant": "narrow",
+      "th": "กว้าง",
+      "antTh": "แคบ",
+      "pos": "adj",
+      "level": 2
+    },
+    {
+      "en": "buy",
+      "ant": "sell",
+      "th": "ซื้อ",
+      "antTh": "ขาย",
+      "pos": "verb",
+      "level": 3
+    },
+    {
+      "en": "push",
+      "ant": "pull",
+      "th": "ผลัก",
+      "antTh": "ดึง",
+      "pos": "verb",
+      "level": 3
+    },
+    {
+      "en": "give",
+      "ant": "take",
+      "th": "ให้",
+      "antTh": "รับเอา",
+      "pos": "verb",
+      "level": 3
+    },
+    {
+      "en": "start",
+      "ant": "finish",
+      "th": "เริ่ม",
+      "antTh": "เสร็จสิ้น",
+      "pos": "verb",
+      "level": 3
+    },
+    {
+      "en": "enter",
+      "ant": "exit",
+      "th": "เข้า",
+      "antTh": "ออก",
+      "pos": "verb",
+      "level": 3
+    },
+    {
+      "en": "win",
+      "ant": "lose",
+      "th": "ชนะ",
+      "antTh": "แพ้",
+      "pos": "verb",
+      "level": 3
+    },
+    {
+      "en": "love",
+      "ant": "hate",
+      "th": "รัก",
+      "antTh": "เกลียด",
+      "pos": "verb",
+      "level": 3
+    },
+    {
+      "en": "laugh",
+      "ant": "cry",
+      "th": "หัวเราะ",
+      "antTh": "ร้องไห้",
+      "pos": "verb",
+      "level": 3
+    },
+    {
+      "en": "accept",
+      "ant": "reject",
+      "th": "ยอมรับ",
+      "antTh": "ปฏิเสธ",
+      "pos": "verb",
+      "level": 3
+    },
+    {
+      "en": "build",
+      "ant": "destroy",
+      "th": "สร้าง",
+      "antTh": "ทำลาย",
+      "pos": "verb",
+      "level": 3
+    },
+    {
+      "en": "above",
+      "ant": "below",
+      "th": "เหนือ",
+      "antTh": "ใต้",
+      "pos": "adv",
+      "level": 4
+    },
+    {
+      "en": "alive",
+      "ant": "dead",
+      "th": "มีชีวิต",
+      "antTh": "ตาย",
+      "pos": "adj",
+      "level": 4
+    },
+    {
+      "en": "always",
+      "ant": "never",
+      "th": "เสมอ",
+      "antTh": "ไม่เคย",
+      "pos": "adv",
+      "level": 4
+    },
+    {
+      "en": "answer",
+      "ant": "question",
+      "th": "คำตอบ",
+      "antTh": "คำถาม",
+      "pos": "noun",
+      "level": 4
+    },
+    {
+      "en": "arrive",
+      "ant": "depart",
+      "th": "มาถึง",
+      "antTh": "ออกเดินทาง",
+      "pos": "verb",
+      "level": 4
+    },
+    {
+      "en": "beautiful",
+      "ant": "ugly",
+      "th": "สวยงาม",
+      "antTh": "น่าเกลียด",
+      "pos": "adj",
+      "level": 4
+    },
+    {
+      "en": "before",
+      "ant": "after",
+      "th": "ก่อน",
+      "antTh": "หลัง",
+      "pos": "adv",
+      "level": 4
+    },
+    {
+      "en": "begin",
+      "ant": "end",
+      "th": "เริ่มต้น",
+      "antTh": "สิ้นสุด",
+      "pos": "verb",
+      "level": 4
+    },
+    {
+      "en": "best",
+      "ant": "worst",
+      "th": "ดีที่สุด",
+      "antTh": "แย่ที่สุด",
+      "pos": "adj",
+      "level": 4
+    },
+    {
+      "en": "brave",
+      "ant": "cowardly",
+      "th": "กล้าหาญ",
+      "antTh": "ขี้ขลาด",
+      "pos": "adj",
+      "level": 4
+    },
+    {
+      "en": "bright",
+      "ant": "dull",
+      "th": "สดใส",
+      "antTh": "หมองมัว",
+      "pos": "adj",
+      "level": 5
+    },
+    {
+      "en": "calm",
+      "ant": "angry",
+      "th": "สงบ",
+      "antTh": "โกรธ",
+      "pos": "adj",
+      "level": 5
+    },
+    {
+      "en": "cheap",
+      "ant": "expensive",
+      "th": "ราคาถูก",
+      "antTh": "ราคาแพง",
+      "pos": "adj",
+      "level": 5
+    },
+    {
+      "en": "clear",
+      "ant": "confused",
+      "th": "ชัดเจน",
+      "antTh": "สับสน",
+      "pos": "adj",
+      "level": 5
+    },
+    {
+      "en": "close",
+      "ant": "open",
+      "th": "ปิด",
+      "antTh": "เปิด",
+      "pos": "verb",
+      "level": 5
+    },
+    {
+      "en": "correct",
+      "ant": "wrong",
+      "th": "ถูกต้อง",
+      "antTh": "ผิด",
+      "pos": "adj",
+      "level": 5
+    },
+    {
+      "en": "day",
+      "ant": "night",
+      "th": "กลางวัน",
+      "antTh": "กลางคืน",
+      "pos": "noun",
+      "level": 5
+    },
+    {
+      "en": "deep",
+      "ant": "shallow",
+      "th": "ลึก",
+      "antTh": "ตื้น",
+      "pos": "adj",
+      "level": 5
+    },
+    {
+      "en": "different",
+      "ant": "same",
+      "th": "แตกต่าง",
+      "antTh": "เหมือนกัน",
+      "pos": "adj",
+      "level": 5
+    },
+    {
+      "en": "dry",
+      "ant": "wet",
+      "th": "แห้ง",
+      "antTh": "เปียก",
+      "pos": "adj",
+      "level": 5
+    },
+    {
+      "en": "even",
+      "ant": "odd",
+      "th": "เลขคู่",
+      "antTh": "เลขคี่",
+      "pos": "adj",
+      "level": 6
+    },
+    {
+      "en": "fair",
+      "ant": "unfair",
+      "th": "ยุติธรรม",
+      "antTh": "ไม่ยุติธรรม",
+      "pos": "adj",
+      "level": 6
+    },
+    {
+      "en": "famous",
+      "ant": "unknown",
+      "th": "มีชื่อเสียง",
+      "antTh": "ไม่มีใครรู้จัก",
+      "pos": "adj",
+      "level": 6
+    },
+    {
+      "en": "fat",
+      "ant": "thin",
+      "th": "อ้วน",
+      "antTh": "ผอม",
+      "pos": "adj",
+      "level": 6
+    },
+    {
+      "en": "fiction",
+      "ant": "reality",
+      "th": "เรื่องแต่ง",
+      "antTh": "ความเป็นจริง",
+      "pos": "noun",
+      "level": 6
+    },
+    {
+      "en": "forget",
+      "ant": "remember",
+      "th": "ลืม",
+      "antTh": "จำได้",
+      "pos": "verb",
+      "level": 6
+    },
+    {
+      "en": "friendly",
+      "ant": "hostile",
+      "th": "เป็นมิตร",
+      "antTh": "เป็นศัตรู",
+      "pos": "adj",
+      "level": 6
+    },
+    {
+      "en": "front",
+      "ant": "back",
+      "th": "ด้านหน้า",
+      "antTh": "ด้านหลัง",
+      "pos": "noun",
+      "level": 6
+    },
+    {
+      "en": "generous",
+      "ant": "stingy",
+      "th": "ใจกว้าง",
+      "antTh": "ขี้เหนียว",
+      "pos": "adj",
+      "level": 6
+    },
+    {
+      "en": "gentle",
+      "ant": "rough",
+      "th": "อ่อนโยน",
+      "antTh": "หยาบกระด้าง",
+      "pos": "adj",
+      "level": 6
+    },
+    {
+      "en": "healthy",
+      "ant": "sick",
+      "th": "สุขภาพดี",
+      "antTh": "ป่วย",
+      "pos": "adj",
+      "level": 7
+    },
+    {
+      "en": "honest",
+      "ant": "dishonest",
+      "th": "ซื่อสัตย์",
+      "antTh": "ไม่ซื่อสัตย์",
+      "pos": "adj",
+      "level": 7
+    },
+    {
+      "en": "hope",
+      "ant": "despair",
+      "th": "ความหวัง",
+      "antTh": "ความสิ้นหวัง",
+      "pos": "noun",
+      "level": 7
+    },
+    {
+      "en": "wise",
+      "ant": "foolish",
+      "th": "ฉลาดรอบรู้",
+      "antTh": "โง่เขลา",
+      "pos": "adj",
+      "level": 7
+    },
+    {
+      "en": "inside",
+      "ant": "outside",
+      "th": "ข้างใน",
+      "antTh": "ข้างนอก",
+      "pos": "adv",
+      "level": 7
+    },
+    {
+      "en": "active",
+      "ant": "lazy",
+      "th": "กระตือรือร้น",
+      "antTh": "ขี้เกียจ",
+      "pos": "adj",
+      "level": 7
+    },
+    {
+      "en": "kind",
+      "ant": "cruel",
+      "th": "ใจดี",
+      "antTh": "โหดร้าย",
+      "pos": "adj",
+      "level": 7
+    },
+    {
+      "en": "large",
+      "ant": "tiny",
+      "th": "ใหญ่โต",
+      "antTh": "จิ๋ว",
+      "pos": "adj",
+      "level": 7
+    },
+    {
+      "en": "legal",
+      "ant": "illegal",
+      "th": "ถูกกฎหมาย",
+      "antTh": "ผิดกฎหมาย",
+      "pos": "adj",
+      "level": 7
+    },
+    {
+      "en": "liquid",
+      "ant": "solid",
+      "th": "ของเหลว",
+      "antTh": "ของแข็ง",
+      "pos": "noun",
+      "level": 7
+    },
+    {
+      "en": "long",
+      "ant": "short",
+      "th": "ยาว",
+      "antTh": "สั้น",
+      "pos": "adj",
+      "level": 8
+    },
+    {
+      "en": "loose",
+      "ant": "tight",
+      "th": "หลวม",
+      "antTh": "แน่น",
+      "pos": "adj",
+      "level": 8
+    },
+    {
+      "en": "major",
+      "ant": "minor",
+      "th": "สำคัญหลัก",
+      "antTh": "รองลงมา",
+      "pos": "adj",
+      "level": 8
+    },
+    {
+      "en": "male",
+      "ant": "female",
+      "th": "เพศชาย",
+      "antTh": "เพศหญิง",
+      "pos": "adj",
+      "level": 8
+    },
+    {
+      "en": "useful",
+      "ant": "useless",
+      "th": "มีประโยชน์",
+      "antTh": "ไร้ประโยชน์",
+      "pos": "adj",
+      "level": 8
+    },
+    {
+      "en": "natural",
+      "ant": "artificial",
+      "th": "จากธรรมชาติ",
+      "antTh": "ที่มนุษย์สร้าง",
+      "pos": "adj",
+      "level": 8
+    },
+    {
+      "en": "noisy",
+      "ant": "silent",
+      "th": "อึกทึก",
+      "antTh": "เงียบสนิท",
+      "pos": "adj",
+      "level": 8
+    },
+    {
+      "en": "normal",
+      "ant": "strange",
+      "th": "ปกติ",
+      "antTh": "แปลกประหลาด",
+      "pos": "adj",
+      "level": 8
+    },
+    {
+      "en": "obey",
+      "ant": "disobey",
+      "th": "เชื่อฟัง",
+      "antTh": "ฝ่าฝืน",
+      "pos": "verb",
+      "level": 8
+    },
+    {
+      "en": "warm",
+      "ant": "cool",
+      "th": "อบอุ่น",
+      "antTh": "เย็นสบาย",
+      "pos": "adj",
+      "level": 8
+    },
+    {
+      "en": "pass",
+      "ant": "fail",
+      "th": "สอบผ่าน",
+      "antTh": "สอบตก",
+      "pos": "verb",
+      "level": 9
+    },
+    {
+      "en": "wet",
+      "ant": "dry",
+      "th": "เปียก",
+      "antTh": "แห้ง",
+      "pos": "adj",
+      "level": 9
+    },
+    {
+      "en": "polite",
+      "ant": "rude",
+      "th": "สุภาพ",
+      "antTh": "หยาบคาย",
+      "pos": "adj",
+      "level": 9
+    },
+    {
+      "en": "wild",
+      "ant": "tame",
+      "th": "ดุร้ายตามธรรมชาติ",
+      "antTh": "เชื่อง",
+      "pos": "adj",
+      "level": 9
+    },
+    {
+      "en": "powerful",
+      "ant": "weak",
+      "th": "ทรงพลัง",
+      "antTh": "อ่อนแรง",
+      "pos": "adj",
+      "level": 9
+    },
+    {
+      "en": "public",
+      "ant": "private",
+      "th": "สาธารณะ",
+      "antTh": "ส่วนตัว",
+      "pos": "adj",
+      "level": 9
+    },
+    {
+      "en": "quick",
+      "ant": "slow",
+      "th": "รวดเร็ว",
+      "antTh": "เชื่องช้า",
+      "pos": "adj",
+      "level": 9
+    },
+    {
+      "en": "raise",
+      "ant": "lower",
+      "th": "ยกขึ้น",
+      "antTh": "ลดลง",
+      "pos": "verb",
+      "level": 9
+    },
+    {
+      "en": "real",
+      "ant": "fake",
+      "th": "ของจริง",
+      "antTh": "ของปลอม",
+      "pos": "adj",
+      "level": 9
+    },
+    {
+      "en": "safe",
+      "ant": "dangerous",
+      "th": "ปลอดภัย",
+      "antTh": "อันตราย",
+      "pos": "adj",
+      "level": 9
+    },
+    {
+      "en": "simple",
+      "ant": "complex",
+      "th": "เรียบง่าย",
+      "antTh": "ซับซ้อน",
+      "pos": "adj",
+      "level": 10
+    },
+    {
+      "en": "single",
+      "ant": "married",
+      "th": "โสด",
+      "antTh": "แต่งงานแล้ว",
+      "pos": "adj",
+      "level": 10
+    },
+    {
+      "en": "sleep",
+      "ant": "awake",
+      "th": "หลับ",
+      "antTh": "ตื่น",
+      "pos": "verb",
+      "level": 10
+    },
+    {
+      "en": "smooth",
+      "ant": "rough",
+      "th": "เรียบลื่น",
+      "antTh": "ขรุขระ",
+      "pos": "adj",
+      "level": 10
+    },
+    {
+      "en": "spend",
+      "ant": "save",
+      "th": "ใช้จ่าย",
+      "antTh": "เก็บออม",
+      "pos": "verb",
+      "level": 10
+    },
+    {
+      "en": "success",
+      "ant": "failure",
+      "th": "ความสำเร็จ",
+      "antTh": "ความล้มเหลว",
+      "pos": "noun",
+      "level": 10
+    },
+    {
+      "en": "sweet",
+      "ant": "bitter",
+      "th": "หวาน",
+      "antTh": "ขม",
+      "pos": "adj",
+      "level": 10
+    },
+    {
+      "en": "tall",
+      "ant": "short",
+      "th": "ตัวสูง",
+      "antTh": "เตี้ย",
+      "pos": "adj",
+      "level": 10
+    },
+    {
+      "en": "teach",
+      "ant": "learn",
+      "th": "สอน",
+      "antTh": "เรียน",
+      "pos": "verb",
+      "level": 10
+    },
+    {
+      "en": "true",
+      "ant": "false",
+      "th": "จริง",
+      "antTh": "เท็จ",
+      "pos": "adj",
+      "level": 10
+    }
+  ]
+}

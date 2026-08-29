@@ -7,6 +7,10 @@
     {
       "id": "subject",
       "name": "วิชาเรียน"
+    },
+    {
+      "id": "exam",
+      "name": "โหมดสอบ"
     }
   ],
   "decks": [
@@ -72,6 +76,12 @@
       "id": "electricity-daily-2",
       "group": "subject",
       "name": "⚡ การใช้พลังงานไฟฟ้าในชีวิตประจำวัน 2 (พว220001)"
+    },
+    {
+      "file": "antonyms.json",
+      "id": "antonyms",
+      "group": "exam",
+      "name": "🔁 คำตรงข้าม (100 คู่ · 10 ระดับ)"
     }
   ]
 }

@@ -79,7 +79,10 @@ export function unlockAudio() {
 
 export function setSfxEnabled(on) {
   sfxEnabled = on;
-  if (!on) stopAmbience();
+  if (!on) {
+    stopAmbience();
+    setMagnetActive(false);
+  }
 }
 
 export function setSpeechEnabled(on) {
@@ -223,9 +226,10 @@ export const sfx = {
 
   /** เก็บเหรียญ — ไล่เสียงสูงขึ้นตามจำนวนที่เก็บติดกัน (ให้รู้สึกว่า "กำลังต่อเนื่อง") */
   coin(streak = 0) {
+    const g = CFG.audio.coinGain ?? 1;
     const base = 880 * Math.pow(2, Math.min(streak, 8) / 12);
-    tone({ freq: base, duration: 0.08, type: 'square', gain: 0.12 });
-    tone({ freq: base * 2, duration: 0.12, type: 'sine', gain: 0.1, delay: 0.03 });
+    tone({ freq: base, duration: 0.08, type: 'square', gain: 0.12 * g });
+    tone({ freq: base * 2, duration: 0.12, type: 'sine', gain: 0.1 * g, delay: 0.03 });
   },
 
   /** เก็บดาว — เสียงใสสูงขึ้นตามจำนวนที่สะสมได้ ให้รู้สึกว่า "ใกล้แล้ว" */
@@ -415,6 +419,9 @@ const HOOK = [
 ];
 
 let ambience = null;
+let magnetLoop = null;
+let speechDuck = false;
+let magnetDuck = false;
 
 /* ── เครื่องดนตรีแต่ละชิ้น (เล่น ณ เวลา when ของ AudioContext) ── */
 
@@ -688,6 +695,89 @@ export function stopAmbience() {
   musicBus.gain.setValueAtTime(musicBus.gain.value, t);
   musicBus.gain.linearRampToValueAtTime(0.0001, t + 0.35);
   // โน้ตที่จองไว้แล้วจะดังต่ออีก ≤0.25 วิ แต่ musicBus เฟดปิดทันก่อนเสมอ จึงไม่ได้ยิน
+  setMagnetActive(false);
+}
+
+/* ══ เสียงดูดแม่เหล็ก — ลูปต่อเนื่องระหว่าง boost ทำงาน ═══════════════
+ *
+ * ไม่ใช่ one-shot ตอนเก็บไอเทม แต่เป็น "พื้นหลัง" ที่บอกว่ากำลังดูดอยู่
+ * ใช้ noise วนผ่าน bandpass ที่สั่นความถี่ + เสียงต่ำสั่นเล็กน้อย = ความรู้สึกสูญญากาศดูด */
+
+function startMagnetLoop() {
+  if (!ctx || !sfxEnabled || magnetLoop) return;
+
+  const loopSec = 1.8;
+  const frames = Math.floor(ctx.sampleRate * loopSec);
+  const buffer = ctx.createBuffer(1, frames, ctx.sampleRate);
+  const data = buffer.getChannelData(0);
+  for (let i = 0; i < frames; i++) data[i] = Math.random() * 2 - 1;
+
+  const src = ctx.createBufferSource();
+  src.buffer = buffer;
+  src.loop = true;
+
+  const filter = ctx.createBiquadFilter();
+  filter.type = 'bandpass';
+  filter.Q.value = 2.4;
+  filter.frequency.value = 920;
+
+  const lfo = ctx.createOscillator();
+  lfo.type = 'sine';
+  lfo.frequency.value = 3.2;
+  const lfoGain = ctx.createGain();
+  lfoGain.gain.value = 520;
+  lfo.connect(lfoGain);
+  lfoGain.connect(filter.frequency);
+
+  const hum = ctx.createOscillator();
+  hum.type = 'sine';
+  hum.frequency.value = 62;
+  const humGain = ctx.createGain();
+  humGain.gain.value = 0.0001;
+
+  const gain = ctx.createGain();
+  gain.gain.value = 0.0001;
+
+  src.connect(filter).connect(gain).connect(master);
+  hum.connect(humGain).connect(gain);
+
+  const t = ctx.currentTime;
+  const peak = CFG.audio.magnetLoopGain ?? 0.17;
+  gain.gain.linearRampToValueAtTime(peak, t + 0.18);
+  humGain.gain.linearRampToValueAtTime(peak * 0.35, t + 0.18);
+
+  src.start(t);
+  lfo.start(t);
+  hum.start(t);
+
+  magnetLoop = { src, lfo, hum, gain, humGain };
+}
+
+function stopMagnetLoop() {
+  if (!magnetLoop || !ctx) return;
+  const { src, lfo, hum, gain, humGain } = magnetLoop;
+  magnetLoop = null;
+
+  const t = ctx.currentTime;
+  gain.gain.cancelScheduledValues(t);
+  gain.gain.setValueAtTime(gain.gain.value, t);
+  gain.gain.linearRampToValueAtTime(0.0001, t + 0.22);
+  humGain.gain.cancelScheduledValues(t);
+  humGain.gain.setValueAtTime(humGain.gain.value, t);
+  humGain.gain.linearRampToValueAtTime(0.0001, t + 0.22);
+
+  const stopAt = t + 0.25;
+  src.stop(stopAt);
+  lfo.stop(stopAt);
+  hum.stop(stopAt);
+}
+
+/** เปิด/ปิดเสียงดูดแม่เหล็ก + หรี่เพลงวิ่งลงให้ได้ยินชัด */
+export function setMagnetActive(on) {
+  magnetDuck = on;
+  if (on) startMagnetLoop();
+  else stopMagnetLoop();
+  refreshMusicDuck();
 }
 
 /* ══ ออกเสียงคำอังกฤษ (dual coding: เห็นรูปคำ + ได้ยินเสียง) ═════
@@ -795,10 +885,13 @@ export function isSpeaking() {
   return !!ss && (ss.speaking || ss.pending);
 }
 
-/** หรี่เสียงเพลงลงระหว่างอ่านคำ ไม่งั้นคำจะจมหายไปในเสียงเครื่องยนต์ */
-function duckMusic(on) {
+/** หรี่เสียงเพลงลง — อ่านคำมีลำดับสูงสุด แม่เหล็กรองลงมา */
+function refreshMusicDuck() {
   if (!ctx || !musicBus) return;
-  const target = on ? CFG.audio.musicVolume * 0.22 : (ambience ? CFG.audio.musicVolume : 0.0001);
+  const base = ambience ? CFG.audio.musicVolume : 0.0001;
+  let target = base;
+  if (speechDuck) target = base * 0.22;
+  else if (magnetDuck) target = base * (CFG.audio.magnetMusicDuck ?? 0.45);
   musicBus.gain.setTargetAtTime(Math.max(0.0001, target), ctx.currentTime, 0.08);
 }
 
@@ -852,6 +945,11 @@ export function voiceReport() {
     `หน้าเว็บ: ${document.hidden ? 'ถูกซ่อน' : 'อยู่ด้านหน้า'}`,
     `เครื่องยนต์: ${speechHealthy ? 'ปกติ' : 'เคยพลาด'}`,
   ].join(' · ');
+}
+
+function duckMusic(on) {
+  speechDuck = on;
+  refreshMusicDuck();
 }
 
 function makeUtterance(text, rate, lang) {

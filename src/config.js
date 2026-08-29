@@ -125,15 +125,28 @@ export const CFG = {
   },
 
   /* ── โหมดเด็ก (Phonics) ────────────────────────────────────
-   * ไม่ได้สร้างกลไกใหม่ แต่ "ตั้งค่าเดิมให้เหมาะกับเด็ก" 3 อย่างพร้อมกัน:
+   * ไม่ได้สร้างกลไกใหม่ แต่ "ตั้งค่าเดิมให้เหมาะกับเด็ก" 4 อย่างพร้อมกัน:
    *   1) กรองเหลือคำสั้นระดับต้น — คำยาวคือคำที่เด็กยังอ่านไม่ออก ไม่ใช่คำที่ยากกว่า
    *   2) ความเร็ว calm — ให้แพ้เพราะยังไม่รู้คำ ไม่ใช่เพราะนิ้วตามไม่ทัน
    *   3) ตัดโจทย์ตัวอักษรทิ้ง เหลือรูป+เสียง — เด็กที่ยังอ่านไม่คล่อง
-   *      โจทย์ตัวอักษรวัด "การอ่าน" ไม่ได้วัด "รู้จักคำ" ซึ่งคนละเรื่องกัน */
+   *      โจทย์ตัวอักษรวัด "การอ่าน" ไม่ได้วัด "รู้จักคำ" ซึ่งคนละเรื่องกัน
+   *   4) พูดทุกครั้งที่ขึ้นคำ — เด็กอ่านอังกฤษไม่ออกแต่เดาจากรูปคำได้ ถ้าได้ยินเสียง
+   *   5) ลำดับโจทย์แบบสอน — รูปซ้ำ → เสียง → ไทย ในชุดคำ ~5 คำ แล้วค่อยเลื่อนชุด */
   kids: {
     speedMode: 'calm',
-    modes: ['image', 'audio'],
+    modes: ['image', 'audio', 'text'],
     minWords: 12,
+
+    /* หนึ่ง "รอบสอน" = ชุดคำ poolSize คำ · แต่ละขั้นถาม min–max ด่านในโหมดเดียวกัน
+     * ก่อนเลื่อนไปขั้นถัดไป (dual coding ทีละช่องทาง ไม่ปนสุ่ม) */
+    lesson: {
+      poolSize: 5,
+      phases: [
+        { mode: 'image', min: 3, max: 5 },
+        { mode: 'audio', min: 2, max: 3 },
+        { mode: 'text', min: 1, max: 2 },
+      ],
+    },
 
     /* ⚠️ ผ่อนทีละขั้น ไม่ใช่ "เข้มสุด แล้วถ้าไม่พอก็เอาทั้งหมด"
      * เจอมาแล้วกับเด็คผลไม้: คำระดับ 1 มีไม่ถึง 12 คำ ระบบเลยถอยไปใช้เด็คเต็ม
@@ -146,6 +159,13 @@ export const CFG = {
       { maxLevel: 2, maxLetters: 11 },
       { maxLevel: 2, maxLetters: 15 },
     ],
+  },
+
+  /* ── ชุดคำย่อย (~10 คำต่อชุด) ───────────────────────────────
+   * แบ่งอัตโนมัติจากลำดับ topic + ความยาวคำ · ผู้เล่นเลือกได้ว่ารวมชุดก่อนหน้าหรือเฉพาะชุดนี้ */
+  studySteps: {
+    wordsPerStep: 10,
+    minWordsPerStep: 4,
   },
 
   // ── จังหวะการปล่อยของ ──────────────────────────────────────
@@ -380,7 +400,10 @@ export const CFG = {
 
   audio: {
     sfxVolume: 0.32,
-    musicVolume: 0.5,      // เสียงบรรยากาศ/จังหวะระหว่างวิ่ง
+    musicVolume: 0.28,     // เสียงบรรยากาศ/จังหวะระหว่างวิ่ง — ต่ำพอให้ SFX/เสียงแม่เหล็กไม่จม
+    coinGain: 1.75,        // ตัวคูณความดังเสียงเก็บเหรียญ
+    magnetLoopGain: 0.17,  // เสียงดูดต่อเนื่องระหว่างแม่เหล็กทำงาน
+    magnetMusicDuck: 0.45, // หรี่เพลงวิ่งลงอีกชั้นตอนแม่เหล็กเปิด (ให้ได้ยินเสียงดูดชัด)
     speechRate: 0.95,
     speechLang: 'en-US',
     // เสียงอ่านโจทย์ deck วิชา — ต้องตั้ง lang ของ utterance ให้ตรงภาษา
@@ -557,6 +580,21 @@ export function answerWindowFor(gatesPassed) {
 }
 
 /**
+ * ข้อนี้ควรอ่านคำออกเสียงตอนโจทย์ขึ้นจอหรือไม่
+ *
+ * โหมดฟัง / โจทย์วิชา / โหมดไทย = เสียงคือตัวโจทย์ ต้องอ่านเสมอ
+ * โจทย์รูป = อ่านเมื่อผู้เล่นเปิด "พูดทุกครั้งที่ขึ้นคำ"
+ *   (เด็กที่ยังอ่านอังกฤษไม่คล่องได้ยินแล้วเดาธงจากรูปคำได้)
+ * มุกกวนไม่ใช่โจทย์คำศัพท์ — ไม่อ่าน
+ */
+export function shouldSpeakPrompt({ mode, speakAll = false } = {}) {
+  if (mode === 'audio' || mode === 'subject' || mode === 'text') return true;
+  if (mode === 'joke') return false;
+  if (mode === 'image') return !!speakAll;
+  return false;
+}
+
+/**
  * ถึงเวลา "อ่านโจทย์ซ้ำ" หรือยัง
  *
  * ⚠️ เงื่อนไข `speaking` คือหัวใจ ไม่ใช่ของแถม
@@ -573,10 +611,10 @@ export function answerWindowFor(gatesPassed) {
  *
  * @returns {{replay: boolean, consume: boolean}}
  */
-export function replayDecision({ mode, ratio, speaking, alreadyReplayed }) {
+export function replayDecision({ mode, ratio, speaking, alreadyReplayed, speakAll = false }) {
   if (alreadyReplayed) return { replay: false, consume: false };
   const at = mode === 'subject' ? CFG.question.subject.replayAt
-    : mode === 'audio' ? CFG.question.audioReplayAt
+    : shouldSpeakPrompt({ mode, speakAll }) ? CFG.question.audioReplayAt
     : null;
   if (at === null || ratio >= at) return { replay: false, consume: false };
   if (speaking) return { replay: false, consume: true };

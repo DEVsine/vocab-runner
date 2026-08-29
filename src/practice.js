@@ -23,6 +23,7 @@
  */
 
 import { CFG } from './config.js';
+import { playDeckId } from './deck.js';
 import { statOf, isUnseen, itemId } from './srs.js';
 import { pending as inboxPending } from './inbox.js';
 
@@ -53,21 +54,23 @@ function boxOf(deckId, item) {
  * ถ้าไม่มีคำต้องทวนเลย (ผู้เล่นใหม่) ชุดจะกลายเป็นคำใหม่ล้วนโดยอัตโนมัติ
  */
 export function pickPracticeWords(deck, n = PRACTICE_BATCH) {
+  const deckKey = playDeckId(deck);
   const byId = new Map(deck.words.map(w => [itemId(w), w]));
 
   // 1) ข้อที่พลาดล่าสุดจากเกมจริง (เรียงตามลำดับที่พลาด ล่าสุดก่อน)
-  const fromInbox = inboxPending(deck.id).map(id => byId.get(id)).filter(Boolean);
+  const fromInbox = inboxPending(deckKey).map(id => byId.get(id)).filter(Boolean);
 
   const inInbox = new Set(fromInbox.map(w => itemId(w)));
-  const seen = deck.words.filter(w => !inInbox.has(itemId(w)) && !isUnseen(deck.id, w));
-  const fresh = shuffle(deck.words.filter(w => !inInbox.has(itemId(w)) && isUnseen(deck.id, w)));
+  const seen = deck.words.filter(w => !inInbox.has(itemId(w)) && !isUnseen(deckKey, w));
+  // คำใหม่คงลำดับของเด็ค (สั้น→ยาวภายในแต่ละระดับ) ไม่สุ่ม — เด็กได้เจอคำสั้นก่อน
+  const fresh = deck.words.filter(w => !inInbox.has(itemId(w)) && isUnseen(deckKey, w));
 
   // 2) ข้อที่เคยเจอแต่ยังไม่แม่น — ผิดเยอะสุดก่อน แล้วกล่องต่ำสุด
   const review = seen
-    .filter(w => statOf(deck.id, w).box < CFG.srs.boxCount)
+    .filter(w => statOf(deckKey, w).box < CFG.srs.boxCount)
     .sort((a, b) => {
-      const sa = statOf(deck.id, a);
-      const sb = statOf(deck.id, b);
+      const sa = statOf(deckKey, a);
+      const sb = statOf(deckKey, b);
       return (sb.wrong - sa.wrong) || (sa.box - sb.box) || (sa.last - sb.last);
     });
 
@@ -86,7 +89,7 @@ export function pickPracticeWords(deck, n = PRACTICE_BATCH) {
   take(fresh, n - out.length);                                 // แล้วเติมคำใหม่
   take(reviewQueue, n - out.length);                           // คำใหม่หมดแล้ว → ทวนเพิ่ม
   // 3) เกมมาถึงตรงนี้แปลว่า deck เล็กมาก — เติมด้วยอะไรก็ได้ที่เหลือ
-  take(shuffle(deck.words.filter(w => statOf(deck.id, w).box >= CFG.srs.boxCount)), n - out.length);
+  take(shuffle(deck.words.filter(w => statOf(deckKey, w).box >= CFG.srs.boxCount)), n - out.length);
 
   return out;
 }

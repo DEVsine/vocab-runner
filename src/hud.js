@@ -77,6 +77,7 @@ export function createHUD(handlers = {}) {
     combo: $('hud-combo'),
     comboValue: $('hud-combo-value'),
     promptLabel: $('hud-prompt-label'),
+    lessonStep: $('hud-lesson-step'),
     promptWord: $('hud-prompt-word'),
     promptEmoji: $('hud-prompt-emoji'),
     promptImage: $('hud-prompt-image'),
@@ -148,12 +149,14 @@ export function createHUD(handlers = {}) {
   let contestLocked = false;
 
   const PROMPT_LABEL = {
-    text: 'วิ่งเข้าเลนที่แปลว่า',
-    image: 'รูปนี้คือคำว่าอะไร',
-    audio: 'ฟังแล้วเลือกคำที่ได้ยิน',
+    text: 'วิ่งเข้าเลนคำอังกฤษที่ถูก',
+    image: '',
+    audio: '',
     joke: 'มุกกวน — ตอบผิดก็ไม่เป็นไร',
     subject: '🔊 ฟังโจทย์แล้ววิ่งเข้าเลนคำตอบ',
   };
+
+  const PROMPT_MODE_CLASS = ['prompt-mode-image', 'prompt-mode-audio', 'prompt-mode-text'];
 
   // โจทย์ที่เป็น "ประโยค" ต้องใช้สไตล์ตัวเล็กหลายบรรทัดของมุกกวน
   // ไม่งั้นโจทย์วิชายาว ๆ จะล้นกล่องออกนอกจอ
@@ -267,27 +270,41 @@ export function createHUD(handlers = {}) {
       const { mode, word, options } = question;
       const token = ++questionToken;   // โจทย์ใหม่ → ยกเลิกรูปเก่าที่ยังโหลดค้างอยู่
 
-      el.promptLabel.textContent = PROMPT_LABEL[mode] ?? PROMPT_LABEL.text;
+      el.prompt.classList.remove(...PROMPT_MODE_CLASS);
+      if (PROMPT_MODE_CLASS.includes(`prompt-mode-${mode}`)) {
+        el.prompt.classList.add(`prompt-mode-${mode}`);
+      }
+
+      const label = PROMPT_LABEL[mode] ?? PROMPT_LABEL.text;
+      el.promptLabel.textContent = label;
+      el.promptLabel.classList.toggle('hidden', !label);
+
       el.promptWord.classList.toggle('joke', LONG_PROMPT_MODES.has(mode));
+      el.promptWord.classList.remove('prompt-th');
       el.promptImage.classList.add('hidden');   // ตั้งต้นซ่อนรูปไว้เสมอ
+      el.promptWord.classList.add('hidden');
 
       if (mode === 'image') {
-        // โชว์ emoji เป็น "ตัวยืน" ก่อน แล้วค่อยสลับเป็นรูปจริงเมื่อโหลดสำเร็จ
-        // (ถ้ารูปไม่มา ก็ไม่แย่ไปกว่าเดิม — ยังเห็น emoji ตอบได้ตามปกติ)
+        // รูปอย่างเดียว — ไม่โชว์คำอังกฤษคู่ (เสียงอ่านให้แทน)
         el.promptEmoji.textContent = word.emoji || '🖼️';
         el.promptEmoji.classList.remove('hidden');
-        el.promptWord.classList.add('hidden');
         showPhoto(word, token);
       } else if (mode === 'audio') {
-        // โหมดเสียง: โชว์คำแปลไทยคู่กับไอคอนลำโพง
-        el.promptEmoji.classList.add('hidden');
-        el.promptWord.textContent = `🔊 ${word.th}`;
-        el.promptWord.classList.remove('hidden');
+        // เสียงอย่างเดียว — ไอคอนบอกว่าต้องฟัง ไม่โชว์คำใดบนจอ
+        el.promptEmoji.textContent = '🔊';
+        el.promptEmoji.classList.remove('hidden');
       } else {
-        // joke/subject เก็บตัวโจทย์ไว้ที่ .q · คำศัพท์ใช้คำแปลไทยเป็นโจทย์
-        el.promptWord.textContent = LONG_PROMPT_MODES.has(mode) ? word.q : word.th;
-        el.promptWord.classList.remove('hidden');
         el.promptEmoji.classList.add('hidden');
+        if (question.antonym) {
+          // โจทย์คำตรงข้าม — สลับภาษาตามที่ deck.js สุ่มไว้ (promptLang)
+          // ถามด้วยคำอังกฤษ = วัดว่าอ่าน en ออก · ถามด้วยคำไทย = วัดว่าแปลกลับได้
+          const target = question.promptLang === 'en' ? word.en : word.th;
+          el.promptWord.textContent = `คำตรงข้ามของ "${target}"`;
+        } else {
+          el.promptWord.textContent = LONG_PROMPT_MODES.has(mode) ? word.q : word.th;
+        }
+        el.promptWord.classList.remove('hidden');
+        if (mode === 'text' && !word.subject) el.promptWord.classList.add('prompt-th');
       }
 
       flags.forEach((f, i) => {
@@ -314,12 +331,26 @@ export function createHUD(handlers = {}) {
       el.laneFlags.classList.toggle('hidden', !on);
     },
 
+    /** ป้ายขั้นสอนโหมดเด็ก / speak-all — null = ซ่อน */
+    setLessonStep(label) {
+      if (!label) {
+        el.lessonStep.classList.add('hidden');
+        el.lessonStep.textContent = '';
+        return;
+      }
+      el.lessonStep.textContent = label;
+      el.lessonStep.classList.remove('hidden');
+    },
+
     clearQuestion() {
+      el.prompt.classList.remove(...PROMPT_MODE_CLASS);
       el.promptWord.textContent = '—';
-      el.promptWord.classList.remove('hidden', 'joke');
+      el.promptWord.classList.remove('hidden', 'joke', 'prompt-th');
       el.promptEmoji.classList.add('hidden');
       el.promptImage.classList.add('hidden');
       el.promptLabel.textContent = PROMPT_LABEL.text;
+      el.promptLabel.classList.remove('hidden');
+      this.setLessonStep(null);
       questionToken++;                 // กันรูปที่ค้างโหลดไม่ให้โผล่หลังเคลียร์โจทย์
       flags.forEach(f => {
         f.word.textContent = '—';

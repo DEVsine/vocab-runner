@@ -265,6 +265,13 @@ button { touch-action: manipulation; -webkit-tap-highlight-color: transparent; }
   backdrop-filter: blur(6px);
 }
 .prompt-label { font-size: 11px; letter-spacing: .08em; color: var(--dim); }
+.lesson-step {
+  margin-top: 4px;
+  font-size: 12px;
+  font-weight: 600;
+  letter-spacing: .04em;
+  color: var(--cyan);
+}
 #hud-prompt-word {
   font-size: clamp(24px, 7vw, 42px);
   font-weight: 800;
@@ -272,6 +279,41 @@ button { touch-action: manipulation; -webkit-tap-highlight-color: transparent; }
   margin-top: 2px;
   text-shadow: 0 0 22px rgba(34, 211, 238, .35);
 }
+#hud-prompt-word.prompt-th {
+  font-size: clamp(32px, 9vw, 56px);
+  letter-spacing: 0.02em;
+  margin-top: 4px;
+  color: var(--ink);
+}
+
+/* โหมดรูป — รูป/emoji ใหญ่ตรงกลาง ไม่มีตัวหนังสือ */
+#hud-prompt.prompt-mode-image #hud-prompt-word { display: none; }
+#hud-prompt.prompt-mode-image #hud-prompt-image {
+  width: clamp(120px, 32vw, 200px);
+  height: clamp(120px, 32vw, 200px);
+  margin: 8px auto 2px;
+}
+#hud-prompt.prompt-mode-image #hud-prompt-emoji {
+  font-size: clamp(64px, 18vw, 120px);
+  margin: 4px 0;
+}
+
+/* โหมดฟัง — ไอคอนลำโพงอย่างเดียว */
+#hud-prompt.prompt-mode-audio #hud-prompt-word { display: none; }
+#hud-prompt.prompt-mode-audio #hud-prompt-emoji {
+  font-size: clamp(72px, 20vw, 128px);
+  line-height: 1;
+  margin: 6px 0 2px;
+  animation: audio-pulse 1.4s ease-in-out infinite;
+}
+@keyframes audio-pulse {
+  0%, 100% { transform: scale(1); opacity: 1; }
+  50% { transform: scale(1.06); opacity: 0.88; }
+}
+
+/* โหมดไทย — คำไทยใหญ่ ไม่มีรูป */
+#hud-prompt.prompt-mode-text #hud-prompt-emoji,
+#hud-prompt.prompt-mode-text #hud-prompt-image { display: none; }
 
 /* 🌫️ กระสุน "หมอกบังคำแปล" — เบลอเฉพาะกล่องโจทย์ แล้วจางเองตามเวลา
    ธงคำตอบไม่ถูกแตะเลย เพราะข้อมูลต้องยังครบพอให้คนที่รู้คำตอบได้ */
@@ -775,6 +817,21 @@ select {
 
 /* "ชุดที่ 3 จาก 12" — ตัวเลขบอกตำแหน่งในคลัง ไม่ใช่คำอธิบายชุด จึงเน้นสีต่างจาก .deck-info */
 .set-sub { margin: 8px 0 0; font-size: 12.5px; font-weight: 700; color: var(--cyan); }
+.menu-study-summary {
+  font-size: 13px;
+  color: var(--cyan);
+  text-align: center;
+  margin: 0 0 12px;
+  line-height: 1.45;
+  padding: 8px 12px;
+  border-radius: 10px;
+  background: rgba(0, 212, 255, 0.08);
+  border: 1px solid rgba(0, 212, 255, 0.18);
+}
+.menu-study-summary.hidden { display: none; }
+#study-level-wrap { margin-top: 10px; }
+#study-level-wrap.hidden { display: none; }
+#study-level-wrap .toggle { display: block; margin-top: 8px; }
 
 /* ── เมนู: แถบสถานะผู้เล่น (ตัวละครที่ใส่อยู่ + เหรียญในกระเป๋า) ──
    ไม่ใช่ปุ่ม แต่เป็น "ค่าสดในเกม" จึงใช้ทรงชิปเดียวกับของสะสมใน HUD ตอนวิ่ง
@@ -823,6 +880,7 @@ select {
   color: var(--dim);
   font-family: inherit; font-size: 10.5px; font-weight: 700;
   cursor: pointer;
+  text-decoration: none;
   transition: transform .08s ease, background .15s ease, border-color .15s ease, color .15s ease;
 }
 .nav-item:hover { background: rgba(34,211,238,.14); border-color: rgba(34,211,238,.45); color: var(--ink); }
@@ -1357,8 +1415,12 @@ td.en { font-weight: 700; }
   .boost-chip { padding: 1px 7px 3px; gap: 4px; }
   .boost-icon, .boost-time { font-size: 11px; }
   #hud-prompt-word { font-size: clamp(18px, 4.4vh, 28px); }
+  #hud-prompt.prompt-mode-text #hud-prompt-word { font-size: clamp(22px, 5.5vh, 36px); }
   #hud-prompt-emoji { font-size: clamp(30px, 9vh, 52px); }
+  #hud-prompt.prompt-mode-image #hud-prompt-emoji { font-size: clamp(48px, 14vh, 80px); }
+  #hud-prompt.prompt-mode-audio #hud-prompt-emoji { font-size: clamp(52px, 15vh, 88px); }
   #hud-prompt-image { width: 56px; height: 56px; }
+  #hud-prompt.prompt-mode-image #hud-prompt-image { width: clamp(72px, 18vh, 120px); height: clamp(72px, 18vh, 120px); }
   #lane-flags { top: 34%; }
   .flag { padding: 5px 6px 7px; }
   .flag-word { font-size: clamp(13px, 3.4vh, 22px); }

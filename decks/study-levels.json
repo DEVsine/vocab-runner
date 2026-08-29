@@ -1,0 +1,130 @@
+{
+  "animals": {
+    "topicOrder": ["pet", "farm", "bird", "sea", "mammal", "bigcat", "primate", "reptile", "insect", "rodent", "amphibian"],
+    "topicLabels": {
+      "pet": "สัตว์เลี้ยง",
+      "farm": "ฟาร์ม",
+      "bird": "นก",
+      "sea": "ทะเล",
+      "mammal": "สัตว์บก",
+      "bigcat": "แมวใหญ่",
+      "primate": "ลิง",
+      "reptile": "เลื้อยคลาน",
+      "insect": "แมลง",
+      "rodent": "สัตว์ฟันแทะ",
+      "amphibian": "สัตว์ครึ่งบกครึ่งน้ำ"
+    }
+  },
+  "nouns": {
+    "topicOrder": ["home", "kitchen", "food", "body", "place", "transport", "fruit", "veg", "nature", "object", "study", "time"],
+    "topicLabels": {
+      "home": "ในบ้าน",
+      "kitchen": "ครัว",
+      "food": "อาหาร",
+      "body": "ร่างกาย",
+      "place": "สถานที่",
+      "transport": "การเดินทาง",
+      "fruit": "ผลไม้",
+      "veg": "ผัก",
+      "nature": "ธรรมชาติ",
+      "object": "ของใช้",
+      "study": "เรียน",
+      "time": "เวลา"
+    }
+  },
+  "verbs": {
+    "topicOrder": ["daily", "motion", "hand", "body", "talk", "feel", "work", "change", "think", "sense"],
+    "topicLabels": {
+      "daily": "กิจวัตร",
+      "motion": "เคลื่อนไหว",
+      "hand": "มือ",
+      "body": "ร่างกาย",
+      "talk": "พูด",
+      "feel": "รู้สึก",
+      "work": "ทำงาน",
+      "change": "เปลี่ยน",
+      "think": "คิด",
+      "sense": "ประสาทสัมผัส"
+    }
+  },
+  "clothes": {
+    "topicOrder": ["top", "bottom", "foot", "outer", "under", "head", "acc", "bag", "dress", "swim", "fabric", "part", "jewel", "culture", "eye"],
+    "topicLabels": {
+      "top": "เสื้อ",
+      "bottom": "กางเกง",
+      "foot": "รองเท้า",
+      "outer": "ชั้นนอก",
+      "under": "ชั้นใน",
+      "head": "หัว",
+      "acc": "เครื่องประดับ",
+      "bag": "กระเป๋า",
+      "dress": "ชุด",
+      "swim": "ว่ายน้ำ",
+      "fabric": "เนื้อผ้า",
+      "part": "ส่วนประกอบ",
+      "jewel": "เครื่องประดับ",
+      "culture": "วัฒนธรรม",
+      "eye": "ตา"
+    }
+  },
+  "fruits": {
+    "topicOrder": ["fruit-global", "fruit-thai", "fruit-citrus", "fruit-mango", "fruit-melon", "fruit-berry", "fruit-banana", "fruit-pineapple", "fruit-roseapple", "fruit-state"],
+    "topicLabels": {
+      "fruit-global": "ผลไม้สากล",
+      "fruit-thai": "ผลไม้ไทย",
+      "fruit-citrus": "ผลไม้ตระกูลส้ม",
+      "fruit-mango": "มะม่วง",
+      "fruit-melon": "แตง",
+      "fruit-berry": "เบอร์รี่",
+      "fruit-banana": "กล้วย",
+      "fruit-pineapple": "สับปะรด",
+      "fruit-roseapple": "ชมพู่",
+      "fruit-state": "สภาพผลไม้"
+    }
+  },
+  "vegetables": {
+    "topicOrder": ["veg-leaf", "veg-root", "veg-fruit", "veg-bean", "veg-bulb", "veg-chili", "veg-herb", "veg-eggplant", "veg-other"],
+    "topicLabels": {
+      "veg-leaf": "ผักใบ",
+      "veg-root": "ผักราก",
+      "veg-fruit": "ผักผล",
+      "veg-bean": "ถั่ว",
+      "veg-bulb": "หัว",
+      "veg-chili": "พริก",
+      "veg-herb": "สมุนไพร",
+      "veg-eggplant": "มะเขือ",
+      "veg-other": "อื่น ๆ"
+    }
+  },
+  "core-a2b1": {
+    "mode": "difficulty"
+  },
+  "awl-cutep": {
+    "topicOrder": ["awl-s1", "awl-s2", "awl-s3", "awl-s4", "awl-s5", "awl-s6", "awl-s7", "awl-s8", "awl-s9", "awl-s10"],
+    "topicLabels": {
+      "awl-s1": "Sublist 1",
+      "awl-s2": "Sublist 2",
+      "awl-s3": "Sublist 3",
+      "awl-s4": "Sublist 4",
+      "awl-s5": "Sublist 5",
+      "awl-s6": "Sublist 6",
+      "awl-s7": "Sublist 7",
+      "awl-s8": "Sublist 8",
+      "awl-s9": "Sublist 9",
+      "awl-s10": "Sublist 10"
+    }
+  },
+  "antonyms": {
+    "mode": "difficulty",
+    "stepNaming": "level"
+  },
+  "finance-basics": {
+    "topicOrder": ["economy", "banking", "investing", "accounting"],
+    "topicLabels": {
+      "economy": "เศรษฐกิจ",
+      "banking": "ธนาคาร",
+      "investing": "ลงทุน",
+      "accounting": "บัญชี"
+    }
+  }
+}

@@ -124,11 +124,15 @@ export function createUI(handlers) {
   }
 
   function setDeckInfo(deck) {
-    const best = srs.getBest(deck.scopeKey ?? deck.id);
+    if (!deck) return;
+    const best = srs.getBest(deck.scopeKey ?? deck.statsId ?? deck.id);
     const s = srs.summarize(deck);
     const unit = deck.type === 'subject' ? 'ข้อ' : 'คำ';
+    const levelLine = deck.activeStudyLevelName
+      ? ` · ${deck.activeStudyCumulative ? 'รวม' : 'ชุด'} ${deck.activeStudyLevel} ${deck.activeStudyLevelName}`
+      : '';
     deckInfo.textContent =
-      `${deck.words.length} ${unit} · เจอแล้ว ${s.seen} · แม่นแล้ว ${s.mastered}` +
+      `${deck.words.length} ${unit}${levelLine} · เจอแล้ว ${s.seen} · แม่นแล้ว ${s.mastered}` +
       (best.score ? ` · สถิติสูงสุด ${best.score}` : '');
   }
 
@@ -185,12 +189,89 @@ export function createUI(handlers) {
     handlers.onChapterChange(chapterSelect.value);
   });
 
+  function deckPrefKey() {
+    return deckSelect.value.replace(/\.json$/, '');
+  }
+
   deckSelect.addEventListener('change', () => {
     prefs.deckFile = deckSelect.value;
+    delete prefs.studyLevelByDeck?.[deckPrefKey()];
     savePrefs(prefs);
     updateDeckCount();
     handlers.onDeckChange(deckSelect.value);
   });
+
+  /* ── ชุดคำย่อย (~10 คำต่อชุด) ─────────────────────────────── */
+
+  const studyLevelWrap = $('study-level-wrap');
+  const studyLevelSelect = $('study-level-select');
+  const studyCumulativeToggle = $('study-cumulative-toggle');
+  const menuStudySummary = $('menu-study-summary');
+
+  function fillStudyLevelList(deck) {
+    if (!deck?.studyLevels?.length) {
+      studyLevelWrap.classList.add('hidden');
+      studyLevelSelect.innerHTML = '';
+      return;
+    }
+    studyLevelWrap.classList.remove('hidden');
+    studyLevelSelect.innerHTML = '';
+    const saved = prefs.studyLevelByDeck?.[deck.id];
+    const preferred = saved ?? deck.studyLevels[0].level;
+    const cumulative = prefs.studyCumulativeByDeck?.[deck.id] ?? false;
+    studyCumulativeToggle.checked = cumulative;
+
+    for (const row of deck.studyLevels) {
+      const opt = document.createElement('option');
+      opt.value = String(row.level);
+      opt.textContent = `${row.name} (${row.stepCount} คำ)`;
+      studyLevelSelect.appendChild(opt);
+    }
+    studyLevelSelect.value = String(
+      deck.studyLevels.some(r => r.level === preferred) ? preferred : deck.studyLevels[0].level,
+    );
+  }
+
+  function selectedStudyLevel() {
+    if (!studyLevelSelect.options.length) return null;
+    return Number(studyLevelSelect.value);
+  }
+
+  function selectedStudyCumulative() {
+    return studyCumulativeToggle.checked;
+  }
+
+  studyLevelSelect.addEventListener('change', () => {
+    if (!deckSelect.value) return;
+    prefs.studyLevelByDeck = prefs.studyLevelByDeck || {};
+    prefs.studyLevelByDeck[deckPrefKey()] = selectedStudyLevel();
+    savePrefs(prefs);
+    handlers.onStudyLevelChange?.();
+  });
+
+  studyCumulativeToggle.addEventListener('change', () => {
+    if (!deckSelect.value) return;
+    prefs.studyCumulativeByDeck = prefs.studyCumulativeByDeck || {};
+    prefs.studyCumulativeByDeck[deckPrefKey()] = studyCumulativeToggle.checked;
+    savePrefs(prefs);
+    handlers.onStudyLevelChange?.();
+  });
+
+  function setMenuStudySummary(deck) {
+    if (!menuStudySummary) return;
+    if (!deck) {
+      menuStudySummary.textContent = '';
+      menuStudySummary.classList.add('hidden');
+      return;
+    }
+    const unit = deck.type === 'subject' ? 'ข้อ' : 'คำ';
+    const mode = deck.activeStudyCumulative ? 'รวม' : 'ชุด';
+    const levelPart = deck.activeStudyLevelName
+      ? ` · ${mode} ${deck.activeStudyLevel}: ${deck.activeStudyLevelName}`
+      : '';
+    menuStudySummary.textContent = `${deck.name}${levelPart} · ${deck.words.length} ${unit}`;
+    menuStudySummary.classList.remove('hidden');
+  }
 
   /* ── ธีมของโลก ─────────────────────────────────────────── */
 
@@ -334,7 +415,7 @@ export function createUI(handlers) {
     const last = prIdx === prWords.length - 1;
     $('btn-pr-next').classList.toggle('hidden', last);
     $('btn-pr-run').classList.toggle('hidden', !last);
-    handlers.onSpeakWord(w);      // อ่านออกเสียงอัตโนมัติทุกครั้งที่เปิดการ์ด (dual coding)
+    // ไม่อ่านอัตโนมัติ — ให้กดปุ่ม 🔊 เอง (เสียงอ่านโจทย์อยู่ตอนวิ่งในเกม)
   }
 
   function showPracticeTeach(words, missed = new Set()) {
@@ -368,8 +449,10 @@ export function createUI(handlers) {
 
   const toggleSfx = $('toggle-sfx');
   const toggleSpeech = $('toggle-speech');
+  const toggleSpeakAll = $('toggle-speak-all');
   toggleSfx.checked = prefs.sfx !== false;
   toggleSpeech.checked = prefs.speech !== false;
+  toggleSpeakAll.checked = prefs.speakAll !== false;
 
   toggleSfx.addEventListener('change', () => {
     prefs.sfx = toggleSfx.checked;
@@ -380,6 +463,11 @@ export function createUI(handlers) {
     prefs.speech = toggleSpeech.checked;
     savePrefs(prefs);
     handlers.onAudioPrefs(toggleSfx.checked, toggleSpeech.checked);
+    syncSpeakAllLock();
+  });
+  toggleSpeakAll.addEventListener('change', () => {
+    prefs.speakAll = toggleSpeakAll.checked;
+    savePrefs(prefs);
   });
 
   /* ── โหมดเสียงโค้ช ────────────────────────────────────────
@@ -421,14 +509,23 @@ export function createUI(handlers) {
 
   /* โหมดเด็กเป็น "ชุดค่าสำเร็จรูป" ไม่ใช่สวิตช์อิสระ — มันทับความเร็วกับประเภทโจทย์
    * จึงต้องปิดสองอันนั้นให้เห็นด้วยตา ไม่งั้นผู้ใช้จะเลือกค่าที่ไม่มีผลแล้วงงว่าทำไมไม่เปลี่ยน
-   * (ปิดเฉพาะการแก้ไข ไม่ล้างค่าที่เก็บไว้ — ปิดโหมดเด็กแล้วต้องได้ค่าเดิมกลับมาครบ) */
+   * (ปิดเฉพาะการแก้ไข ไม่ล้างค่าที่เก็บไว้ — ปิดโหมดเด็กแล้วต้องได้ค่าเดิมกลับมาครบ)
+   * พูดทุกขั้นก็ถูกบังคับเช่นกัน เพราะเด็กอ่านอังกฤษไม่ออกแต่เดาจากรูปคำได้ถ้าได้ยิน */
+  function syncSpeakAllLock() {
+    const kids = toggleKids.checked;
+    const speechOn = toggleSpeech.checked;
+    toggleSpeakAll.disabled = kids || !speechOn;
+    if (kids) toggleSpeakAll.checked = true;
+    else toggleSpeakAll.checked = prefs.speakAll !== false;
+  }
   function syncKidsLock() {
     const on = toggleKids.checked;
     speedSelect.disabled = on;
     for (const box of Object.values(qModeBoxes)) box.disabled = on;
     kidsNote.classList.toggle('hidden', !on);
+    syncSpeakAllLock();
     if (on) {
-      qModeNote.textContent = 'โหมดเด็กกำลังคุมอยู่ — ใช้รูปกับเสียงเท่านั้น';
+      qModeNote.textContent = 'โหมดเด็กกำลังคุมอยู่ — สอนรูป → เสียง → ไทย ในชุดคำ ~5 คำ';
       return;
     }
     const n = checkedModes().length;
@@ -740,6 +837,10 @@ export function createUI(handlers) {
 
     selectedDeckFile: () => deckSelect.value,
     selectedChapterId: () => chapterSelect.value || 'all',
+    selectedStudyLevel,
+    selectedStudyCumulative,
+    fillStudyLevelList,
+    setMenuStudySummary,
     audioPrefs: () => ({
       sfx: toggleSfx.checked,
       speech: toggleSpeech.checked,
@@ -750,6 +851,9 @@ export function createUI(handlers) {
     // โหมดเด็กชนะเสมอ — ค่าที่ผู้ใช้ตั้งเองยังอยู่ในที่เก็บ แค่ไม่ถูกใช้ระหว่างเปิดโหมดเด็ก
     speedMode: () => (toggleKids.checked ? CFG.kids.speedMode : speedSelect.value),
     questionModes: () => (toggleKids.checked ? CFG.kids.modes : checkedModes()),
+    speakAllPrompts: () => toggleKids.checked || toggleSpeakAll.checked,
+    /** ลำดับสอนรูป→เสียง→ไทย — โหมดเด็ก หรือเปิด "พูดทุกครั้งที่ขึ้นคำ" */
+    structuredLesson: () => toggleKids.checked || toggleSpeakAll.checked,
 
     // ── เล่นหลายคน ──
     mpEnterRoom,
