@@ -1,5 +1,6 @@
 {
   "type": "antonym",
+  "exam": true,
   "id": "antonyms",
   "name": "คำตรงข้าม",
   "words": [

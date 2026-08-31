@@ -37,7 +37,7 @@ import { wallet } from './wallet.js';
 import { cheats } from './cheats.js';
 import { characterById } from './characters.js';
 import { pickPracticeWords, buildPracticeQueue } from './practice.js';
-import { loadDeckIndex, loadDeck, pickWord, pickWordSeeded, buildQuestion, zoneDeck, kidsDeck, isSubjectDeck, chapterDeck, isExamDeck, applyStudyLevel, defaultStudyLevel, playDeckId } from './deck.js';
+import { loadDeckIndex, loadDeck, pickWord, pickWordSeeded, pickExamWords, buildQuestion, zoneDeck, kidsDeck, isSubjectDeck, chapterDeck, isExamDeck, applyStudyLevel, defaultStudyLevel, playDeckId } from './deck.js';
 import { createKidsLesson, nextKidsGate, peekKidsPhase, kidsStepLabel } from './kids-lesson.js';
 import { stormLevel, stormPhase, drainOver } from './storm.js';
 import { AMMO, AMMO_ORDER, ammoById } from './weapons.js';
@@ -156,6 +156,14 @@ function speakSequence(parts, alive, onDone) {
 /** ข้อความเฉลยสั้น ๆ สำหรับ toast ระหว่างวิ่ง */
 function answerLine(question) {
   const word = question.word;
+  /* ⚠️ โจทย์คำตรงข้ามเฉลยด้วย `ant/antTh` ไม่ใช่ `en/th`
+   * (en/th คือ *ตัวโจทย์* — "คำตรงข้ามของ hot") ถ้าใช้สูตรของ deck ศัพท์
+   * เฉลยจะกลายเป็น "hot = ร้อน" ซึ่งคือการทวนโจทย์ ไม่ใช่คำตอบ
+   * อ่านจาก options[correctIndex] เพราะนั่นคือใบที่ผู้เล่นเพิ่งเห็นบนจอจริง ๆ */
+  if (question.antonym) {
+    const right = question.options?.[question.correctIndex];
+    return right ? `"${word.en}" ↔ "${right.en}" = ${right.th}` : `"${word.en}"`;
+  }
   if (!word.subject) return `"${word.en}" = ${word.th}`;
   const right = question.options?.[question.correctIndex]?.en ?? '';
   return word.fact ? `${right} — ${word.fact}` : right;
@@ -444,6 +452,7 @@ createInput(canvas, (action) => {
       break;
     case 'teach':
     case 'practiceDone':
+    case 'examDone':
       if (action === ACTIONS.BACK) toMenu();
       break;
     case 'spectate':
@@ -596,10 +605,13 @@ function startRun() {
    * ถ้าทับทีหลัง รอบนั้นจะออกตัวด้วยความเร็วของโปรไฟล์เก่า แล้วค่อยกระตุกเปลี่ยนกลางคัน
    * ⚠️ และห้ามทับตอนแข่งหลายคน — ทุกเครื่องต้องวิ่งด้วยความเร็วเดียวกัน
    * ไม่งั้นคนตั้ง "ช้าตลอด" จะได้เวลาคิดนานกว่าคนอื่นในสนามเดียวกัน */
-  applySpeedMode(mpActive ? 'ramp' : ui.speedMode());
+  /* โหมดสอบทับโปรไฟล์ความเร็วของผู้เล่นทิ้ง ด้วยเหตุผลเดียวกับที่โหมดแข่งทับ:
+   * ถ้าคนตั้ง "ช้าตลอด" ได้เวลาคิดต่อข้อมากกว่าคนตั้ง "เร็ว" คะแนนสอบก็เทียบกันไม่ได้ */
+  applySpeedMode(mpActive ? 'ramp' : (isExamDeck(deck) ? 'exam' : ui.speedMode()));
 
   run = {
     practice: null,                // โหมดฝึก: { queue, words } — ตั้งค่าโดย startPracticeRun
+    exam: null,                    // โหมดสอบ: { queue, total, asked, answered, correct, wrong } — ตั้งค่าท้าย startRun
     time: 0,
     speed: CFG.speed.start,
     speedBase: CFG.speed.start,
@@ -693,6 +705,31 @@ function startRun() {
   hud.setCheatVisible(cheats.enabled());
   hud.setOxygen(1, 1);
   hud.setWeapon(0, 0, run.selectedAmmo, null);
+  /* ── โหมดสอบ: ปั้น "ชุดข้อสอบ" ขึ้นมาก่อนออกตัว ────────────────
+   *
+   * ต้องอยู่ *ท้าย* startRun เพราะ run เพิ่งถูกสร้างเสร็จบรรทัดบน
+   * และต้องอยู่ *ก่อน* state='running' เพราะ director อ่าน run.exam ตั้งแต่เฟรมแรก
+   *
+   * ⚠️ ไม่แตะโหมดแข่ง (mpActive) — deck ที่เป็นข้อสอบถูกกันไม่ให้เข้าห้องแข่งอยู่แล้ว
+   * ที่ openMultiplayer แต่เช็กซ้ำตรงนี้ไว้ด้วย เพราะถ้าวันหนึ่งมีทางเข้าห้องแข่ง
+   * ทางที่สอง ผลที่ได้จะเป็น "รอบแข่งที่จบเองตอนข้อ 20" ซึ่งพังเงียบ ๆ หาสาเหตุยากมาก */
+  if (!mpActive && isExamDeck(deck)) {
+    const words = pickExamWords(playDeck, CFG.exam.questionCount);
+    run.exam = {
+      queue: words,
+      total: words.length,
+      asked: 0,        // ตัวชี้ "ปล่อยด่านไปแล้วกี่ข้อ" — ใช้ตอน spawn
+      answered: 0,     // "ตัดสินไปแล้วกี่ข้อ" — ใช้ตัดสินว่าสอบจบหรือยัง (คนละตัวโดยตั้งใจ)
+      correct: 0,
+      wrong: [],
+    };
+    hud.setExamMode(true);
+    hud.setExamProgress(0, run.exam.total);
+    hud.toast(`📝 โหมดสอบ ${run.exam.total} ข้อ — ตอบผิดไม่ตาย ชนไม่ตาย ทำให้ครบทุกข้อ`, 3600);
+  } else {
+    hud.setExamMode(false);
+  }
+
   if (run.kidsLesson) {
     hud.toast('สอนทีละขั้น: รูป → เสียง → ไทย · ชุดละ ~5 คำ', 3200);
   }
@@ -738,6 +775,11 @@ function startPracticeRun(words) {
   // ("ไม่มีพายุในห้องซ้อม" ต้องเป็นกติกาที่บังคับใช้ ไม่ใช่ผลข้างเคียงที่เผอิญถูก)
   run.br = false;
   run.oxy = 1;
+  /* ⚠️ deck ข้อสอบเข้าห้องซ้อมได้ และตอนนั้น startRun ตั้ง run.exam ไว้ให้แล้ว
+   * ต้องล้างทิ้ง ไม่งั้นห้องซ้อมจะจบเองตอนข้อที่ 20 และแถบความคืบหน้าสองอันจะแย่งกันเขียน
+   * (ห้องซ้อมกับการสอบเป็นคนละเป้าหมายกัน: ซ้อมคือ "ตอบถูกให้ครบ" สอบคือ "ตอบให้ครบ") */
+  run.exam = null;
+  hud.setExamMode(false);
   hud.setCollectiblesVisible(false);
   hud.setBattleVisible(false);
   hud.setPracticeProgress(0, queue.length);
@@ -753,6 +795,70 @@ function practiceDone() {
   state = 'practiceDone';
   sfx.bonusStart();
   ui.showPracticeDone(words);
+}
+
+/* ══ โหมดสอบ: ทำครบทุกข้อ แล้วค่อยรู้ผล ═══════════════════════ */
+
+/**
+ * ตอบผิดในโหมดสอบ — บันทึกว่าผิด แล้ววิ่งต่อ
+ *
+ * ⭐ ยังบันทึกลงกล่อง Leitner และคิวห้องซ้อมตามปกติ (srs.record + noteMiss)
+ * เพราะผลสอบคือข้อมูลการเรียนรู้ที่ "สะอาด" ที่สุดเท่าที่ระบบจะเก็บได้:
+ * ไม่มีเสียงช่วย ไม่มีเกราะ ไม่มีใบสอนนำมาก่อน — สิ่งที่ตอบถูกคือสิ่งที่รู้จริง
+ * คำที่พลาดวันนี้จึงโผล่ในห้องซ้อมพรุ่งนี้เอง โดยไม่ต้องมีใครกดอะไรเพิ่ม
+ *
+ * ⚠️ ไม่มี speakAnswer — เฉลยขึ้น toast อย่างเดียว โหมดสอบเงียบทั้งรอบ
+ */
+function examMiss(question, lane) {
+  srs.record(playDeckId(deck), question.word, false);
+  noteMiss(question.word);
+  run.exam.wrong.push({ question, chosen: question.options[lane] ?? null });
+  run.combo = 1;
+  run.invuln = CFG.exam.missSeconds;
+  hud.setScore(run.score, run.gates, run.combo);
+  hud.toast(`ยังไม่ใช่ — ${answerLine(question)}`, 2400);
+}
+
+/**
+ * สอบครบทุกข้อแล้ว
+ *
+ * ⚠️ ต้อง deposit เหรียญและ submitScore เองตรงนี้ เพราะเส้นทางนี้ *ไม่ผ่าน* die()
+ * ซึ่งเป็นที่เดียวที่เคยทำสองอย่างนั้น — ถ้าลืม ผู้สอบที่ทำครบทุกข้อจะได้เหรียญ 0
+ * ส่วนคนที่เลิกกลางคันได้เหรียญเต็ม ซึ่งเป็นแรงจูงใจที่กลับหัวพอดี
+ */
+function examDone() {
+  const ex = run.exam;
+  pendingRetryWord = null;
+  stopSpeaking();
+  stopAmbience();
+  hud.hide();
+
+  srs.submitScore(deck.scopeKey ?? playDeckId(deck), run.score, run.gates);
+  wallet.deposit(run.coins);
+
+  state = 'examDone';
+  sfx.bonusStart();
+  ui.showExamDone({
+    total: ex.total,
+    correct: ex.correct,
+    coins: run.coins,
+    score: run.score,
+    /* ต้องบอก "ระดับ" ด้วย ไม่ใช่แค่ชื่อชุด — ชุดคำตรงข้ามถูกแบ่งเป็น 10 ระดับอัตโนมัติ
+     * (ดู buildStudyLevels) ผลสอบ 10/10 ของระดับ 1 กับของระดับ 10 คนละความหมายกันคนละโลก
+     * ถ้าจอนี้เขียนแค่ "คำตรงข้าม" ผู้เรียนจะเทียบผลของตัวเองข้ามระดับโดยไม่รู้ตัว */
+    deckName: deck.activeStudyLevelName
+      ? `${deck.name} · ${deck.activeStudyCumulative ? 'รวม' : 'ชุด'} ${deck.activeStudyLevel} ${deck.activeStudyLevelName}`
+      : deck.name,
+    // เก็บเฉพาะสิ่งที่จอผลลัพธ์ต้องใช้ ไม่ส่ง question ทั้งก้อนไปให้ ui
+    // (ui ไม่ควรต้องรู้จักโครงสร้างโจทย์ — วันที่โครงสร้างเปลี่ยน จอนี้จะพังเงียบ ๆ)
+    wrong: ex.wrong.map(({ question, chosen }) => ({
+      prompt: question.word.en,
+      promptTh: question.word.th,
+      answer: question.options[question.correctIndex]?.en ?? '',
+      answerTh: question.options[question.correctIndex]?.th ?? '',
+      chosen: chosen?.en ?? '',
+    })),
+  });
 }
 
 /* ══ โหมดแข่งหลายคน (P2P) ═══════════════════════════════════
@@ -1306,6 +1412,18 @@ function onRoundWinner(w) {
 }
 
 function openMultiplayer() {
+  /* ⭐ กันไว้ทั้งที่ปุ่มถูกซ่อนไปแล้วตอนเลือก deck ข้อสอบ (ดู ui.setDeckInfo)
+   * "ซ่อนปุ่ม" คือ UX ส่วน "ปฏิเสธที่ฟังก์ชัน" คือกติกา — ต้องมีทั้งคู่
+   * เพราะยังมีทางเข้าอื่นที่ไม่ผ่านปุ่มนั้น (คีย์ลัด, ลิงก์เชิญเข้าห้อง, โค้ดที่เขียนวันหลัง)
+   *
+   * เหตุผลที่ห้าม: ห้องแข่งมีพายุที่ดูดพลังตลอดเวลา อาวุธยิงกัน และกระสุน "ปลดเกราะ"
+   * ที่ยัดม่านพลังงานใส่คู่แข่ง — ทั้งหมดคืออุปสรรคก้อนใหญ่ที่สุดในเกม
+   * และมันจบด้วย "คนสุดท้ายที่รอด" ไม่ใช่ "ทำครบ 20 ข้อ" ซึ่งเข้ากันไม่ได้เลย */
+  if (isExamDeck(deck)) {
+    console.warn('[exam] deck ข้อสอบเข้าห้องแข่งไม่ได้ — ปฏิเสธที่ openMultiplayer');
+    hud.toast('ชุดนี้เป็นข้อสอบ — เล่นแบบแข่งไม่ได้ เลือกชุดคำศัพท์ก่อนนะ', 3000);
+    return;
+  }
   stopSpeaking();
   stopAmbience();
   hud.hide();
@@ -1477,6 +1595,18 @@ function leaveToMenu() {
  */
 function pace() {
   if (run.practice) return 0;
+  /* ⭐ โหมดสอบตรึง pace ไว้ที่ 0 ตลอดรอบ — บรรทัดเดียวนี้คือแกนกลางของ "ลดอุปสรรค"
+   *
+   * ทำไมได้ผลกว้างขนาดนั้น: ความยากทุกแกนของเกมอ่าน pace() เป็นอินพุตเดียวกันหมด
+   *   answerWindowFor(0)   → เวลาคิด 3.2 วิ คงที่ (ไม่หดเหลือ 1.9 วิ)
+   *   obstacleRuleFor(0)   → 0–1 ชิ้น/ช่วงพัก, ทีละ 1 เลน, เห็นล่วงหน้า 1.6 วิ (ไม่ไต่)
+   *   pickObstacleType(0)  → ไม่มีม่านพลังงาน (barrierAfterGates = 7)
+   *   trains rideAfterGates / oncomingAfterGates (2 / 8) → ไม่มียานทั้งสองชนิด
+   *
+   * ⚠️ ห้าม "แก้ให้ตรงจุด" ด้วยการไปเติม if (run.exam) ตามที่เรียกทีละแห่ง —
+   * นั่นคือ 5 จุดที่ต้องจำให้ครบทุกครั้งที่มีคนเพิ่มแกนความยากที่ 6
+   * ตรึงที่อินพุตร่วมจุดเดียว = แกนใหม่ที่ยังไม่มีใครเขียนก็ถูกตรึงไปด้วยโดยอัตโนมัติ */
+  if (run.exam) return 0;
   if (run.finalRound) return CFG.br.final.pace;
   return run.gates;
 }
@@ -1512,6 +1642,15 @@ function spawnGate(windowSeconds) {
     const word = pickWordSeeded(run.deck, run.recent, run.rng);
     question = buildQuestion(run.deck, word, { speechEnabled: false, box: 2 }, run.rng);
     question.mode = 'text';
+  } else if (run.exam) {
+    /* หยิบตาม "ลำดับที่สุ่มไว้ตอนเริ่มรอบ" ไม่ใช่สุ่มใหม่ทุกข้อ
+     * → ไม่มีทางได้คำซ้ำในรอบเดียว และจำนวนข้อที่เหลือคำนวณได้แน่นอนตั้งแต่วินาทีแรก
+     * (ตัวชี้แยกจากตัวนับคำตอบ เพราะ director ปล่อยด่านล่วงหน้าก่อนด่านก่อนหน้าถูกตัดสินได้)
+     * speechEnabled:false — โหมดสอบไม่มีโจทย์เสียงอยู่แล้ว ส่งไปให้ชัดดีกว่าพึ่งผลข้างเคียง */
+    const word = run.exam.queue[run.exam.asked];
+    run.exam.asked += 1;
+    question = buildQuestion(run.deck, word, { speechEnabled: false });
+    hud.setLessonStep(null);
   } else if (run.kidsLesson) {
     let word;
     let mode;
@@ -1693,14 +1832,19 @@ function scheduleBreather(gateArrival) {
   // เพราะ laneFreeAt อ่าน run.events ซึ่งมีของ per-เครื่องปนได้ ถ้าจำนวนครั้งที่ดึงเลข
   // ขึ้นกับมัน สายสุ่มของรอบชิง (เมล็ดร่วม) จะเหลื่อมกันระหว่างเครื่องทันที
   // (Object.entries เดินตามลำดับคีย์ใน config — โค้ดเดียวกันทุกเครื่อง = ลำดับเดียวกัน)
-  for (const [type, bc] of Object.entries(CFG.boosts.items)) {
-    const roll = rnd();
-    const laneDraw = Math.floor(rnd() * CFG.world.laneCount);
-    if (roll >= bc.chancePerBreather) continue;
-    const time = gateArrival + CFG.pacing.breatherSeconds * bc.slot;
-    const cand = groundLanes.filter(l => laneFreeAt(l, time));
-    if (!cand.length) continue;
-    run.events.push({ kind: 'boost', type, time, lane: cand[laneDraw % cand.length], lead: CFG.boosts.lead });
+  // โหมดสอบไม่มีไอเทมจับเวลา — แม่เหล็ก/×2 คือรางวัลของ "เล่นเก่ง" ซึ่งไม่ใช่สิ่งที่ข้อสอบวัด
+  // และตัวเลขนับถอยหลังของไอเทมบน HUD คือสิ่งเร้าที่แย่งสายตาไปจากตัวโจทย์โดยตรง
+  // (วินัยดึง rnd() คงที่ไม่จำเป็นตรงนี้ — deck ข้อสอบเข้าห้องแข่งไม่ได้ จึงไม่มีเมล็ดร่วม)
+  if (!run.exam) {
+    for (const [type, bc] of Object.entries(CFG.boosts.items)) {
+      const roll = rnd();
+      const laneDraw = Math.floor(rnd() * CFG.world.laneCount);
+      if (roll >= bc.chancePerBreather) continue;
+      const time = gateArrival + CFG.pacing.breatherSeconds * bc.slot;
+      const cand = groundLanes.filter(l => laneFreeAt(l, time));
+      if (!cand.length) continue;
+      run.events.push({ kind: 'boost', type, time, lane: cand[laneDraw % cand.length], lead: CFG.boosts.lead });
+    }
   }
 
   if (rnd() > CFG.coins.chancePerBreather) return;
@@ -1738,7 +1882,8 @@ function scheduleBreather(gateArrival) {
 
   // ดาวสะสม — วางเฉพาะเลนพื้นที่ว่างจริง ๆ (ใต้ท้องยานคือจุดบอด)
   // รอบชิงไม่มีดาว: ด่านโบนัสจะพาคนหนึ่งหายไปจากสนาม 14 วินาทีกลางการดวลตัวต่อตัว
-  if (!run.finalRound && run.stars < CFG.stars.needed && rnd() < CFG.stars.chancePerBreather) {
+  // โหมดสอบไม่มีดาว: ด่านโบนัสจะพาผู้สอบออกจากข้อสอบไป 14 วินาที ซึ่งขัดกับคำว่า "สอบ" ตรง ๆ
+  if (!run.exam && !run.finalRound && run.stars < CFG.stars.needed && rnd() < CFG.stars.chancePerBreather) {
     const starTime = gateArrival + CFG.pacing.breatherSeconds * 0.62;
     const free = groundLanes.filter(l => laneFreeAt(l, starTime));
     if (free.length) {
@@ -1758,7 +1903,10 @@ function runDirector() {
 
   // โหมดฝึก: คิวหมดชั่วคราว (ทุกข้อกำลังรอตัดสิน/รอวนกลับ) → เว้นการ spawn ด่านไว้ก่อน
   const gateReady = !run.gateSpawned && run.time >= run.nextGateArrival - windowSeconds
-    && !(run.practice && !run.practice.queue.length);
+    && !(run.practice && !run.practice.queue.length)
+    // โหมดสอบ: ปล่อยครบชุดแล้วหยุดปล่อย — รอให้ข้อสุดท้ายถูกตัดสินแล้วค่อยจบรอบ
+    // (ห้ามจบตรงนี้: ข้อสุดท้ายยังลอยอยู่กลางอากาศ ยังไม่มีใครตอบ)
+    && !(run.exam && run.exam.asked >= run.exam.total);
 
   if (gateReady) {
     const arrival = run.nextGateArrival;
@@ -2198,6 +2346,28 @@ function checkGates() {
       continue;
     }
 
+    /* ── โหมดสอบ: ตอบผิดไม่ตาย ทำต่อจนครบชุด ──────────────────
+     *
+     * ทำไมข้อสอบห้ามตัดจบตอนตอบผิด: ข้อสอบที่จบทันทีที่พลาด วัดได้แค่
+     * "ตอบถูกติดกันได้กี่ข้อ" ซึ่งไม่ใช่คำถามเดียวกับ "รู้กี่คำ" —
+     * และมันลงโทษคนที่อ่อนที่สุดหนักที่สุด (รู้ 60% แต่ได้ทำแค่ 2–3 ข้อ)
+     * ทั้งที่คนกลุ่มนั้นคือคนที่ได้ประโยชน์จากการทำครบมากที่สุด
+     *
+     * ⚠️ เลเซอร์ยังยิงอยู่ (gate.resolve ด้านบน) โดยตั้งใจ — ผู้เล่นต้อง *เห็น* ว่าผิด
+     * สิ่งที่ตัดออกคือ "ผลของการโดน" ไม่ใช่ "สัญญาณว่าโดน" */
+    if (run.exam) {
+      if (correct) {
+        passGate(gate);
+        run.exam.correct += 1;
+      } else {
+        examMiss(q, lane);
+      }
+      run.exam.answered += 1;
+      hud.setExamProgress(run.exam.answered, run.exam.total);
+      if (run.exam.answered >= run.exam.total) { examDone(); return; }
+      continue;
+    }
+
     if (correct) {
       passGate(gate);
     } else if (run.jetArmed) {
@@ -2221,6 +2391,18 @@ function checkHazards() {
       run.invuln = 1.4;
       run.combo = 1;
       hud.toast('ชน! ไม่เป็นไร ฝึกต่อ', 1200);
+      return;
+    }
+    /* โหมดสอบ: ชนแล้วสะดุ้งแต่ไม่ตาย และ **ไม่นับเป็นตอบผิด**
+     *
+     * ถ้าปล่อยให้ชนหินแล้วจบรอบ ข้อสอบจะถูกยุติด้วยทักษะนิ้วแทนความรู้ —
+     * ซึ่งเป็นสิ่งเดียวกับที่เราตั้งใจตัดออกทั้งหมดนี้ตั้งแต่แรก
+     * combo ก็ไม่รีเซ็ตด้วย: combo มาจากการตอบถูกติดกัน ไม่ใช่จากการหลบเก่ง */
+    if (run.exam) {
+      world.shake(0.7);
+      sfx.crash();
+      run.invuln = CFG.exam.stumbleSeconds;
+      hud.toast('ชน! ไม่เป็นไร — ไม่นับเป็นตอบผิด', 1200);
       return;
     }
     if (run.jetArmed) { rescueWithJet(`${armorEmoji()} ${armorName()}ช่วยไว้! รอดจากการชน`); return; }
@@ -2307,7 +2489,10 @@ function checkTrains() {
       player.setPlatform(surf.roofY);
     } else if (surf.enteredBy > CFG.trains.mountGrace
                && run.invuln <= 0 && !player.isBoosting()) {
-      if (run.practice) { world.shake(0.7); run.invuln = 1.4; return; }
+      // โหมดสอบ pace()=0 จึงไม่มียานถูก schedule เลย — แต่กันไว้ที่นี่ด้วย
+      // เพราะ "ไม่มีทางเกิด" กับ "เกิดแล้วไม่ตาย" ไม่ใช่สิ่งเดียวกัน และวันที่เงื่อนไข
+      // ข้างบนถูกแก้ จุดนี้คือจุดที่จะฆ่าผู้สอบเงียบ ๆ โดยไม่มีใครนึกถึง
+      if (run.practice || run.exam) { world.shake(0.7); run.invuln = 1.4; return; }
       if (run.jetArmed) { rescueWithJet(`${armorEmoji()} ${armorName()}ช่วยไว้! พุ่งข้ามยานลำเลียง`); return; }
       const pending = gates.pending();
       die('obstacle', pending?.question.word ?? null, null);
@@ -2319,6 +2504,7 @@ function checkTrains() {
 
   if (run.invuln > 0 || player.isBoosting()) return;
   if (trains.oncomingHit(px)) {
+    if (run.practice || run.exam) { world.shake(0.7); run.invuln = 1.4; return; }
     if (run.jetArmed) { rescueWithJet(`${armorEmoji()} ${armorName()}ช่วยไว้! เฉียดยานสวนนิดเดียว`); return; }
     const pending = gates.pending();
     die('obstacle', pending?.question.word ?? null, null);

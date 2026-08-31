@@ -85,6 +85,7 @@ export function createHUD(handlers = {}) {
     hint: $('hud-controls-hint'),
     toast: $('hud-toast'),
     practice: $('hud-practice'),
+    practiceLabel: $('pr-hud-label'),
     practiceBar: $('pr-hud-bar'),
     practiceCount: $('pr-hud-count'),
     stormBar: $('storm-bar'),
@@ -427,6 +428,29 @@ export function createHUD(handlers = {}) {
     },
 
     setPracticeProgress(done, total) {
+      el.practiceCount.textContent = `${Math.max(0, done)}/${total}`;
+      el.practiceBar.style.transform = `scaleX(${total ? Math.max(0, done) / total : 0})`;
+    },
+
+    /* ── โหมดสอบ ──────────────────────────────────────────────
+     *
+     * ใช้ "แถบเดียวกัน" กับโหมดฝึก เปลี่ยนแค่ป้าย เพราะทั้งสองโหมดตอบคำถามเดียวกัน
+     * ให้ผู้เล่น: "เหลืออีกเท่าไหร่ถึงจะจบ" — แถบที่สองที่หน้าตาเหมือนกันแต่ id ต่างกัน
+     * คือหนี้ที่ต้องจ่ายทุกครั้งที่มีคนแก้สไตล์ของแถบใดแถบหนึ่ง
+     *
+     * ⚠️ ต้องเรียก *หลัง* setCollectiblesVisible เสมอ — ตัวนั้นสลับ .hidden ของแถบนี้
+     * ตามตรรกะ "ไม่ใช่โหมดฝึก = ซ่อน" ซึ่งไม่รู้จักโหมดสอบ
+     */
+    setExamMode(on) {
+      el.practice.classList.toggle('hidden', !on);
+      el.practiceLabel.textContent = on ? 'ข้อ' : 'ฝึก';
+      // ดาว = ตัวนับเข้าด่านโบนัส ซึ่งโหมดสอบไม่มี · ตัวเลขที่ค้างอยู่ที่ 0 ยังชวนให้มอง
+      el.starsBox.classList.toggle('hidden', on);
+      // ปุ่มเกราะ: โหมดสอบไม่ปล่อยเกราะเลย ปุ่มที่กดแล้วไม่เกิดอะไรคือปุ่มที่ทำให้สับสน
+      el.actEquip.classList.toggle('hidden', on);
+    },
+
+    setExamProgress(done, total) {
       el.practiceCount.textContent = `${Math.max(0, done)}/${total}`;
       el.practiceBar.style.transform = `scaleX(${total ? Math.max(0, done) / total : 0})`;
     },

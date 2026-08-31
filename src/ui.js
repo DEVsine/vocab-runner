@@ -11,6 +11,7 @@ import { CHARACTERS, CHARACTER_ORDER, characterById } from './characters.js';
 import { wallet } from './wallet.js';
 import { cheats, redeem } from './cheats.js';
 import * as srs from './srs.js';
+import { isExamDeck } from './deck.js';
 
 const $ = id => document.getElementById(id);
 const PREFS_KEY = `${CFG.storageKey}:prefs`;
@@ -46,6 +47,7 @@ export function createUI(handlers) {
     settings: $('screen-settings'),
     practice: $('screen-practice'),
     practiceDone: $('screen-practice-done'),
+    examDone: $('screen-exam-done'),
   };
 
   const prefs = loadPrefs();
@@ -125,6 +127,11 @@ export function createUI(handlers) {
 
   function setDeckInfo(deck) {
     if (!deck) return;
+    /* ⭐ ชุดข้อสอบเล่นแบบแข่งไม่ได้ (ดูเหตุผลที่ openMultiplayer)
+     * ซ่อนปุ่มแทนการ disable โดยตั้งใจ: ปุ่มเทา ๆ ที่กดไม่ได้เชิญให้เด็กพยายามกดซ้ำ
+     * แล้วสรุปเองว่า "เกมพัง" — ปุ่มที่ไม่อยู่ตรงนั้นไม่ก่อคำถาม
+     * โยงกับ setDeckInfo เพราะทุกเส้นทางที่เปลี่ยน deck เรียกมันหมด (เปลี่ยนชุด/บท/ระดับ/กลับเมนู) */
+    $('btn-multiplayer').classList.toggle('hidden', isExamDeck(deck));
     const best = srs.getBest(deck.scopeKey ?? deck.statsId ?? deck.id);
     const s = srs.summarize(deck);
     const unit = deck.type === 'subject' ? 'ข้อ' : 'คำ';
@@ -436,6 +443,47 @@ export function createUI(handlers) {
   $('btn-practice').addEventListener('click', () => handlers.onPracticeAgain());
   $('btn-review-chapter').addEventListener('click', () => handlers.onReviewChapter());
 
+  /**
+   * จอผลสอบ — จอเดียวที่ตอบคำถาม "แล้วฉันรู้แค่ไหน"
+   *
+   * ⚠️ ห้ามใช้คำว่า "ตก/ไม่ผ่าน" กับสัดส่วนใด ๆ ทั้งสิ้น
+   * เกณฑ์ผ่าน-ตกเป็นของครูและหลักสูตร ไม่ใช่ของเกม และเด็กที่ได้ 9/20 ในรอบแรก
+   * คือเด็กที่กำลังจะได้ 14/20 ในรอบหน้าถ้าเขายังอยากลองต่อ — ข้อความบนจอนี้
+   * จึงพูดถึง "ข้อที่ยังไม่ผ่าน" (ของข้อ) แทน "คุณสอบตก" (ของคน) เสมอ
+   */
+  function showExamDone(info) {
+    const pct = info.total ? Math.round((info.correct / info.total) * 100) : 0;
+    $('exam-deck').textContent = info.deckName ?? '';
+    $('exam-ratio').textContent = `${info.correct}/${info.total}`;
+    $('exam-pct').textContent = `${pct}%`;
+    $('exam-coins').textContent = info.coins ?? 0;
+    $('exam-score').textContent = info.score ?? 0;
+
+    // ข้อความชม "งานที่ทำ" ไม่ใช่ "ตัวคน" — ไม่มีคำว่าเก่ง/ไม่เก่งในทุกกรณี
+    $('exam-verdict').textContent =
+      info.correct === info.total ? 'ครบทุกข้อ — ชุดนี้แม่นแล้ว'
+      : pct >= 70 ? 'ทำได้เกินครึ่งมาก — เหลืออีกไม่กี่คำ'
+      : pct >= 40 ? 'ได้มาแล้วครึ่งทาง — คำที่เหลือรออยู่ในห้องซ้อม'
+      : 'ชุดนี้ยังใหม่อยู่ — ซ้อมคำที่ผิดก่อนแล้วกลับมาสอบใหม่';
+
+    const wrap = $('exam-wrong-wrap');
+    wrap.classList.toggle('hidden', !info.wrong.length);
+    $('exam-wrong').innerHTML = info.wrong.map(w => `
+      <div class="exam-wrong-row">
+        <span class="ew-q">${escapeHtml(w.prompt)}</span>
+        <span class="ew-arrow">↔</span>
+        <span class="ew-a">${escapeHtml(w.answer)} = ${escapeHtml(w.answerTh)}</span>
+        ${w.chosen ? `<span class="ew-chose">คุณเลือก "${escapeHtml(w.chosen)}"</span>` : ''}
+      </div>`).join('');
+
+    // ไม่มีข้อผิด = ไม่มีอะไรให้ซ้อม ปุ่มหลักจึงต้องเปลี่ยนตัว ไม่ใช่ปล่อยให้กดแล้วเด้งกลับ
+    $('btn-exam-practice').classList.toggle('hidden', !info.wrong.length);
+    $('btn-exam-retry').classList.toggle('btn-primary', !info.wrong.length);
+
+    refreshIdentity();
+    show('examDone');
+  }
+
   function showPracticeDone(words) {
     $('pr-done-words').innerHTML = words.map(w =>
       w.subject
@@ -558,6 +606,13 @@ export function createUI(handlers) {
   $('btn-start').addEventListener('click', () => handlers.onStart());
   $('btn-retry').addEventListener('click', () => handlers.onStart());
   $('btn-dead-practice').addEventListener('click', () => handlers.onPracticeAgain());
+  /* ⚠️ ไม่ได้ส่ง "รายการคำที่ผิด" ข้ามมาจากจอนี้โดยตั้งใจ —
+   * examMiss หย่อนคำที่พลาดลงคิวห้องซ้อมไปแล้วตั้งแต่วินาทีที่ตอบผิด
+   * ปุ่มนี้จึงแค่เปิดห้องซ้อมโหมด "เฉพาะข้อที่พลาด" ซึ่งอ่านจากคิวนั้น
+   * ถ้าส่งรายการมาเองอีกทาง จะมีแหล่งความจริงสองแหล่งที่ต้องคอยทำให้ตรงกัน */
+  $('btn-exam-practice').addEventListener('click', () => handlers.onReviewChapter());
+  $('btn-exam-retry').addEventListener('click', () => handlers.onStart());
+  $('btn-exam-menu').addEventListener('click', () => handlers.onMenu());
   $('btn-to-menu').addEventListener('click', () => handlers.onMenu());
   $('btn-resume').addEventListener('click', () => handlers.onResume());
   $('btn-quit').addEventListener('click', () => handlers.onMenu());
@@ -869,6 +924,7 @@ export function createUI(handlers) {
     refreshIdentity,
     showPracticeTeach,
     showPracticeDone,
+    showExamDone,
 
     /** ป้ายตัวเลขบนปุ่มโหมดฝึก = จำนวนคำที่รอทวนอยู่ (มาจากการพลาดในเกมจริง) */
     setPracticeBadge(n) {

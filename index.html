@@ -82,7 +82,7 @@
           <!-- โหมดฝึก: แถบความคืบหน้าเข้ามาแทนที่ของสะสมทั้งชุดในช่องเดียวกัน
                (อยู่ใน flow เดียวกัน จึงไม่มีทางวางทับกันได้เลย) -->
           <div id="hud-practice" class="hidden">
-            <span class="pr-hud-label">ฝึก</span>
+            <span class="pr-hud-label" id="pr-hud-label">ฝึก</span>
             <div class="pr-hud-track"><div id="pr-hud-bar"></div></div>
             <span id="pr-hud-count">0/0</span>
           </div>
@@ -481,6 +481,37 @@
         <p class="pr-done-coins">ห้องซ้อมไม่มีเหรียญและไม่มีเกราะ — มีแค่คุณกับคำศัพท์</p>
         <button id="btn-pr-again" class="btn btn-primary">📖 ชุดต่อไป</button>
         <button id="btn-pr-done-menu" class="btn">กลับเมนู</button>
+      </div>
+    </section>
+
+    <!-- ══ ผลสอบ ══
+         ตัวเลขใหญ่ที่สุดบนจอคือ "ถูกกี่ข้อจากกี่ข้อ" ไม่ใช่คะแนน —
+         คะแนนขึ้นกับ combo และเหรียญซึ่งเป็นเรื่องของเกม ส่วนสิ่งที่ผู้เรียน
+         (และผู้ปกครอง/ครู) ต้องการรู้จากคำว่า "สอบ" คือสัดส่วนที่ตอบถูกล้วน ๆ -->
+    <section id="screen-exam-done" class="screen hidden">
+      <div class="panel">
+        <h2>📝 สอบเสร็จแล้ว</h2>
+        <p id="exam-deck" class="exam-deck"></p>
+
+        <div class="exam-score">
+          <div id="exam-ratio" class="exam-ratio">0/0</div>
+          <div id="exam-pct" class="exam-pct">0%</div>
+        </div>
+        <p id="exam-verdict" class="exam-verdict"></p>
+
+        <div class="exam-meta">
+          <span>🪙 <b id="exam-coins">0</b></span>
+          <span>คะแนน <b id="exam-score">0</b></span>
+        </div>
+
+        <div id="exam-wrong-wrap" class="exam-wrong-wrap hidden">
+          <h3 class="exam-wrong-title">ข้อที่ยังไม่ผ่าน</h3>
+          <div id="exam-wrong" class="exam-wrong"></div>
+        </div>
+
+        <button id="btn-exam-practice" class="btn btn-primary">🔁 ซ้อมคำที่ผิด</button>
+        <button id="btn-exam-retry" class="btn">📝 สอบใหม่</button>
+        <button id="btn-exam-menu" class="btn">กลับเมนู</button>
       </div>
     </section>
 

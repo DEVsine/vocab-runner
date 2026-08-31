@@ -1326,6 +1326,33 @@ td.en { font-weight: 700; }
 .pr-done-words .chip { padding: 5px 11px; border-radius: 99px; font-size: 12.5px; background: rgba(163,230,53,.12); border: 1px solid rgba(163,230,53,.4); }
 .pr-done-coins { margin-bottom: 14px; color: var(--dim); font-size: 12.5px; line-height: 1.6; }
 
+/* ══ จอผลสอบ ══════════════════════════════════════════════════
+   ลำดับสายตาถูกบังคับด้วย "ขนาด" ไม่ใช่ตำแหน่ง: 44px ของสัดส่วนที่ตอบถูก
+   ชนะทุกอย่างบนจอนี้อย่างขาดลอย ส่วนคะแนน/เหรียญถูกกดเหลือ 12px
+   เพราะทั้งคู่คือตัวเลขของ *เกม* ที่บังเอิญอยู่ในหน้าเดียวกับผลของ *การเรียน* */
+.exam-deck { color: var(--dim); font-size: 12.5px; margin-bottom: 10px; }
+.exam-score { display: flex; align-items: baseline; justify-content: center; gap: 10px; }
+.exam-ratio { font-size: 44px; font-weight: 700; line-height: 1.1; color: var(--lime); }
+.exam-pct { font-size: 18px; font-weight: 600; color: var(--dim); }
+.exam-verdict { margin: 6px 0 12px; font-size: 13.5px; line-height: 1.6; }
+.exam-meta { display: flex; justify-content: center; gap: 16px; margin-bottom: 14px;
+  font-size: 12px; color: var(--dim); }
+.exam-meta b { color: var(--ink); }
+
+/* รายการข้อที่ผิด: จำกัดความสูงแล้วให้เลื่อนในตัวเอง — 20 ข้อผิดหมดต้องไม่ดันปุ่ม
+   "ซ้อมคำที่ผิด" ตกจอ เพราะนั่นคือปุ่มที่คนกลุ่มนั้นต้องการมากที่สุดพอดี */
+.exam-wrong-wrap { text-align: left; margin-bottom: 14px; }
+.exam-wrong-title { font-size: 12.5px; color: var(--dim); font-weight: 600; margin-bottom: 6px; }
+.exam-wrong { display: flex; flex-direction: column; gap: 6px;
+  max-height: 34vh; overflow-y: auto; padding-right: 4px; }
+.exam-wrong-row { display: flex; flex-wrap: wrap; align-items: baseline; gap: 6px;
+  padding: 7px 10px; border-radius: 10px; font-size: 12.5px;
+  background: rgba(251, 113, 133, .08); border: 1px solid rgba(251, 113, 133, .28); }
+.exam-wrong-row .ew-q { font-weight: 600; }
+.exam-wrong-row .ew-arrow { color: var(--dim); }
+.exam-wrong-row .ew-a { color: var(--lime); }
+.exam-wrong-row .ew-chose { width: 100%; color: var(--danger); font-size: 11.5px; }
+
 /* มือถือแนวตั้ง: ดันแผงเมนูลงชิดล่าง เพื่อ "เปิดเวที" ให้ตัวละครที่อยู่ครึ่งบน
    (กล้องล็อบบี้ใน scene.js ดันตัวละครขึ้นไปครึ่งบนไว้แล้ว — ต้องทำคู่กันถึงจะได้ผล
    ถ้าทำแค่ฝั่งเดียว จะได้แผงลอยกลางจอทับตัวละคร เหมือนเดิมทุกประการ) */
