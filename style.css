@@ -247,8 +247,12 @@ button { touch-action: manipulation; -webkit-tap-highlight-color: transparent; }
   display: flex; align-items: center; gap: 7px; align-self: center;
   font-size: 11px; color: var(--dim); white-space: nowrap;
 }
-.pr-hud-track { width: 74px; height: 5px; border-radius: 99px; background: rgba(255,255,255,.12); overflow: hidden; }
-#pr-hud-bar { height: 100%; background: linear-gradient(90deg, var(--cyan), var(--lime)); transform-origin: left center; transform: scaleX(0); transition: transform .3s ease; }
+/* overflow ต้อง visible แล้วไปตัดที่ #pr-hud-bar แทน — ไม่งั้นขีดจุดเซฟที่สูงกว่าแถบจะถูกเฉือนหัวท้าย */
+.pr-hud-track { position: relative; width: 74px; height: 5px; border-radius: 99px;
+  background: rgba(255,255,255,.12); }
+#pr-hud-mark { position: absolute; top: -2px; width: 2px; height: 9px; border-radius: 1px;
+  background: var(--gold); transform: translateX(-1px); pointer-events: none; }
+#pr-hud-bar { height: 100%; border-radius: 99px; background: linear-gradient(90deg, var(--cyan), var(--lime)); transform-origin: left center; transform: scaleX(0); transition: transform .3s ease; }
 #pr-hud-count { font-variant-numeric: tabular-nums; }
 
 /* ── โจทย์ไทย — ต้องเป็นสิ่งที่อ่านง่ายที่สุดในเฟรม ───────── */
@@ -1336,6 +1340,9 @@ td.en { font-weight: 700; }
 .dead-exam { margin: 8px 0 0; font-size: 12.5px; line-height: 1.6; color: var(--lime);
   background: rgba(163, 230, 53, .10); border: 1px solid rgba(163, 230, 53, .32);
   border-radius: 10px; padding: 7px 10px; }
+/* ยังไม่ถึงจุดเซฟ = ต้องเริ่มข้อ 1 ใหม่ ห้ามใช้กรอบเขียวแบบข่าวดี — สีต้องพูดความจริงเหมือนข้อความ */
+.dead-exam.is-lost { color: var(--gold); background: rgba(251, 191, 36, .10);
+  border-color: rgba(251, 191, 36, .32); }
 .exam-score { display: flex; align-items: baseline; justify-content: center; gap: 10px; }
 .exam-ratio { font-size: 44px; font-weight: 700; line-height: 1.1; color: var(--lime); }
 .exam-pct { font-size: 18px; font-weight: 600; color: var(--dim); }

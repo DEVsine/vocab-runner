@@ -736,12 +736,15 @@ function startRun() {
     };
     hud.setExamMode(true);
     hud.setExamProgress(saved.at, run.exam.total);
+    hud.setExamSavePoint(Math.min(saved.at + CFG.exam.saveEvery, run.exam.total), run.exam.total);
+    const nextSave = Math.min(saved.at + CFG.exam.saveEvery, run.exam.total);
     hud.toast(saved.at
-      ? `📝 สอบต่อจากข้อที่ ${saved.at + 1} จาก ${run.exam.total} — ทำถูกแล้ว ${saved.correct} ข้อ`
-      : `📝 โหมดสอบ ${run.exam.total} ข้อ — ตอบผิดหรือชน = จบรอบ แต่ข้อที่ทำไปแล้วไม่หาย`,
-      3600);
+      ? `📝 สอบต่อจากข้อที่ ${saved.at + 1}/${run.exam.total} · ถูกแล้ว ${saved.correct} — จุดเซฟถัดไปข้อที่ ${nextSave}`
+      : `📝 โหมดสอบ ${run.exam.total} ข้อ · ตอบผิดหรือชน = จบรอบ — ทำถึงข้อที่ ${nextSave} แล้วจะได้จุดเซฟ`,
+      3800);
   } else {
     hud.setExamMode(false);
+    hud.setExamSavePoint(0, 1);   // ล้างขีดจุดเซฟที่อาจค้างจากรอบสอบก่อนหน้า
   }
 
   if (run.kidsLesson) {
@@ -794,6 +797,7 @@ function startPracticeRun(words) {
    * (ห้องซ้อมกับการสอบเป็นคนละเป้าหมายกัน: ซ้อมคือ "ตอบถูกให้ครบ" สอบคือ "ตอบให้ครบ") */
   run.exam = null;
   hud.setExamMode(false);
+  hud.setExamSavePoint(0, 1);
   hud.setCollectiblesVisible(false);
   hud.setBattleVisible(false);
   hud.setPracticeProgress(0, queue.length);
@@ -813,21 +817,33 @@ function practiceDone() {
 
 /* ══ โหมดสอบ: ทำครบทุกข้อ แล้วค่อยรู้ผล ═══════════════════════ */
 
+/** ตอบไปแล้ว n ข้อ = ผ่านจุดเซฟล่าสุดที่ข้อเท่าไหร่ (0 = ยังไม่เคยผ่านจุดเซฟเลย) */
+function examSavePointAt(n) {
+  return Math.floor(n / CFG.exam.saveEvery) * CFG.exam.saveEvery;
+}
+
 /**
- * เขียน checkpoint ลงเครื่อง — เรียกทุกครั้งที่ "ตัดสินหนึ่งข้อเสร็จ"
+ * เขียน checkpoint — เฉพาะตอน "ทำครบจุดเซฟ" เท่านั้น (ทุก CFG.exam.saveEvery ข้อ)
  *
- * ⚠️ ต้องเรียกทุกข้อ ไม่ใช่เรียกตอนตายหรือตอนจบ
+ * ⚠️ เรียกฟังก์ชันนี้ทุกครั้งที่ตัดสินหนึ่งข้อเสร็จได้เลย มันคัดกรองเอง —
+ * ห้ามให้ผู้เรียกเป็นคนเช็กเงื่อนไข เพราะมีจุดเรียกหลายที่ (ตอบถูก/ตอบผิด/ข้อสุดท้าย)
+ * และวันที่ใครเพิ่มจุดที่สี่แล้วลืมเช็ก จะกลายเป็น "เซฟทุกข้อ" เงียบ ๆ ที่จุดเดียว
+ *
+ * ⚠️ ต้องเขียนทันทีที่ถึงจุดเซฟ ไม่ใช่รอเขียนตอนตาย
  * เพราะการตายบางแบบไม่ผ่านโค้ดของเราเลย (ปิดแท็บ / แบตหมด / เบราว์เซอร์ crash)
- * checkpoint ที่เขียนเฉพาะตอนตายจึงไม่ใช่ checkpoint — มันคือ "บันทึกท้ายรอบ"
- * ที่บังเอิญได้ผลตอนตายแบบปกติเท่านั้น
+ * checkpoint ที่เขียนตอนตายจึงไม่ใช่ checkpoint — มันคือ "บันทึกท้ายรอบ"
+ *
+ * @returns {boolean} เพิ่งเซฟไปหรือเปล่า — ผู้เรียกใช้ตัดสินใจว่าจะบอกผู้เล่นไหม
  */
 function saveExamProgress() {
-  if (!run?.exam) return;
+  if (!run?.exam) return false;
+  if (run.exam.answered % CFG.exam.saveEvery !== 0) return false;
   examProgress.save(playDeckId(deck), {
     at: run.exam.answered,
     correct: run.exam.correct,
     wrong: run.exam.wrong,
   });
+  return true;
 }
 
 /** แปลงคำที่พลาดให้เป็นบรรทัดเฉลยบนจอผลสอบ — ui ไม่ต้องรู้จักโครงสร้างคำของ deck ไหนเลย */
@@ -2234,7 +2250,15 @@ function die(cause, word, chosen) {
      * ผู้เล่นต้องเห็นทันทีว่าความคืบหน้าไม่หาย ไม่งั้นเขาจะสรุปเองว่าต้องเริ่มนับหนึ่งใหม่
      * แล้วเลิกเล่น ทั้งที่ระบบเก็บไว้ให้เรียบร้อยแล้ว — ฟีเจอร์ที่ผู้ใช้ไม่รู้ว่ามี = ไม่มี */
     exam: run.exam
-      ? { at: run.exam.answered, total: run.exam.total, correct: run.exam.correct }
+      ? {
+          at: run.exam.answered,
+          total: run.exam.total,
+          correct: run.exam.correct,
+          // ⚠️ "จะเริ่มที่ไหน" ต้องคิดจากจุดเซฟ ไม่ใช่จากข้อที่เพิ่งทำ
+          // ตายที่ข้อ 73 → กลับข้อ 51 ไม่ใช่ 74 · ตายที่ข้อ 30 → กลับข้อ 1
+          savedAt: examSavePointAt(run.exam.answered),
+          saveEvery: CFG.exam.saveEvery,
+        }
       : null,
   };
 
@@ -2387,8 +2411,16 @@ function checkGates() {
         run.exam.wrong.push({ id: idOf(q.word), chose: q.options[lane]?.en ?? '' });
       }
       run.exam.answered += 1;
-      saveExamProgress();
+      const justSaved = saveExamProgress();
       hud.setExamProgress(run.exam.answered, run.exam.total);
+      /* ต้องประกาศให้เห็น ไม่งั้นจุดเซฟจะเป็นกลไกที่มีอยู่แต่ไม่มีใครรู้ว่ามี
+       * และ "ตายที่ข้อ 73 แล้วกลับไปข้อ 51" จะรู้สึกเหมือนเกมบั๊ก แทนที่จะเป็นกติกา */
+      if (justSaved && run.exam.answered < run.exam.total) {
+        hud.toast(`💾 ผ่านจุดเซฟข้อที่ ${run.exam.answered} แล้ว — ตายหลังจากนี้เริ่มที่ข้อ ${run.exam.answered + 1}`, 3000);
+        // ขีดต้องขยับไปจุดเซฟถัดไปทันที ไม่งั้นมันจะค้างอยู่ที่จุดที่ผ่านมาแล้ว = ชี้ผิด
+        hud.setExamSavePoint(
+          Math.min(run.exam.answered + CFG.exam.saveEvery, run.exam.total), run.exam.total);
+      }
 
       // ข้อสุดท้ายผิดพอดี → ต้องได้เห็นผลรวมทั้งชุด ไม่ใช่จอตาย
       // (die() จะไม่ถูกเรียก จึงต้องบันทึกสถิติคำเองตรงนี้ — ปกติ die เป็นคนทำ)

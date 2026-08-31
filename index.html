@@ -83,7 +83,9 @@
                (อยู่ใน flow เดียวกัน จึงไม่มีทางวางทับกันได้เลย) -->
           <div id="hud-practice" class="hidden">
             <span class="pr-hud-label" id="pr-hud-label">ฝึก</span>
-            <div class="pr-hud-track"><div id="pr-hud-bar"></div></div>
+            <!-- ขีดจุดเซฟบนแถบ — ทำให้กติกา "ทำครบ 50 ข้อถึงจะเซฟ" มองเห็นได้ระหว่างวิ่ง
+                 ไม่ใช่รู้ตอนตายแล้ว (ตอนนั้นสายไปแล้วสำหรับการตัดสินใจว่าจะเสี่ยงหรือไม่) -->
+            <div class="pr-hud-track"><div id="pr-hud-bar"></div><i id="pr-hud-mark" class="hidden"></i></div>
             <span id="pr-hud-count">0/0</span>
           </div>
         </div>

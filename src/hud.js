@@ -87,6 +87,7 @@ export function createHUD(handlers = {}) {
     practice: $('hud-practice'),
     practiceLabel: $('pr-hud-label'),
     practiceBar: $('pr-hud-bar'),
+    practiceMark: $('pr-hud-mark'),
     practiceCount: $('pr-hud-count'),
     stormBar: $('storm-bar'),
     stormTag: $('storm-tag'),
@@ -453,6 +454,16 @@ export function createHUD(handlers = {}) {
     setExamProgress(done, total) {
       el.practiceCount.textContent = `${Math.max(0, done)}/${total}`;
       el.practiceBar.style.transform = `scaleX(${total ? Math.max(0, done) / total : 0})`;
+    },
+
+    /**
+     * ปักขีด "จุดเซฟถัดไป" บนแถบความคืบหน้า
+     * ซ่อนเมื่อจุดเซฟถัดไปคือเส้นชัยพอดี — ขีดที่ทับขอบขวาไม่ได้บอกอะไรเพิ่ม
+     */
+    setExamSavePoint(at, total) {
+      const show = at > 0 && at < total;
+      el.practiceMark.classList.toggle('hidden', !show);
+      if (show) el.practiceMark.style.left = `${(at / total) * 100}%`;
     },
 
     /* ── 🌪️ พายุ + ⚔️ อาวุธ (เฉพาะ Battle Royale) ────────── */
