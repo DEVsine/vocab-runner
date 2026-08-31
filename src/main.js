@@ -736,8 +736,8 @@ function startRun() {
     };
     hud.setExamMode(true);
     hud.setExamProgress(saved.at, run.exam.total);
-    hud.setExamSavePoint(Math.min(saved.at + CFG.exam.saveEvery, run.exam.total), run.exam.total);
-    const nextSave = Math.min(saved.at + CFG.exam.saveEvery, run.exam.total);
+    const nextSave = examNextSavePoint(saved.at, run.exam.total);
+    hud.setExamSavePoint(nextSave, run.exam.total);
     hud.toast(saved.at
       ? `📝 สอบต่อจากข้อที่ ${saved.at + 1}/${run.exam.total} · ถูกแล้ว ${saved.correct} — จุดเซฟถัดไปข้อที่ ${nextSave}`
       : `📝 โหมดสอบ ${run.exam.total} ข้อ · ตอบผิดหรือชน = จบรอบ — ทำถึงข้อที่ ${nextSave} แล้วจะได้จุดเซฟ`,
@@ -820,6 +820,20 @@ function practiceDone() {
 /** ตอบไปแล้ว n ข้อ = ผ่านจุดเซฟล่าสุดที่ข้อเท่าไหร่ (0 = ยังไม่เคยผ่านจุดเซฟเลย) */
 function examSavePointAt(n) {
   return Math.floor(n / CFG.exam.saveEvery) * CFG.exam.saveEvery;
+}
+
+/**
+ * จุดเซฟ "ถัดไป" เมื่อตอบไปแล้ว n ข้อ — ตัวเลขที่ขีดบน HUD ชี้อยู่
+ *
+ * ⚠️ ต้องคิดจาก examSavePointAt(n) ห้ามเขียน `n + saveEvery` ลัด
+ * มันให้คำตอบเท่ากันเฉพาะตอน n เป็นพหุคูณของ saveEvery พอดี ซึ่งเป็นจริง
+ * "โดยบังเอิญ" ในทางเดินปกติเท่านั้น — และพังทันทีในสองกรณีที่เกิดจริง:
+ *   1) checkpoint เก่าจากตอนที่ saveEvery เป็นค่าอื่น (เช่นค้างที่ 50 แล้วเปลี่ยนเป็น 30)
+ *   2) เซ็ต at มือเพื่อเทสต์ (at=45 → ลัดได้ 95 ทั้งที่ของจริงเซฟที่ 50)
+ * อาการคือขีดบน HUD ชี้ผิดจุด ซึ่ง "ดูเหมือนถูก" จนกว่าจะมีคนไล่นับจริง ๆ
+ */
+function examNextSavePoint(n, total) {
+  return Math.min(examSavePointAt(n) + CFG.exam.saveEvery, total);
 }
 
 /**
@@ -2419,7 +2433,7 @@ function checkGates() {
         hud.toast(`💾 ผ่านจุดเซฟข้อที่ ${run.exam.answered} แล้ว — ตายหลังจากนี้เริ่มที่ข้อ ${run.exam.answered + 1}`, 3000);
         // ขีดต้องขยับไปจุดเซฟถัดไปทันที ไม่งั้นมันจะค้างอยู่ที่จุดที่ผ่านมาแล้ว = ชี้ผิด
         hud.setExamSavePoint(
-          Math.min(run.exam.answered + CFG.exam.saveEvery, run.exam.total), run.exam.total);
+          examNextSavePoint(run.exam.answered, run.exam.total), run.exam.total);
       }
 
       // ข้อสุดท้ายผิดพอดี → ต้องได้เห็นผลรวมทั้งชุด ไม่ใช่จอตาย
