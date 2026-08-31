@@ -275,6 +275,10 @@
             </div>
           </div>
 
+          <!-- โหมดสอบ: ป้ายบอกว่าความคืบหน้าถูกเก็บไว้แล้ว ต้องอยู่ "เหนือปุ่มเล่นอีกครั้ง"
+               เพราะคนที่เพิ่งตายจะกดปุ่มนั้นทันทีด้วยความเคยชิน ป้ายที่อยู่ใต้ปุ่มจะไม่มีใครอ่าน -->
+          <p id="dead-exam" class="dead-exam hidden" aria-live="polite"></p>
+
           <button id="btn-retry" class="btn btn-primary">เล่นอีกครั้ง</button>
           <!-- ปุ่มที่กดไม่ได้โดยไม่บอกเหตุผล = ดูเหมือนเกมค้าง จึงต้องมีป้ายคู่กันเสมอ
                aria-live เพื่อให้โปรแกรมอ่านหน้าจอประกาศตอนสถานะเปลี่ยน ไม่ใช่เห็นแค่ด้วยตา -->
@@ -287,6 +291,7 @@
                เป็นกติกาเดียวกับเมนู: 1 ปุ่มใหญ่ + 2 รอง (ดู .row ใน style.css) -->
           <div class="dead-actions">
             <button id="btn-dead-practice" class="btn">📖 ไปซ้อมคำที่พลาด</button>
+            <button id="btn-exam-restart" class="btn hidden">🔄 เริ่มสอบใหม่ตั้งแต่ข้อ 1</button>
             <button id="btn-to-menu" class="btn">กลับเมนู</button>
           </div>
         </div>

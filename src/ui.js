@@ -11,7 +11,8 @@ import { CHARACTERS, CHARACTER_ORDER, characterById } from './characters.js';
 import { wallet } from './wallet.js';
 import { cheats, redeem } from './cheats.js';
 import * as srs from './srs.js';
-import { isExamDeck } from './deck.js';
+import { isExamDeck, examWordList, playDeckId } from './deck.js';
+import * as examProgress from './exam-progress.js';
 
 const $ = id => document.getElementById(id);
 const PREFS_KEY = `${CFG.storageKey}:prefs`;
@@ -132,6 +133,17 @@ export function createUI(handlers) {
      * แล้วสรุปเองว่า "เกมพัง" — ปุ่มที่ไม่อยู่ตรงนั้นไม่ก่อคำถาม
      * โยงกับ setDeckInfo เพราะทุกเส้นทางที่เปลี่ยน deck เรียกมันหมด (เปลี่ยนชุด/บท/ระดับ/กลับเมนู) */
     $('btn-multiplayer').classList.toggle('hidden', isExamDeck(deck));
+
+    /* deck ข้อสอบมีบรรทัดสรุปของตัวเอง — "เจอแล้ว/แม่นแล้ว" ของ Leitner ตอบคำถามผิดข้อ
+     * สิ่งที่คนกำลังจะสอบอยากรู้คือ "ค้างอยู่ข้อไหน" ไม่ใช่ "เคยเห็นคำมาแล้วกี่คำ" */
+    if (isExamDeck(deck)) {
+      const total = examWordList(deck).length;
+      const saved = examProgress.load(playDeckId(deck), total);
+      deckInfo.textContent = saved.at
+        ? `📝 ข้อสอบ ${total} ข้อ · ค้างอยู่ที่ข้อ ${saved.at + 1} · ถูกแล้ว ${saved.correct}/${saved.at}`
+        : `📝 ข้อสอบ ${total} ข้อ · ยังไม่เริ่ม`;
+      return;
+    }
     const best = srs.getBest(deck.scopeKey ?? deck.statsId ?? deck.id);
     const s = srs.summarize(deck);
     const unit = deck.type === 'subject' ? 'ข้อ' : 'คำ';
@@ -216,7 +228,10 @@ export function createUI(handlers) {
   const menuStudySummary = $('menu-study-summary');
 
   function fillStudyLevelList(deck) {
-    if (!deck?.studyLevels?.length) {
+    /* ⚠️ deck ข้อสอบไม่มีตัวเลือกระดับ — ข้อสอบคือทั้งชุดเสมอ (ดู examWordList)
+     * ปล่อยให้เลือกได้ = สัญญาว่าจะสอบแค่ระดับนั้น ซึ่งเป็นสัญญาที่ระบบไม่รักษา
+     * ระดับยังมีความหมายอยู่ แต่กลายเป็น "ลำดับความยากภายในข้อสอบ" (ข้อ 1–10 = ระดับ 1) */
+    if (isExamDeck(deck) || !deck?.studyLevels?.length) {
       studyLevelWrap.classList.add('hidden');
       studyLevelSelect.innerHTML = '';
       return;
@@ -612,6 +627,7 @@ export function createUI(handlers) {
    * ถ้าส่งรายการมาเองอีกทาง จะมีแหล่งความจริงสองแหล่งที่ต้องคอยทำให้ตรงกัน */
   $('btn-exam-practice').addEventListener('click', () => handlers.onReviewChapter());
   $('btn-exam-retry').addEventListener('click', () => handlers.onStart());
+  $('btn-exam-restart').addEventListener('click', () => handlers.onExamRestart());
   $('btn-exam-menu').addEventListener('click', () => handlers.onMenu());
   $('btn-to-menu').addEventListener('click', () => handlers.onMenu());
   $('btn-resume').addEventListener('click', () => handlers.onResume());
@@ -765,6 +781,25 @@ export function createUI(handlers) {
       $('dead-chose').textContent = DEATH_NOTE[info.cause] || '';
     }
     if (subject && w.q) $('dead-chose').textContent += `\nโจทย์: ${w.q}`;
+    /* ── โหมดสอบ: บอกให้ชัดว่า "ข้อที่ทำไปแล้วไม่หาย" ────────────
+     * ถ้าไม่บอก ผู้เล่นจะสรุปเองจากประสบการณ์เกมวิ่งทั่วไปว่าตาย = เริ่มนับหนึ่งใหม่
+     * แล้วเลิกทำข้อสอบตั้งแต่ครั้งที่สอง ทั้งที่ระบบเก็บให้เรียบร้อยแล้ว
+     * ปุ่มรีเซ็ตโผล่คู่กันเสมอ — คนที่ *อยาก* เริ่มใหม่ต้องมีทางออกที่ไม่ต้องไปหาในเมนู */
+    const ex = info.exam;
+    $('dead-exam').classList.toggle('hidden', !ex);
+    $('btn-exam-restart').classList.toggle('hidden', !ex);
+    /* ⚠️ ประโยค "และจะเป็นด่านแรกของรอบถัดไป" เป็นจริงเฉพาะเกมปกติ (pendingRetryWord)
+     * โหมดสอบข้ามไปข้อถัดไปเสมอ — ปล่อยข้อความเดิมไว้คือให้ UI โกหกผู้เล่นตรง ๆ
+     * และเป็นคำโกหกที่ตรวจไม่เจอ เพราะมันฟังดูสมเหตุสมผลมากจนไม่มีใครไปเช็ก */
+    document.querySelector('.requeue-note').innerHTML = ex
+      ? 'คำนี้ถูกส่งเข้าคิว <b>โหมดฝึก</b> แล้ว — ข้อสอบข้อถัดไปรออยู่ในรอบหน้า'
+      : 'คำนี้ถูกส่งเข้าคิว <b>โหมดฝึก</b> แล้ว — และจะเป็นด่านแรกของรอบถัดไป';
+    if (ex) {
+      $('dead-exam').textContent = ex.at >= ex.total
+        ? `ทำครบ ${ex.total} ข้อแล้ว`
+        : `📝 ทำไปแล้ว ${ex.at}/${ex.total} ข้อ (ถูก ${ex.correct}) — รอบหน้าเริ่มที่ข้อ ${ex.at + 1} ไม่ต้องเริ่มใหม่`;
+    }
+
     setDeathNarrating(false);   // จอใหม่ต้องเริ่มจากสถานะปกติเสมอ ก่อน main.js สั่งอ่าน
     document.querySelector('.dead-tag').textContent = DEATH_TAG[info.cause] || DEATH_TAG.lane;
     $('dead-score').textContent = info.score;

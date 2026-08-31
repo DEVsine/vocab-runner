@@ -37,7 +37,8 @@ import { wallet } from './wallet.js';
 import { cheats } from './cheats.js';
 import { characterById } from './characters.js';
 import { pickPracticeWords, buildPracticeQueue } from './practice.js';
-import { loadDeckIndex, loadDeck, pickWord, pickWordSeeded, pickExamWords, buildQuestion, zoneDeck, kidsDeck, isSubjectDeck, chapterDeck, isExamDeck, applyStudyLevel, defaultStudyLevel, playDeckId } from './deck.js';
+import { loadDeckIndex, loadDeck, pickWord, pickWordSeeded, examWordList, buildQuestion, zoneDeck, kidsDeck, isSubjectDeck, chapterDeck, isExamDeck, applyStudyLevel, defaultStudyLevel, playDeckId } from './deck.js';
+import * as examProgress from './exam-progress.js';
 import { createKidsLesson, nextKidsGate, peekKidsPhase, kidsStepLabel } from './kids-lesson.js';
 import { stormLevel, stormPhase, drainOver } from './storm.js';
 import { AMMO, AMMO_ORDER, ammoById } from './weapons.js';
@@ -263,6 +264,12 @@ const ui = createUI({
     if (!w || examMode()) return;   // โหมดสอบ: ใบสอนก็ต้องเงียบเหมือนตัวข้อสอบ
     if (w.subject) speak(w.fact, { lang: 'th', rate: CFG.question.subject.speechRate });
     else speak(w.en, { rate: 0.9 });
+  },
+  onExamRestart: () => {
+    // ล้าง checkpoint แล้วออกตัวใหม่ทันที — ผู้เล่นที่กดปุ่มนี้ตั้งใจจะเริ่มข้อ 1 อยู่แล้ว
+    // การพากลับเมนูให้กด "เริ่มเล่น" อีกทีคือขั้นตอนส่วนเกินที่ไม่ได้ป้องกันอะไรเลย
+    if (deck) examProgress.clear(playDeckId(deck));
+    startRun();
   },
   onPracticeRun: (words) => startPracticeRun(words),
   onPracticeAgain: () => openPracticeTeach(),
@@ -714,18 +721,25 @@ function startRun() {
    * ที่ openMultiplayer แต่เช็กซ้ำตรงนี้ไว้ด้วย เพราะถ้าวันหนึ่งมีทางเข้าห้องแข่ง
    * ทางที่สอง ผลที่ได้จะเป็น "รอบแข่งที่จบเองตอนข้อ 20" ซึ่งพังเงียบ ๆ หาสาเหตุยากมาก */
   if (!mpActive && isExamDeck(deck)) {
-    const words = pickExamWords(playDeck, CFG.exam.questionCount);
+    const words = examWordList(playDeck);
+    /* ⭐ ออกตัวจาก checkpoint ไม่ใช่จากศูนย์
+     * asked/answered เริ่มที่ saved.at พร้อมกัน = "ข้อ 1..50 ถือว่าจบไปแล้ว"
+     * ตัวชี้ spawn จึงหยิบ queue[50] ซึ่งคือข้อที่ 51 พอดี */
+    const saved = examProgress.load(playDeckId(deck), words.length);
     run.exam = {
       queue: words,
       total: words.length,
-      asked: 0,        // ตัวชี้ "ปล่อยด่านไปแล้วกี่ข้อ" — ใช้ตอน spawn
-      answered: 0,     // "ตัดสินไปแล้วกี่ข้อ" — ใช้ตัดสินว่าสอบจบหรือยัง (คนละตัวโดยตั้งใจ)
-      correct: 0,
-      wrong: [],
+      asked: saved.at,      // ตัวชี้ "ปล่อยด่านไปแล้วกี่ข้อ" — ใช้ตอน spawn
+      answered: saved.at,   // "ตัดสินไปแล้วกี่ข้อ" — ใช้ตัดสินว่าสอบจบหรือยัง (คนละตัวโดยตั้งใจ)
+      correct: saved.correct,
+      wrong: saved.wrong.slice(),
     };
     hud.setExamMode(true);
-    hud.setExamProgress(0, run.exam.total);
-    hud.toast(`📝 โหมดสอบ ${run.exam.total} ข้อ — ตอบผิดไม่ตาย ชนไม่ตาย ทำให้ครบทุกข้อ`, 3600);
+    hud.setExamProgress(saved.at, run.exam.total);
+    hud.toast(saved.at
+      ? `📝 สอบต่อจากข้อที่ ${saved.at + 1} จาก ${run.exam.total} — ทำถูกแล้ว ${saved.correct} ข้อ`
+      : `📝 โหมดสอบ ${run.exam.total} ข้อ — ตอบผิดหรือชน = จบรอบ แต่ข้อที่ทำไปแล้วไม่หาย`,
+      3600);
   } else {
     hud.setExamMode(false);
   }
@@ -800,23 +814,30 @@ function practiceDone() {
 /* ══ โหมดสอบ: ทำครบทุกข้อ แล้วค่อยรู้ผล ═══════════════════════ */
 
 /**
- * ตอบผิดในโหมดสอบ — บันทึกว่าผิด แล้ววิ่งต่อ
+ * เขียน checkpoint ลงเครื่อง — เรียกทุกครั้งที่ "ตัดสินหนึ่งข้อเสร็จ"
  *
- * ⭐ ยังบันทึกลงกล่อง Leitner และคิวห้องซ้อมตามปกติ (srs.record + noteMiss)
- * เพราะผลสอบคือข้อมูลการเรียนรู้ที่ "สะอาด" ที่สุดเท่าที่ระบบจะเก็บได้:
- * ไม่มีเสียงช่วย ไม่มีเกราะ ไม่มีใบสอนนำมาก่อน — สิ่งที่ตอบถูกคือสิ่งที่รู้จริง
- * คำที่พลาดวันนี้จึงโผล่ในห้องซ้อมพรุ่งนี้เอง โดยไม่ต้องมีใครกดอะไรเพิ่ม
- *
- * ⚠️ ไม่มี speakAnswer — เฉลยขึ้น toast อย่างเดียว โหมดสอบเงียบทั้งรอบ
+ * ⚠️ ต้องเรียกทุกข้อ ไม่ใช่เรียกตอนตายหรือตอนจบ
+ * เพราะการตายบางแบบไม่ผ่านโค้ดของเราเลย (ปิดแท็บ / แบตหมด / เบราว์เซอร์ crash)
+ * checkpoint ที่เขียนเฉพาะตอนตายจึงไม่ใช่ checkpoint — มันคือ "บันทึกท้ายรอบ"
+ * ที่บังเอิญได้ผลตอนตายแบบปกติเท่านั้น
  */
-function examMiss(question, lane) {
-  srs.record(playDeckId(deck), question.word, false);
-  noteMiss(question.word);
-  run.exam.wrong.push({ question, chosen: question.options[lane] ?? null });
-  run.combo = 1;
-  run.invuln = CFG.exam.missSeconds;
-  hud.setScore(run.score, run.gates, run.combo);
-  hud.toast(`ยังไม่ใช่ — ${answerLine(question)}`, 2400);
+function saveExamProgress() {
+  if (!run?.exam) return;
+  examProgress.save(playDeckId(deck), {
+    at: run.exam.answered,
+    correct: run.exam.correct,
+    wrong: run.exam.wrong,
+  });
+}
+
+/** แปลงคำที่พลาดให้เป็นบรรทัดเฉลยบนจอผลสอบ — ui ไม่ต้องรู้จักโครงสร้างคำของ deck ไหนเลย */
+function examWrongRow(entry) {
+  const word = run.exam.queue.find(w => idOf(w) === entry.id);
+  if (!word) return null;
+  // deck คำตรงข้าม: คำตอบคือ ant/antTh (en/th คือ *ตัวโจทย์*)
+  if (word.ant) return { prompt: word.en, answer: word.ant, answerTh: word.antTh ?? '', chosen: entry.chose };
+  if (word.subject) return { prompt: word.q ?? word.en, answer: word.choices?.[word.answer] ?? '', answerTh: '', chosen: entry.chose };
+  return { prompt: word.en, answer: word.en, answerTh: word.th ?? '', chosen: entry.chose };
 }
 
 /**
@@ -828,6 +849,8 @@ function examMiss(question, lane) {
  */
 function examDone() {
   const ex = run.exam;
+  // สอบจบแล้ว = checkpoint หมดหน้าที่ · กด "สอบใหม่" จึงเริ่มข้อ 1 เองโดยไม่ต้องมีปุ่มรีเซ็ต
+  examProgress.clear(playDeckId(deck));
   pendingRetryWord = null;
   stopSpeaking();
   stopAmbience();
@@ -849,15 +872,9 @@ function examDone() {
     deckName: deck.activeStudyLevelName
       ? `${deck.name} · ${deck.activeStudyCumulative ? 'รวม' : 'ชุด'} ${deck.activeStudyLevel} ${deck.activeStudyLevelName}`
       : deck.name,
-    // เก็บเฉพาะสิ่งที่จอผลลัพธ์ต้องใช้ ไม่ส่ง question ทั้งก้อนไปให้ ui
-    // (ui ไม่ควรต้องรู้จักโครงสร้างโจทย์ — วันที่โครงสร้างเปลี่ยน จอนี้จะพังเงียบ ๆ)
-    wrong: ex.wrong.map(({ question, chosen }) => ({
-      prompt: question.word.en,
-      promptTh: question.word.th,
-      answer: question.options[question.correctIndex]?.en ?? '',
-      answerTh: question.options[question.correctIndex]?.th ?? '',
-      chosen: chosen?.en ?? '',
-    })),
+    // เก็บเฉพาะสิ่งที่จอผลลัพธ์ต้องใช้ ไม่ส่งโครงสร้างคำดิบไปให้ ui
+    // (ui ไม่ควรต้องรู้จัก ant/antTh/choices — วันที่ deck ชนิดใหม่มา จอนี้จะพังเงียบ ๆ)
+    wrong: ex.wrong.map(examWrongRow).filter(Boolean),
   });
 }
 
@@ -2213,6 +2230,12 @@ function die(cause, word, chosen) {
     // เตรียมบทไว้ตรงนี้ แต่ยังไม่อ่าน — รอให้จอตายขึ้นก่อน (ดู startDeathNarration)
     // (โหมดสอบไม่อ่านเฉลย — ดู deathNarration ที่คืนบทว่างเมื่อ examMode())
     narration: examMode() ? [] : deathNarration(word, run.gates),
+    /* ⭐ บรรทัดเดียวที่ทำให้จอตายของโหมดสอบไม่ใช่ "จุดจบ" แต่เป็น "ป้ายบอกทาง"
+     * ผู้เล่นต้องเห็นทันทีว่าความคืบหน้าไม่หาย ไม่งั้นเขาจะสรุปเองว่าต้องเริ่มนับหนึ่งใหม่
+     * แล้วเลิกเล่น ทั้งที่ระบบเก็บไว้ให้เรียบร้อยแล้ว — ฟีเจอร์ที่ผู้ใช้ไม่รู้ว่ามี = ไม่มี */
+    exam: run.exam
+      ? { at: run.exam.answered, total: run.exam.total, correct: run.exam.correct }
+      : null,
   };
 
   // โหมดแข่ง: ส่งคะแนนสุดท้าย + สถานะ "ตายแล้ว" (ล็อกอันดับในตารางคะแนน)
@@ -2346,25 +2369,35 @@ function checkGates() {
       continue;
     }
 
-    /* ── โหมดสอบ: ตอบผิดไม่ตาย ทำต่อจนครบชุด ──────────────────
+    /* ── โหมดสอบ: ตอบผิด = จบรอบ แต่ข้อที่ทำไปแล้วไม่หาย ──────────
      *
-     * ทำไมข้อสอบห้ามตัดจบตอนตอบผิด: ข้อสอบที่จบทันทีที่พลาด วัดได้แค่
-     * "ตอบถูกติดกันได้กี่ข้อ" ซึ่งไม่ใช่คำถามเดียวกับ "รู้กี่คำ" —
-     * และมันลงโทษคนที่อ่อนที่สุดหนักที่สุด (รู้ 60% แต่ได้ทำแค่ 2–3 ข้อ)
-     * ทั้งที่คนกลุ่มนั้นคือคนที่ได้ประโยชน์จากการทำครบมากที่สุด
+     * ⭐ ลำดับสำคัญมาก: **บันทึก checkpoint ก่อนเรียก die() เสมอ**
+     * die() เปลี่ยน state เป็น 'dying' แล้วลูปนี้จะไม่ได้ทำงานอีก —
+     * ถ้าบันทึกทีหลัง ข้อที่เพิ่งตอบผิดจะหายไป และผู้เล่นจะเจอข้อเดิมซ้ำรอบหน้า
+     * (บั๊กประเภทที่ดูเหมือน "เกมแกล้ง" มากกว่า "โค้ดผิด" จึงไม่มีใครรายงาน)
      *
-     * ⚠️ เลเซอร์ยังยิงอยู่ (gate.resolve ด้านบน) โดยตั้งใจ — ผู้เล่นต้อง *เห็น* ว่าผิด
-     * สิ่งที่ตัดออกคือ "ผลของการโดน" ไม่ใช่ "สัญญาณว่าโดน" */
+     * ข้อที่ตอบผิดถูกนับว่า "ทำไปแล้ว" ไม่ใช่ "ยังไม่ได้ทำ" — ตายที่ข้อ 50
+     * รอบหน้าจึงเริ่มข้อ 51 ตามที่ควรเป็น ไม่ใช่วนกลับมาข้อ 50 ให้ลองใหม่จนกว่าจะถูก
+     * (อย่างหลังคือห้องซ้อม ซึ่งเป็นคนละที่กัน) */
     if (run.exam) {
       if (correct) {
         passGate(gate);
         run.exam.correct += 1;
       } else {
-        examMiss(q, lane);
+        run.exam.wrong.push({ id: idOf(q.word), chose: q.options[lane]?.en ?? '' });
       }
       run.exam.answered += 1;
+      saveExamProgress();
       hud.setExamProgress(run.exam.answered, run.exam.total);
-      if (run.exam.answered >= run.exam.total) { examDone(); return; }
+
+      // ข้อสุดท้ายผิดพอดี → ต้องได้เห็นผลรวมทั้งชุด ไม่ใช่จอตาย
+      // (die() จะไม่ถูกเรียก จึงต้องบันทึกสถิติคำเองตรงนี้ — ปกติ die เป็นคนทำ)
+      if (run.exam.answered >= run.exam.total) {
+        if (!correct) { srs.record(playDeckId(deck), q.word, false); noteMiss(q.word); }
+        examDone();
+        return;
+      }
+      if (!correct) { die('lane', q.word, q.options[lane]); return; }
       continue;
     }
 
@@ -2393,18 +2426,10 @@ function checkHazards() {
       hud.toast('ชน! ไม่เป็นไร ฝึกต่อ', 1200);
       return;
     }
-    /* โหมดสอบ: ชนแล้วสะดุ้งแต่ไม่ตาย และ **ไม่นับเป็นตอบผิด**
-     *
-     * ถ้าปล่อยให้ชนหินแล้วจบรอบ ข้อสอบจะถูกยุติด้วยทักษะนิ้วแทนความรู้ —
-     * ซึ่งเป็นสิ่งเดียวกับที่เราตั้งใจตัดออกทั้งหมดนี้ตั้งแต่แรก
-     * combo ก็ไม่รีเซ็ตด้วย: combo มาจากการตอบถูกติดกัน ไม่ใช่จากการหลบเก่ง */
-    if (run.exam) {
-      world.shake(0.7);
-      sfx.crash();
-      run.invuln = CFG.exam.stumbleSeconds;
-      hud.toast('ชน! ไม่เป็นไร — ไม่นับเป็นตอบผิด', 1200);
-      return;
-    }
+    /* ⚠️ โหมดสอบ *ไม่มี* ทางลัดตรงนี้ — ชนคือจบรอบเหมือนเกมปกติ
+     * นี่คือการสอบ ไม่ใช่ห้องซ้อม เดิมพันต้องมีจริง
+     * สิ่งที่รองรับผู้เล่นไว้คือ checkpoint (ข้อที่ทำไปแล้วไม่หาย) ไม่ใช่การยกเลิกการตาย
+     * และ die('obstacle') ไม่บันทึกว่าตอบผิด — ข้อที่ค้างอยู่จึงกลับมาให้ทำใหม่รอบหน้า */
     if (run.jetArmed) { rescueWithJet(`${armorEmoji()} ${armorName()}ช่วยไว้! รอดจากการชน`); return; }
     const pending = gates.pending();
     die('obstacle', pending?.question.word ?? null, null);
@@ -2489,10 +2514,7 @@ function checkTrains() {
       player.setPlatform(surf.roofY);
     } else if (surf.enteredBy > CFG.trains.mountGrace
                && run.invuln <= 0 && !player.isBoosting()) {
-      // โหมดสอบ pace()=0 จึงไม่มียานถูก schedule เลย — แต่กันไว้ที่นี่ด้วย
-      // เพราะ "ไม่มีทางเกิด" กับ "เกิดแล้วไม่ตาย" ไม่ใช่สิ่งเดียวกัน และวันที่เงื่อนไข
-      // ข้างบนถูกแก้ จุดนี้คือจุดที่จะฆ่าผู้สอบเงียบ ๆ โดยไม่มีใครนึกถึง
-      if (run.practice || run.exam) { world.shake(0.7); run.invuln = 1.4; return; }
+      if (run.practice) { world.shake(0.7); run.invuln = 1.4; return; }
       if (run.jetArmed) { rescueWithJet(`${armorEmoji()} ${armorName()}ช่วยไว้! พุ่งข้ามยานลำเลียง`); return; }
       const pending = gates.pending();
       die('obstacle', pending?.question.word ?? null, null);
@@ -2504,7 +2526,6 @@ function checkTrains() {
 
   if (run.invuln > 0 || player.isBoosting()) return;
   if (trains.oncomingHit(px)) {
-    if (run.practice || run.exam) { world.shake(0.7); run.invuln = 1.4; return; }
     if (run.jetArmed) { rescueWithJet(`${armorEmoji()} ${armorName()}ช่วยไว้! เฉียดยานสวนนิดเดียว`); return; }
     const pending = gates.pending();
     die('obstacle', pending?.question.word ?? null, null);
@@ -2897,7 +2918,11 @@ async function selectDeck(file) {
   }
   pendingRetryWord = null;
   ui.fillStudyLevelList(fullDeck);
-  const lvl = ui.selectedStudyLevel() ?? defaultStudyLevel(fullDeck);
+  /* ⚠️ deck ข้อสอบไม่ผ่าน applyStudyLevel เลย — ข้อสอบคือ "ทั้งชุด" เสมอ
+   * ถ้าปล่อยให้กรองตามระดับ จะเกิดสภาพที่อธิบายไม่ได้: เมนูบอก 10 คำ
+   * แต่ตัวสอบมี 100 ข้อ และ checkpoint ที่ข้อ 51 จะชี้ไปนอกชุดที่กรองไว้
+   * (ตัวเลือกระดับถูกซ่อนไปแล้วที่ ui.fillStudyLevelList — ที่นี่คือการบังคับใช้จริง) */
+  const lvl = isExamDeck(fullDeck) ? null : (ui.selectedStudyLevel() ?? defaultStudyLevel(fullDeck));
   const levelled = lvl != null
     ? applyStudyLevel(fullDeck, lvl, { cumulative: ui.selectedStudyCumulative() })
     : fullDeck;
@@ -2921,7 +2946,7 @@ function selectChapter(chapterId) {
 }
 
 function applySelectedStudyLevel(level = ui.selectedStudyLevel()) {
-  if (!fullDeck?.allWords) return;
+  if (!fullDeck?.allWords || isExamDeck(fullDeck)) return;
   deck = applyStudyLevel(fullDeck, level, { cumulative: ui.selectedStudyCumulative() });
   pendingRetryWord = null;
   ui.setDeckInfo(deck);
